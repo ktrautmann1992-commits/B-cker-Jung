@@ -19,6 +19,14 @@ exports.handler = async function (event) {
   let eingabe = {};
   try { eingabe = JSON.parse(event.body || '{}'); } catch (e) { /* leer lassen */ }
 
+  // Passwortprüfung, sobald CHEF_PASSWORT gesetzt ist
+  const erwartet = process.env.CHEF_PASSWORT;
+  if (erwartet) {
+    if (!eingabe.passwort || !gleich(String(eingabe.passwort), erwartet)) {
+      return antwort(401, { fehler: 'Das Passwort stimmt nicht.' });
+    }
+  }
+
   // Ganze Zeiträume für die Auswertung (Quartal, Jahr)
   if (eingabe.aktion === 'zeitraum') {
     const von = String(eingabe.von || ''), bis = String(eingabe.bis || '');
@@ -83,6 +91,13 @@ exports.handler = async function (event) {
 
 function istDatum(wert) {
   return /^\d{4}-\d{2}-\d{2}$/.test(wert);
+}
+
+function gleich(a, b) {
+  if (a.length !== b.length) return false;
+  let unterschied = 0;
+  for (let i = 0; i < a.length; i++) unterschied |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return unterschied === 0;
 }
 
 function antwort(status, koerper) {

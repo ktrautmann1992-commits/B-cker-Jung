@@ -236,7 +236,11 @@
       </div>
 
       <div id="rolle-chef" class="verstecken">
-        <button class="haupt" type="button" onclick="location.href='chef.html'">Zur Chef-Ansicht</button>
+        <div style="height:14px"></div>
+        <label class="feldname" for="chef-passwort">Passwort der Gesch&auml;ftsf&uuml;hrung</label>
+        <input type="password" id="chef-passwort" autocomplete="current-password">
+        <div id="chef-meldung"></div>
+        <button class="haupt" type="button" id="chef-los">Zur Chef-Ansicht</button>
       </div>
     </div>
   </div>
@@ -372,6 +376,43 @@
     el('rolle-filiale').classList.toggle('verstecken', wert !== 'filiale');
     el('rolle-chef').classList.toggle('verstecken', wert !== 'chef');
   });
+
+  // ---------- Anmeldung der Geschäftsführung ----------
+  el('chef-los').addEventListener('click', chefAnmelden);
+  el('chef-passwort').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') chefAnmelden();
+  });
+
+  function chefAnmelden() {
+    var eingabe = el('chef-passwort').value;
+    if (!eingabe) { chefMeldung('Bitte das Passwort eintragen.', 'fehler'); return; }
+    el('chef-los').disabled = true;
+    el('chef-los').textContent = 'Wird gepr\u00fcft \u2026';
+    chefMeldung('', '');
+
+    fetch('/.netlify/functions/bestellungen', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passwort: eingabe })
+    })
+    .then(function (a) {
+      el('chef-los').disabled = false;
+      el('chef-los').textContent = 'Zur Chef-Ansicht';
+      if (a.status === 401) { chefMeldung('Das Passwort stimmt nicht.', 'fehler'); return; }
+      if (!a.ok) { chefMeldung('Der Server antwortet nicht (Status ' + a.status + ').', 'fehler'); return; }
+      try { sessionStorage.setItem('chef-passwort', eingabe); } catch (e) {}
+      location.href = 'chef.html';
+    })
+    .catch(function () {
+      el('chef-los').disabled = false;
+      el('chef-los').textContent = 'Zur Chef-Ansicht';
+      chefMeldung('Die Pr\u00fcfung hat nicht geklappt. Bitte erneut versuchen.', 'fehler');
+    });
+  }
+
+  function chefMeldung(text, art) {
+    el('chef-meldung').innerHTML = text
+      ? '<div class="meldung ' + art + '" style="margin:12px 0 0">' + txt(text) + '</div>' : '';
+  }
 
   el('wahl-bestellung').addEventListener('click', function () { starte('bestellung'); });
   el('wahl-retoure').addEventListener('click', function () { starte('retoure'); });
