@@ -9,9 +9,44 @@
 //   { "aktion": "lesen",      "datum": "2026-08-28" }
 //   { "aktion": "speichern",  "datum": "2026-08-28", "umsaetze": { "Kusel": 1240.50 } }
 
-const { getStore } = require('@netlify/blobs');
+const blobs = require('@netlify/blobs');
+
+// Erst der normale Weg, sonst ausdrücklich mit Site-ID und Token
+function getStore(name) {
+  try {
+    return blobs.getStore(name);
+  } catch (fehler) {
+    return blobs.getStore({
+      name: name,
+      siteID: process.env.SITE_ID || process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_API_TOKEN || process.env.NETLIFY_BLOBS_TOKEN
+    });
+  }
+}
 
 exports.handler = async function (event) {
+  // Selbstauskunft: im Browser aufrufbar, prüft ob die Ablage funktioniert
+  if (event.httpMethod === 'GET') {
+    const bericht = {
+      funktion: 'umsatz',
+      node: process.version,
+      siteId: process.env.SITE_ID ? 'vorhanden' : 'fehlt',
+      blobsToken: process.env.NETLIFY_BLOBS_CONTEXT ? 'vorhanden' : 'fehlt',
+      ablage: 'unbekannt'
+    };
+    try {
+      const probe = getStore('tagesumsatz');
+      await probe.setJSON('probe-test', { zeit: new Date().toISOString() });
+      const zurueck = await probe.get('probe-test', { type: 'json' });
+      bericht.ablage = zurueck ? 'funktioniert' : 'schreibt, liest aber nichts';
+    } catch (fehler) {
+      bericht.ablage = 'FEHLER';
+      bericht.meldung = fehler.message;
+      bericht.name = fehler.name;
+    }
+    return antwort(200, bericht);
+  }
+
   if (event.httpMethod !== 'POST') {
     return antwort(405, { fehler: 'Nur POST' });
   }

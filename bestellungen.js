@@ -13,11 +13,52 @@
 //   NETLIFY_API_TOKEN  bindet zusätzlich die alten Formulareingänge ein
 //   FORM_NAME          Standard: "bestellung"
 
-const { getStore } = require('@netlify/blobs');
+const blobs = require('@netlify/blobs');
+
+function getStore(name) {
+  try {
+    return blobs.getStore(name);
+  } catch (fehler) {
+    return blobs.getStore({
+      name: name,
+      siteID: process.env.SITE_ID || process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_API_TOKEN || process.env.NETLIFY_BLOBS_TOKEN
+    });
+  }
+}
 
 const API = 'https://api.netlify.com/api/v1';
 
 exports.handler = async function (event) {
+  // Selbstauskunft im Browser: prüft Schreiben, Lesen und den Bestand
+  if (event.httpMethod === 'GET') {
+    const bericht = { funktion: 'bestellungen', node: process.version,
+                      siteId: process.env.SITE_ID ? 'vorhanden' : 'fehlt',
+                      blobsUmgebung: process.env.NETLIFY_BLOBS_CONTEXT ? 'vorhanden' : 'fehlt' };
+    try {
+      const ablage = getStore('bestellungen');
+      await ablage.setJSON('probe/test', { zeit: new Date().toISOString() });
+      const zurueck = await ablage.get('probe/test', { type: 'json' });
+      bericht.schreibenLesen = zurueck ? 'funktioniert' : 'liest nichts zurueck';
+      const liste = await ablage.list();
+      const schluessel = (liste.blobs || []).map(function (x) { return x.key; });
+      bericht.bestellungenImArchiv = schluessel.length;
+      bericht.schluessel = schluessel.slice(0, 10);
+    } catch (fehler) {
+      bericht.schreibenLesen = 'FEHLER';
+      bericht.meldung = fehler.message;
+      bericht.name = fehler.name;
+    }
+    try {
+      const r = getStore('retouren');
+      const l = await r.list();
+      bericht.retourenImArchiv = (l.blobs || []).length;
+    } catch (fehler) {
+      bericht.retourenImArchiv = 'FEHLER: ' + fehler.message;
+    }
+    return antwort(200, bericht);
+  }
+
   if (event.httpMethod !== 'POST') {
     return antwort(405, { fehler: 'Nur POST' });
   }
