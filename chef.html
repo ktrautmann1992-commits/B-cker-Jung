@@ -1,0 +1,2659 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bäcker Jung – Chef-Ansicht</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --blau:   #2E2A79;
+    --blau-h: #4A44B0;
+    --gelb:   #FFC800;
+    --papier: #FBFAF6;
+    --linie:  #DDDAE8;
+    --grau:   #6B6880;
+    --gruen:  #1E7B45;
+    --rot:    #B32B28;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { max-width: 100%; overflow-x: hidden; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--papier);
+    color: #17162B;
+    overflow-wrap: break-word;
+  }
+
+  /* ---------- Kopf ---------- */
+  header {
+    background: var(--blau);
+    color: #fff;
+    padding: 10px 14px;
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 11px;
+  }
+  header #logo {
+    height: 34px; width: auto; flex: 0 0 auto;
+    background: #fff; border-radius: 8px; padding: 4px 6px;
+  }
+  header h1 {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 17px;
+    margin: 0; flex: 1; min-width: 0;
+    letter-spacing: -0.01em;
+  }
+  header h1 span { color: var(--gelb); }
+  header .stand {
+    font-size: 10.5px; opacity: .72; display: block; font-weight: 600;
+    font-family: 'Inter', sans-serif; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  header button {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 9px 12px; border-radius: 9px; flex: 0 0 auto;
+    border: 1px solid rgba(255,255,255,.28);
+    background: rgba(255,255,255,.08); color: #fff; cursor: pointer;
+  }
+  header button:active { background: rgba(255,255,255,.2); }
+
+  main { max-width: 940px; margin: 0 auto; padding: 16px 14px 60px; }
+
+  .karte {
+    background: #fff;
+    border: 1px solid var(--linie);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  label.feldname {
+    display: block;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase;
+    color: var(--grau); margin-bottom: 5px;
+  }
+
+  select, input[type=date], input[type=search], input[type=password] {
+    width: 100%;
+    font-family: inherit;
+    font-size: 16px;
+    padding: 11px 12px;
+    border: 1px solid var(--linie);
+    border-radius: 9px;
+    background: #fff; color: inherit;
+  }
+  select:focus, input:focus {
+    outline: none;
+    border-color: var(--blau);
+    box-shadow: 0 0 0 3px rgba(46,42,121,.12);
+  }
+  .raster { display: flex; gap: 10px; flex-wrap: wrap; }
+  .raster > div { flex: 1 1 150px; min-width: 0; max-width: 100%; }
+
+  /* ---------- Reiter ---------- */
+  .reiter {
+    display: flex; gap: 8px; margin-bottom: 14px;
+    overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .reiter::-webkit-scrollbar { display: none; }
+  .reiter button {
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    padding: 10px 15px; border-radius: 9px;
+    border: 1px solid var(--linie); background: #fff; color: var(--grau);
+    cursor: pointer; flex: 0 0 auto; white-space: nowrap;
+  }
+  .reiter button.an { background: var(--blau); border-color: var(--blau); color: #fff; }
+
+  /* ---------- Kennzahlen ---------- */
+  .zahlen { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .zahl {
+    flex: 1 1 120px;
+    background: #fff; border: 1px solid var(--linie);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .zahl b { display: block; font-family: 'Nunito', sans-serif; font-size: 24px; line-height: 1.1; }
+  .zahl span {
+    font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--grau);
+  }
+
+  /* ---------- Fehlende Filialen ---------- */
+  .offen {
+    background: #FFFBEA; border: 1px solid #F2E3A8;
+    border-left: 4px solid var(--gelb);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 14px;
+  }
+  .offen b { display: block; margin-bottom: 4px; }
+  .offen span { color: var(--grau); }
+
+  /* ---------- Bestellungen ---------- */
+  .bestellung { border-bottom: 1px solid var(--linie); }
+  .bestellung:last-child { border-bottom: none; }
+  .kopfzeile {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 4px; cursor: pointer;
+  }
+  .kopfzeile:hover { background: #FAF9FE; }
+  .kopfzeile .ort { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; }
+  .kopfzeile .ort small {
+    display: block; font-weight: 400; color: var(--grau); font-size: 12px; margin-top: 2px;
+  }
+  .kopfzeile .menge { text-align: right; font-size: 13px; color: var(--grau); white-space: nowrap; }
+  .kopfzeile .menge b { display: block; color: #17162B; font-size: 15px; }
+  .pfeil { color: var(--grau); font-size: 13px; width: 14px; }
+
+  .details { padding: 2px 4px 16px; }
+  .hinweis {
+    background: #F4F2FB; border-left: 3px solid var(--blau);
+    padding: 9px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 600;
+    letter-spacing: .05em; text-transform: uppercase; color: var(--grau);
+    padding: 6px 8px; border-bottom: 1px solid var(--linie);
+  }
+  td { padding: 7px 8px; border-bottom: 1px solid #F0EEF6; vertical-align: top; }
+  td.zahl-rechts, th.zahl-rechts { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+
+  .dateien { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .dateien a {
+    font-size: 13px; font-weight: 600; text-decoration: none;
+    padding: 8px 12px; border: 1px solid var(--linie); border-radius: 9px;
+    background: #fff; color: var(--blau);
+  }
+
+  /* ---------- Produktion ---------- */
+  .werkzeuge { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .werkzeuge button {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 10px 13px; border: 1px solid var(--linie); border-radius: 9px;
+    background: #fff; color: var(--blau); cursor: pointer;
+  }
+  .aufteilung { color: var(--grau); font-size: 11.5px; margin-top: 3px; line-height: 1.45; }
+
+  /* ---------- Meldungen ---------- */
+  .meldung {
+    margin: 0 0 14px; padding: 12px 14px;
+    border-radius: 10px; font-size: 14px; border-left: 4px solid;
+  }
+  .meldung.fehler { background: #FBF0EF; border-color: var(--rot); color: var(--rot); }
+  .meldung.ladend { background: #F4F2FB; border-color: var(--blau); color: var(--blau); }
+  .meldung.gut    { background: #EEF7F1; border-color: var(--gruen); color: var(--gruen); }
+
+  input.umsatz-feld {
+    width: 118px; text-align: right;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+    padding: 8px 10px;
+  }
+
+  /* ---------- Auswertung ---------- */
+  h3.abschnitt {
+    font-family: 'Nunito', sans-serif; font-size: 15px;
+    margin: 22px 0 10px; padding-top: 16px;
+    border-top: 1px solid var(--linie);
+  }
+  h3.abschnitt:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+
+  .balken { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+  .balken .name { flex: 0 0 128px; }
+  .balken .spur { flex: 1; background: #F0EEF6; border-radius: 5px; height: 16px; overflow: hidden; }
+  .balken .fuellung { height: 100%; background: var(--blau); border-radius: 5px; }
+  .balken .wert {
+    flex: 0 0 96px; text-align: right; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .warnung { color: var(--rot); font-weight: 700; font-size: 13px; cursor: help; }
+  .hoch { color: var(--gruen); font-weight: 600; }
+  .runter { color: var(--rot); font-weight: 600; }
+
+  /* ---------- Personal, Dienstplan, Kosten ---------- */
+  input.klein, select.klein {
+    width: 100%; min-width: 82px;
+    padding: 7px 8px; font-size: 14px;
+  }
+  input.geld {
+    width: 104px; text-align: right;
+    font-variant-numeric: tabular-nums; padding: 7px 9px; font-size: 14px;
+  }
+  .rollen { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .rollen table { min-width: 720px; }
+  .zeilenknopf {
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    padding: 6px 9px; margin-left: 4px;
+    border: 1px solid var(--linie); border-radius: 7px;
+    background: #fff; color: var(--blau); cursor: pointer;
+  }
+  .zeilenknopf.loeschen { color: var(--rot); }
+  .formularfeld { flex: 1 1 170px; margin-bottom: 10px; }
+
+  .leer { padding: 34px 4px; text-align: center; color: var(--grau); font-size: 14px; line-height: 1.6; }
+  .verstecken { display: none !important; }
+
+  @media print {
+    header, .reiter, .werkzeuge, #zahlen, .filterkarte, .offen { display: none !important; }
+    body { background: #fff; }
+    .karte { border: none; padding: 0; }
+    main { padding: 0; max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ---------- Anwendung ---------- -->
+<div id="anwendung">
+
+<header>
+  <img id="logo" src="data:image/png;base64,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" alt="Bäcker Jung">
+  <h1>Chef-Ansicht
+    <span class="stand" id="stand">&nbsp;</span>
+  </h1>
+  <button type="button" id="neuladen">Aktualisieren</button>
+</header>
+
+<main>
+  <div id="meldung"></div>
+
+  <div class="karte filterkarte">
+    <div class="raster">
+      <div>
+        <label class="feldname" for="von">Bestelldatum von</label>
+        <input type="date" id="von">
+      </div>
+      <div>
+        <label class="feldname" for="bis">bis</label>
+        <input type="date" id="bis">
+      </div>
+      <div>
+        <label class="feldname" for="filter-filiale">Filiale</label>
+        <select id="filter-filiale"><option value="">Alle Filialen</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="zahlen" id="zahlen"></div>
+  <div id="offen"></div>
+
+  <div class="reiter">
+    <button type="button" id="reiter-dashboard" class="an">Dashboard</button>
+    <button type="button" id="reiter-verkauf">Verkaufsauswertung</button>
+    <button type="button" id="reiter-bestellungen">Bestellungen</button>
+    <button type="button" id="reiter-produktion">Produktionsliste</button>
+    <button type="button" id="reiter-umsatz">Tagesumsatz</button>
+    <button type="button" id="reiter-auswertung">Auswertung</button>
+    <button type="button" id="reiter-personal">Personal</button>
+    <button type="button" id="reiter-dienstplan">Dienstplan</button>
+    <button type="button" id="reiter-kosten">Kosten</button>
+  </div>
+
+  <div class="karte" id="bereich-dashboard">
+    <div class="raster" style="margin-bottom:14px">
+      <div style="flex:0 0 180px">
+        <label class="feldname" for="dash-art">Zeitraum</label>
+        <select id="dash-art">
+          <option value="tag">Tag</option>
+          <option value="woche">Woche</option>
+          <option value="monat" selected>Monat</option>
+          <option value="quartal">Quartal</option>
+          <option value="jahr">Jahr</option>
+          <option value="gesamt">Gesamter Zeitraum</option>
+          <option value="individuell">Individuell</option>
+        </select>
+      </div>
+      <div style="flex:0 0 170px" id="dash-feld-stichtag">
+        <label class="feldname" for="dash-stichtag">Stichtag</label>
+        <input type="date" id="dash-stichtag">
+      </div>
+      <div style="flex:0 0 160px" id="dash-feld-von">
+        <label class="feldname" for="dash-von">Von</label>
+        <input type="date" id="dash-von">
+      </div>
+      <div style="flex:0 0 160px" id="dash-feld-bis">
+        <label class="feldname" for="dash-bis">Bis</label>
+        <input type="date" id="dash-bis">
+      </div>
+      <div style="flex:0 0 190px">
+        <label class="feldname" for="dash-sortierung">Sortierung</label>
+        <select id="dash-sortierung">
+          <option value="ab">Umsatz absteigend</option>
+          <option value="auf">Umsatz aufsteigend</option>
+        </select>
+      </div>
+    </div>
+    <div id="dashboard-inhalt"></div>
+    <div class="werkzeuge" style="margin-top:14px">
+      <button type="button" id="dash-verkauf">Zur Verkaufsauswertung</button>
+      <button type="button" id="dash-csv">Ranking als CSV</button>
+    </div>
+  </div>
+
+  <div class="karte verstecken" id="bereich-verkauf">
+    <div class="raster" style="margin-bottom:14px">
+      <div style="flex:0 0 180px">
+        <label class="feldname" for="v-art">Zeitraum</label>
+        <select id="v-art">
+          <option value="tag">Tag</option>
+          <option value="woche">Woche</option>
+          <option value="monat" selected>Monat</option>
+          <option value="quartal">Quartal</option>
+          <option value="jahr">Jahr</option>
+          <option value="gesamt">Gesamter Zeitraum</option>
+          <option value="individuell">Individuell</option>
+        </select>
+      </div>
+      <div style="flex:0 0 170px" id="v-feld-stichtag">
+        <label class="feldname" for="v-stichtag">Stichtag</label>
+        <input type="date" id="v-stichtag">
+      </div>
+      <div style="flex:0 0 160px" id="v-feld-von">
+        <label class="feldname" for="v-von">Von</label>
+        <input type="date" id="v-von">
+      </div>
+      <div style="flex:0 0 160px" id="v-feld-bis">
+        <label class="feldname" for="v-bis">Bis</label>
+        <input type="date" id="v-bis">
+      </div>
+      <div style="flex:0 0 210px">
+        <label class="feldname" for="v-filiale">Filiale</label>
+        <select id="v-filiale"><option value="">Alle Filialen</option></select>
+      </div>
+      <div style="flex:0 0 200px">
+        <label class="feldname" for="v-kennzahl">Ranking nach</label>
+        <select id="v-kennzahl">
+          <option value="menge">Meist verkaufte Menge</option>
+          <option value="umsatz">Umsatzstärkster Artikel</option>
+          <option value="retoure">Höchste Retourenquote</option>
+          <option value="bestellt">Bestellte Menge</option>
+        </select>
+      </div>
+      <div style="flex:0 0 170px">
+        <label class="feldname" for="v-sortierung">Sortierung</label>
+        <select id="v-sortierung">
+          <option value="ab">Absteigend</option>
+          <option value="auf">Aufsteigend</option>
+        </select>
+      </div>
+    </div>
+    <div id="verkauf-inhalt"></div>
+    <div class="werkzeuge" style="margin-top:14px">
+      <button type="button" id="v-csv">Als CSV speichern</button>
+      <button type="button" id="v-pdf">Als PDF speichern</button>
+    </div>
+  </div>
+
+  <div class="karte verstecken" id="bereich-bestellungen"></div>
+
+  <div class="karte verstecken" id="bereich-produktion">
+    <div style="margin-bottom:12px">
+      <label class="feldname" for="suche">Auf einen Artikel einschränken (optional)</label>
+      <input type="search" id="suche" placeholder="Nummer oder Bezeichnung &hellip;" autocomplete="off">
+    </div>
+    <div class="werkzeuge">
+      <button type="button" id="produktion-csv">Als CSV speichern</button>
+      <button type="button" id="produktion-druck">Drucken</button>
+    </div>
+    <div id="produktion-inhalt"></div>
+  </div>
+
+  <div class="karte verstecken" id="bereich-umsatz">
+    <div class="raster" style="margin-bottom:14px">
+      <div style="flex:0 0 190px">
+        <label class="feldname" for="umsatz-datum">Tag</label>
+        <input type="date" id="umsatz-datum">
+      </div>
+    </div>
+    <div id="umsatz-meldung"></div>
+    <div id="umsatz-inhalt"></div>
+    <div class="werkzeuge" style="margin-top:14px">
+      <button type="button" id="umsatz-speichern">Umsätze speichern</button>
+      <button type="button" id="umsatz-csv">Als CSV speichern</button>
+    </div>
+  </div>
+
+  <div class="karte verstecken" id="bereich-auswertung">
+    <div class="raster" style="margin-bottom:14px">
+      <div style="flex:0 0 160px">
+        <label class="feldname" for="a-art">Auswertung f&uuml;r</label>
+        <select id="a-art">
+          <option value="tag">Tag</option>
+          <option value="woche">Woche</option>
+          <option value="monat">Monat</option>
+          <option value="quartal" selected>Quartal</option>
+          <option value="jahr">Jahr</option>
+        </select>
+      </div>
+      <div style="flex:0 0 170px" id="feld-stichtag">
+        <label class="feldname" for="a-stichtag">Stichtag</label>
+        <input type="date" id="a-stichtag">
+      </div>
+      <div style="flex:0 0 130px" id="feld-jahr">
+        <label class="feldname" for="a-jahr">Jahr</label>
+        <select id="a-jahr"></select>
+      </div>
+      <div style="flex:0 0 210px" id="feld-quartal">
+        <label class="feldname" for="a-zeitraum">Quartal</label>
+        <select id="a-zeitraum">
+          <option value="1">1. Quartal (Jan–März)</option>
+          <option value="2">2. Quartal (Apr–Juni)</option>
+          <option value="3">3. Quartal (Juli–Sept)</option>
+          <option value="4">4. Quartal (Okt–Dez)</option>
+        </select>
+      </div>
+    </div>
+    <div id="auswertung-meldung"></div>
+    <div id="auswertung-inhalt"></div>
+    <div class="werkzeuge" style="margin-top:16px">
+      <button type="button" id="a-pdf">Als PDF speichern</button>
+      <button type="button" id="a-csv-tage">Tageswerte als CSV</button>
+      <button type="button" id="a-csv-summe">Zusammenfassung als CSV</button>
+      <button type="button" id="a-druck">Drucken</button>
+    </div>
+  </div>
+
+  <!-- ---------- Personal ---------- -->
+  <div class="karte verstecken" id="bereich-personal">
+    <div class="werkzeuge">
+      <button type="button" id="p-neu">Mitarbeiter anlegen</button>
+      <button type="button" id="p-csv">Personalliste als CSV</button>
+    </div>
+    <div id="personal-meldung"></div>
+    <div id="personal-formular" class="verstecken"></div>
+    <div id="personal-inhalt"></div>
+  </div>
+
+  <!-- ---------- Dienstplan ---------- -->
+  <div class="karte verstecken" id="bereich-dienstplan">
+    <div class="raster" style="margin-bottom:14px">
+      <div style="flex:0 0 180px">
+        <label class="feldname" for="d-tag">Woche vom</label>
+        <input type="date" id="d-tag">
+      </div>
+      <div style="flex:0 0 240px">
+        <label class="feldname" for="d-filiale">Filiale</label>
+        <select id="d-filiale"></select>
+      </div>
+    </div>
+    <div id="dienstplan-meldung"></div>
+    <div class="reiter" style="margin-bottom:12px">
+      <button type="button" id="d-ansicht-plan" class="an">Plan eintragen</button>
+      <button type="button" id="d-ansicht-kalender">Wochenkalender</button>
+      <button type="button" id="d-ansicht-zeiten">Schichtzeiten</button>
+    </div>
+    <div id="dienstplan-zeiten" class="verstecken"></div>
+    <div id="dienstplan-inhalt"></div>
+    <div class="werkzeuge" style="margin-top:14px">
+      <button type="button" id="d-speichern">Dienstplan speichern</button>
+      <button type="button" id="d-pdf">Dienstplan als PDF</button>
+    </div>
+  </div>
+
+  <!-- ---------- Kosten ---------- -->
+  <div class="karte verstecken" id="bereich-kosten">
+    <p style="margin:0 0 14px;color:var(--grau);font-size:13px;line-height:1.5">
+      Monatliche Kosten je Filiale. Entweder eine Gesamtpauschale eintragen oder die
+      Einzelposten &ndash; die Pauschale hat Vorrang.
+    </p>
+    <div id="kosten-meldung"></div>
+    <div id="kosten-inhalt"></div>
+    <div class="werkzeuge" style="margin-top:14px">
+      <button type="button" id="k-speichern">Kosten speichern</button>
+    </div>
+  </div>
+</main>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script type="application/json" id="stammdaten">{"filialen": [{"blatt": "Rammelsbach", "ort": "Rammelsbach", "strasse": "Haschbacherstraße 14"}, {"blatt": "Rodenbach", "ort": "Rodenbach", "strasse": "Hauptstraße 60"}, {"blatt": "Bruchmühlbach-Miesau", "ort": "Bruchmühlbach-Miesau", "strasse": "St. Wendelerstraße 13"}, {"blatt": "Ramstein-Miesenbach", "ort": "Ramstein-Miesenbach", "strasse": "Ramsteinerstraße 42"}, {"blatt": "Landstuhl", "ort": "Landstuhl", "strasse": "Gartenstraße 11"}, {"blatt": "Vogelbach", "ort": "Vogelbach", "strasse": "Kaiserstraße 338"}, {"blatt": "Schönenberg-Kübelberg", "ort": "Schönenberg-Kübelberg", "strasse": "Glanstraße 16"}, {"blatt": "Waldmohr", "ort": "Waldmohr", "strasse": "Saarpfalzstraße 50"}, {"blatt": "Konken", "ort": "Konken", "strasse": "Hauptstraße 52"}, {"blatt": "Kusel", "ort": "Kusel", "strasse": "Triererstraße 38"}, {"blatt": "Ramstein-Miesenbach Walther-Euc", "ort": "Ramstein-Miesenbach", "strasse": "Walther-Eucken Straße"}], "artikel": [{"nr": "1", "bez": "Doppelbrötchen", "einheit": "Stück", "vk": 1.1}, {"nr": "2", "bez": "Tafelbrötchen", "einheit": "Stück", "vk": 0.55}, {"nr": "3", "bez": "Knopfsemmel", "einheit": "Stück", "vk": 0.55}, {"nr": "5", "bez": "Milchbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "6", "bez": "Krusties", "einheit": "Stück", "vk": 1.1}, {"nr": "7", "bez": "Sesambrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "8", "bez": "Mohnbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "9", "bez": "Kümmelbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "10", "bez": "Käsebrötchen", "einheit": "Stück", "vk": 1.0}, {"nr": "11", "bez": "Mohnhörnchen", "einheit": "Stück", "vk": 0.95}, {"nr": "13", "bez": "Miesauer Landweck", "einheit": "Stück", "vk": 1.2}, {"nr": "16", "bez": "Dinkel Honig Krusties", "einheit": "Stück", "vk": 1.1}, {"nr": "22", "bez": "Knopfsemmel Teiglinge", "einheit": "Stück", "vk": 0.45}, {"nr": "50", "bez": "Römer", "einheit": "Stück", "vk": 0.95}, {"nr": "51", "bez": "Kornspitz", "einheit": "Stück", "vk": 0.95}, {"nr": "54", "bez": "Kürbisknacker", "einheit": "Stück", "vk": 0.95}, {"nr": "55", "bez": "Vesperstange", "einheit": "Stück", "vk": 2.1}, {"nr": "57", "bez": "Dinkelkörnle", "einheit": "Stück", "vk": 0.95}, {"nr": "62", "bez": "Kürbisbrezel", "einheit": "Stück", "vk": 1.8}, {"nr": "64", "bez": "Schinkenkäsebrezel", "einheit": "Stück", "vk": 2.35}, {"nr": "65", "bez": "Schlemmerstange", "einheit": "Stück", "vk": 2.0}, {"nr": "66", "bez": "Pfefferbrezel", "einheit": "Stück", "vk": 1.3}, {"nr": "67", "bez": "Laugestange mit Kürbis", "einheit": "Stück", "vk": 0.95}, {"nr": "79", "bez": "Partybrötchen mit Belag MKS Käse Körner", "einheit": "Stück", "vk": 0.65}, {"nr": "80", "bez": "Partyrad 15 er", "einheit": "Stück", "vk": 7.95}, {"nr": "81", "bez": "Partyrad 25 er", "einheit": "Stück", "vk": 13.25}, {"nr": "82", "bez": "Partyrad 30 er", "einheit": "Stück", "vk": 15.9}, {"nr": "83", "bez": "Partysonne 35 er", "einheit": "Stück", "vk": 18.55}, {"nr": "84", "bez": "Partybrötchen einzeln", "einheit": "Stück", "vk": 0.55}, {"nr": "85", "bez": "Partylaugenkonfekt", "einheit": "Stück", "vk": 0.65}, {"nr": "86", "bez": "Partystange groß 100 g", "einheit": "Stück", "vk": 1.15}, {"nr": "87", "bez": "Fußballbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "88", "bez": "Blätterteiggebäck", "einheit": "Stück", "vk": 0.75}, {"nr": "91", "bez": "Laugenstangen", "einheit": "Stück", "vk": 1.05}, {"nr": "92", "bez": "Käselaugestange", "einheit": "Stück", "vk": 1.8}, {"nr": "93", "bez": "Brezeln", "einheit": "Stück", "vk": 1.1}, {"nr": "94", "bez": "Laugeecke", "einheit": "Stück", "vk": 1.65}, {"nr": "95", "bez": "Brezel groß", "einheit": "Stück", "vk": 18.0}, {"nr": "96", "bez": "Käsebrezel", "einheit": "Stück", "vk": 2.2}, {"nr": "97", "bez": "Partylaugebrezel", "einheit": "Stück", "vk": 0.95}, {"nr": "98", "bez": "Partykäsestange", "einheit": "Stück", "vk": 1.2}, {"nr": "99", "bez": "Partylaugestange", "einheit": "Stück", "vk": 0.95}, {"nr": "100", "bez": "Roggenmischbrot 500 g", "einheit": "Stück", "vk": 2.7}, {"nr": "101", "bez": "Roggenmischbrot 1000 g", "einheit": "Stück", "vk": 4.3}, {"nr": "102", "bez": "Roggenmischbrot 500g gestäubt", "einheit": "Stück", "vk": 2.7}, {"nr": "104", "bez": "Roggenmischkümmelbrot Kümmelbrot 500 g", "einheit": "Stück", "vk": 3.1}, {"nr": "105", "bez": "Roggenmischbrot 1500 g", "einheit": "Stück", "vk": 5.85}, {"nr": "107", "bez": "Gründerbrot 500 g", "einheit": "Stück", "vk": 4.1}, {"nr": "109", "bez": "Roggenmischbrot 3000 g", "einheit": "Stück", "vk": 10.85}, {"nr": "111", "bez": "Roggenmischbrot 750 g", "einheit": "Stück", "vk": 3.95}, {"nr": "113", "bez": "Jung's Bauernkruste 750g", "einheit": "Stück", "vk": 3.9}, {"nr": "116", "bez": "Roggenback Kastenbrot 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "120", "bez": "Weizenmischbrot 500 g", "einheit": "Stück", "vk": 2.7}, {"nr": "121", "bez": "Weizenmischbrot 1000 g", "einheit": "Stück", "vk": 4.2}, {"nr": "122", "bez": "Weizenmischbrot 1500 g", "einheit": "Stück", "vk": 5.85}, {"nr": "123", "bez": "Weizenmischbrot im Kasten 1000g", "einheit": "Stück", "vk": 4.3}, {"nr": "124", "bez": "Sickinger Landbrot 500 g", "einheit": "Stück", "vk": 3.0}, {"nr": "125", "bez": "Sickinger Landbrot 1000g rund", "einheit": "Stück", "vk": 5.3}, {"nr": "126", "bez": "Sickingerlandbrot Lang 1000 g Lang", "einheit": "Stück", "vk": 5.3}, {"nr": "127", "bez": "Sickinger 1500g Lang", "einheit": "Stück", "vk": 7.75}, {"nr": "128", "bez": "Sickingerlandbrot 750g", "einheit": "Stück", "vk": 4.2}, {"nr": "132", "bez": "Weizenmischbrot 1000g im Kasten Lang", "einheit": "Stück", "vk": 4.3}, {"nr": "133", "bez": "Gutsherrenbrot 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "134", "bez": "Gutsherrenbrot 1000g im Kasten", "einheit": "Stück", "vk": 5.4}, {"nr": "135", "bez": "Gutsherrenbrot 500g Rund", "einheit": "Stück", "vk": 2.8}, {"nr": "137", "bez": "Mühlenbrot im Kasten 750g", "einheit": "Stück", "vk": 4.1}, {"nr": "138", "bez": "Jungs Saftschnitte SA", "einheit": "Stück", "vk": 4.1}, {"nr": "143", "bez": "Dinkelkornlaib 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "146", "bez": "Dinkelvollkornbrot 500 g", "einheit": "Stück", "vk": 4.4}, {"nr": "147", "bez": "Feel Happy Brot", "einheit": "Stück", "vk": 3.85}, {"nr": "181", "bez": "Korn König 500g", "einheit": "Stück", "vk": 2.85}, {"nr": "182", "bez": "Korn König 750g", "einheit": "Stück", "vk": 4.1}, {"nr": "200", "bez": "Weißbrot 500 g Frei gebacken", "einheit": "Stück", "vk": 2.75}, {"nr": "201", "bez": "Kastenweißbrot 500 g Im Kasten gebacken", "einheit": "Stück", "vk": 2.95}, {"nr": "203", "bez": "Flitt 250 g", "einheit": "Stück", "vk": 2.35}, {"nr": "205", "bez": "Zwiebelflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "207", "bez": "Roggenflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "209", "bez": "Kornbaguette 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "210", "bez": "Partybaguette 250g", "einheit": "Stück", "vk": 2.75}, {"nr": "214", "bez": "Grillfluit 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "217", "bez": "Schinkenflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "218", "bez": "Pane Luciane", "einheit": "Stück", "vk": 1.2}, {"nr": "222", "bez": "Käsekräuterbaguette 300g", "einheit": "Stück", "vk": 3.0}, {"nr": "301", "bez": "Nußschnecke", "einheit": "Stück", "vk": 2.1}, {"nr": "302", "bez": "Quarkstückchen", "einheit": "Stück", "vk": 2.1}, {"nr": "304", "bez": "Kirschpuddingplunder", "einheit": "Stück", "vk": 2.1}, {"nr": "305", "bez": "Apfeltasche", "einheit": "Stück", "vk": 2.1}, {"nr": "306", "bez": "Streuselnuss- Schleife", "einheit": "Stück", "vk": 2.1}, {"nr": "307", "bez": "Schokocroissants", "einheit": "Stück", "vk": 2.1}, {"nr": "308", "bez": "Croissants ungefüllt", "einheit": "Stück", "vk": 1.85}, {"nr": "309", "bez": "Berliner", "einheit": "Stück", "vk": 1.35}, {"nr": "310", "bez": "Berliner gefüllt", "einheit": "Stück", "vk": 1.7}, {"nr": "312", "bez": "Nußpuddingbrezel", "einheit": "Stück", "vk": 2.1}, {"nr": "313", "bez": "Streuselstückchen gefüllt", "einheit": "Stück", "vk": 2.95}, {"nr": "314", "bez": "Butterhörnchen", "einheit": "Stück", "vk": 1.5}, {"nr": "317", "bez": "Quark-Mohn Fladen", "einheit": "Stück", "vk": 2.1}, {"nr": "319", "bez": "Schoki - Vanillehörnchen", "einheit": "Stück", "vk": 2.1}, {"nr": "322", "bez": "Apfelberliner", "einheit": "Stück", "vk": 2.65}, {"nr": "323", "bez": "Pfälzer Kartoffel", "einheit": "Stück", "vk": 2.85}, {"nr": "328", "bez": "Zwetschgenteilchen", "einheit": "Stück", "vk": 1.95}, {"nr": "329", "bez": "Mini Schokocroissant", "einheit": "Stück", "vk": 0.95}, {"nr": "330", "bez": "Mini Buttercroissant", "einheit": "Stück", "vk": 0.95}, {"nr": "331", "bez": "Mini Nusspuddingtasche", "einheit": "Stück", "vk": 0.95}, {"nr": "332", "bez": "Marzipan Plunder", "einheit": "Stück", "vk": 1.95}, {"nr": "333", "bez": "Mini Apfeltasche", "einheit": "Stück", "vk": 0.95}, {"nr": "334", "bez": "Mini Kirschtasche", "einheit": "Stück", "vk": 0.95}, {"nr": "336", "bez": "Nougathörnchen", "einheit": "Stück", "vk": 2.1}, {"nr": "337", "bez": "Puddingschiffchen", "einheit": "Stück", "vk": 2.1}, {"nr": "350", "bez": "Amerikaner", "einheit": "Stück", "vk": 2.2}, {"nr": "351", "bez": "Muffins", "einheit": "Stück", "vk": 2.2}, {"nr": "354", "bez": "Belgische Waffeln", "einheit": "Stück", "vk": 1.49}, {"nr": "360", "bez": "Donats", "einheit": "Stück", "vk": 1.49}, {"nr": "361", "bez": "Donut mit Weisserschokolade", "einheit": "Stück", "vk": 1.8}, {"nr": "364", "bez": "Donut mit Smartis", "einheit": "Stück", "vk": 1.8}, {"nr": "365", "bez": "Oreodonut", "einheit": "Stück", "vk": 1.8}, {"nr": "366", "bez": "Dount mit Buntzucker", "einheit": "Stück", "vk": 1.8}, {"nr": "367", "bez": "Krümmelmonster Donuts", "einheit": "Stück", "vk": 2.65}, {"nr": "368", "bez": "Smily Donuts", "einheit": "Stück", "vk": 2.65}, {"nr": "390", "bez": "Schokoweck", "einheit": "Stück", "vk": 1.6}, {"nr": "391", "bez": "Rosinenweck", "einheit": "Stück", "vk": 1.6}, {"nr": "395", "bez": "Vanilleberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "396", "bez": "Eierlikörkirschberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "397", "bez": "Nougatberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "400", "bez": "Zuckerringe Zuckerringe mit Hagelzucker", "einheit": "Stück", "vk": 1.6}, {"nr": "401", "bez": "Nougatringe", "einheit": "Stück", "vk": 2.8}, {"nr": "402", "bez": "Flammende Herzen", "einheit": "Stück", "vk": 2.8}, {"nr": "405", "bez": "Granatsplitter", "einheit": "Stück", "vk": 2.8}, {"nr": "406", "bez": "Bananensplitt", "einheit": "Stück", "vk": 2.8}, {"nr": "408", "bez": "Blätterteigbrezel", "einheit": "Stück", "vk": 2.8}, {"nr": "409", "bez": "Blätterteigstange", "einheit": "Stück", "vk": 2.8}, {"nr": "416", "bez": "Nussecken", "einheit": "Stück", "vk": 2.8}, {"nr": "424", "bez": "Cookies", "einheit": "Stück", "vk": 1.8}, {"nr": "425", "bez": "Cookies mit Smarties", "einheit": "Stück", "vk": 1.8}, {"nr": "450", "bez": "Fruchtschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "451", "bez": "Käsemandarinenschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "453", "bez": "Donauwelleschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "454", "bez": "Sahneschnitten alle Sorten", "einheit": "Stück", "vk": 2.65}, {"nr": "456", "bez": "Himbeerjoghurtschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "466", "bez": "Bienenstichschnitte Sahne+Kirs", "einheit": "Stück", "vk": 2.65}, {"nr": "469", "bez": "Altdeutscher Pflaumenstreusel", "einheit": "Stück", "vk": 7.5}, {"nr": "470", "bez": "Freche Früchtchen", "einheit": "Stück", "vk": 2.85}, {"nr": "491", "bez": "Schweineohren", "einheit": "Stück", "vk": 2.8}, {"nr": "492", "bez": "Nougatti", "einheit": "Stück", "vk": 2.8}, {"nr": "500", "bez": "Streuselkuchen", "einheit": "Stück", "vk": 11.0}, {"nr": "501", "bez": "Zuckerkuchen", "einheit": "Stück", "vk": 11.0}, {"nr": "503", "bez": "Hefekranz groß", "einheit": "Stück", "vk": 18.0}, {"nr": "506", "bez": "Kranz gefüllt", "einheit": "Stück", "vk": 24.0}, {"nr": "507", "bez": "Schokostreuselkranz", "einheit": "Stück", "vk": 26.5}, {"nr": "508", "bez": "Wiener Gupf", "einheit": "Stück", "vk": 15.9}, {"nr": "510", "bez": "Rosinenbrot", "einheit": "Stück", "vk": 5.3}, {"nr": "511", "bez": "Bummerang", "einheit": "Stück", "vk": 9.1}, {"nr": "512", "bez": "Schlemmerkranz", "einheit": "Stück", "vk": 26.5}, {"nr": "513", "bez": "Gefüllterkranz mit Schokoglasur", "einheit": "Stück", "vk": 26.5}, {"nr": "514", "bez": "Butterobstkuchen", "einheit": "Stück", "vk": 8.45}, {"nr": "515", "bez": "Butterhefezopf groß", "einheit": "Stück", "vk": 9.0}, {"nr": "518", "bez": "Streuselkuchen 26 cm", "einheit": "Stück", "vk": 5.3}, {"nr": "519", "bez": "Nougatstreusel", "einheit": "Stück", "vk": 7.5}, {"nr": "520", "bez": "Butterkuchen", "einheit": "Stück", "vk": 7.5}, {"nr": "521", "bez": "Dänischer Streusel", "einheit": "Stück", "vk": 7.5}, {"nr": "526", "bez": "Unser Käsezwerg 16 cm", "einheit": "Stück", "vk": 9.0}, {"nr": "527", "bez": "Butterschokozopf", "einheit": "Stück", "vk": 6.5}, {"nr": "528", "bez": "Haselnusszopf im Holzkorb", "einheit": "Stück", "vk": 6.5}, {"nr": "529", "bez": "Butterhefezopf im Holzkorb", "einheit": "Stück", "vk": 4.8}, {"nr": "530", "bez": "Quarkzopf im Holzkorb", "einheit": "Stück", "vk": 6.5}, {"nr": "545", "bez": "Gedeckter Kirschkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "546", "bez": "Gedeckter Apfelkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "548", "bez": "Rhabarberkuchen Klein", "einheit": "Stück", "vk": 11.75}, {"nr": "549", "bez": "Rhabarberkuchen 12er Einteilung Stück 2,50", "einheit": "Stück", "vk": 28.0}, {"nr": "550", "bez": "Käsekuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "551", "bez": "Apfelstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "552", "bez": "Zwetschgenkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "553", "bez": "Bienenstich", "einheit": "Stück", "vk": 37.0}, {"nr": "554", "bez": "Aprikosen-puddingstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "557", "bez": "Kirschstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "560", "bez": "Nußkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "561", "bez": "Marmorkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "562", "bez": "Eierlikörkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "565", "bez": "Marmorstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "566", "bez": "Zitronenstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "567", "bez": "Eierlikörstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "568", "bez": "Schwäbische Apfeltorte", "einheit": "Stück", "vk": 28.0}, {"nr": "569", "bez": "Rahmkuchen mit Obst", "einheit": "Stück", "vk": 28.0}, {"nr": "570", "bez": "Rahmkuchen Groß ohne obst", "einheit": "Stück", "vk": 28.0}, {"nr": "571", "bez": "Rahmkuchen klein", "einheit": "Stück", "vk": 10.5}, {"nr": "572", "bez": "Käsenussmandarinekuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "575", "bez": "Zwetschgensandkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "576", "bez": "Süss Kirschkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "577", "bez": "Zwetschgenkuchen klein 26cm", "einheit": "Stück", "vk": 10.65}, {"nr": "578", "bez": "Zupfkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "580", "bez": "Biskuitboden", "einheit": "Stück", "vk": 3.75}, {"nr": "581", "bez": "Tortenböden , Dick Biskuit", "einheit": "Stück", "vk": 8.0}, {"nr": "582", "bez": "Tortenboden,Dick-Schoko", "einheit": "Stück", "vk": 8.0}, {"nr": "583", "bez": "Tortenboden,Dick-Nuß", "einheit": "Stück", "vk": 8.0}, {"nr": "584", "bez": "Möhrentorte 26 cm.", "einheit": "Stück", "vk": 28.0}, {"nr": "588", "bez": "Sizilianischer Zitronenkuchen", "einheit": "Stück", "vk": 10.0}, {"nr": "590", "bez": "Himbeerobsttorte", "einheit": "Stück", "vk": 32.0}, {"nr": "591", "bez": "Gemischteobsttorte", "einheit": "Stück", "vk": 32.0}, {"nr": "595", "bez": "Puddingkirschstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "597", "bez": "Zwiebelkuchen groß", "einheit": "Stück", "vk": 25.5}, {"nr": "599", "bez": "Obsttorte Erdbeere", "einheit": "Stück", "vk": 32.0}, {"nr": "600", "bez": "Erdbeersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "601", "bez": "Schokosahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "602", "bez": "Nußsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "603", "bez": "Schwarzwäldersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "604", "bez": "Käsesahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "606", "bez": "Passionsfruchtsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "608", "bez": "Himbeersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "610", "bez": "Mokkacremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "611", "bez": "Erdbeerjoghurtsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "614", "bez": "Glasierte Nusstorte", "einheit": "Stück", "vk": 48.0}, {"nr": "615", "bez": "Ananassahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "616", "bez": "Schokoananassahne", "einheit": "Stück", "vk": 48.0}, {"nr": "617", "bez": "Tiramisusahne Torte", "einheit": "Stück", "vk": 45.0}, {"nr": "618", "bez": "Schokobirnensahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "619", "bez": "Eierlikörsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "622", "bez": "Mandarinensahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "623", "bez": "Nougatsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "626", "bez": "Cappuccinosahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "647", "bez": "Sahneomlett", "einheit": "Stück", "vk": 48.0}, {"nr": "648", "bez": "Eclairs", "einheit": "Stück", "vk": 3.2}, {"nr": "649", "bez": "Erdbeer- Röllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "650", "bez": "Windbeutel", "einheit": "Stück", "vk": 3.2}, {"nr": "651", "bez": "Kirschröllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "652", "bez": "Zitronenröllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "653", "bez": "Erdbeersahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "654", "bez": "Schokosahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "655", "bez": "Schwarzwälderkirschcremrolle", "einheit": "Stück", "vk": 3.2}, {"nr": "656", "bez": "Bananensahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "657", "bez": "Moccacremrolle", "einheit": "Stück", "vk": 3.2}, {"nr": "658", "bez": "Himbeersahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "659", "bez": "Pyramiden Schnitte", "einheit": "Stück", "vk": 3.2}, {"nr": "660", "bez": "Cappuccinosahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "662", "bez": "Prinzregentenschnitte", "einheit": "Stück", "vk": 3.2}, {"nr": "666", "bez": "Birkenstamm", "einheit": "Stück", "vk": 3.2}, {"nr": "680", "bez": "Kuchenplatte Variante 1", "einheit": "Stück", "vk": 28.0}, {"nr": "697", "bez": "Früchtebecher", "einheit": "Stück", "vk": 3.75}, {"nr": "703", "bez": "Käsezwirbel", "einheit": "Stück", "vk": 2.1}, {"nr": "704", "bez": "Pizzazwirbel", "einheit": "Stück", "vk": 2.1}, {"nr": "707", "bez": "Zwiebelzunge", "einheit": "Stück", "vk": 2.5}, {"nr": "720", "bez": "Belegtes Brötchen mit Garnitur", "einheit": "Stück", "vk": 2.95}, {"nr": "721", "bez": "Belegtes mit Spezialbrötchen", "einheit": "Stück", "vk": 3.2}, {"nr": "800", "bez": "Punschcremtorte Vanille oder Schoko", "einheit": "Stück", "vk": 48.0}, {"nr": "801", "bez": "Schokocremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "803", "bez": "Vanillecremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "806", "bez": "Vanillecremtorte mit Mandarinen", "einheit": "Stück", "vk": 48.0}, {"nr": "807", "bez": "Nusscremfächertorte", "einheit": "Stück", "vk": 48.0}, {"nr": "808", "bez": "Erdbeercremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "809", "bez": "Prinzregententorte", "einheit": "Stück", "vk": 48.0}, {"nr": "810", "bez": "Frankfurterkranz nach art des Hauses", "einheit": "Stück", "vk": 48.0}, {"nr": "811", "bez": "Donauwelle Torte", "einheit": "Stück", "vk": 48.0}, {"nr": "812", "bez": "Glasierte Nusstorte", "einheit": "Stück", "vk": 48.0}, {"nr": "813", "bez": "Moccacremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "916", "bez": "Lebkuchennikolaus", "einheit": "Stück", "vk": 6.5}, {"nr": "920", "bez": "Blaubeermuffins", "einheit": "Stück", "vk": 2.2}, {"nr": "922", "bez": "Tripleschokomuffin", "einheit": "Stück", "vk": 2.2}, {"nr": "923", "bez": "Marmor Muffin", "einheit": "Stück", "vk": 2.2}, {"nr": "924", "bez": "Möhrennuss Muffins", "einheit": "Stück", "vk": 2.2}, {"nr": "1200", "bez": "Laugenherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 1.5}, {"nr": "1201", "bez": "Hefeteigherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 2.8}, {"nr": "1202", "bez": "Rührkuchenherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 3.65}, {"nr": "1203", "bez": "Mürbteigherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 3.4}, {"nr": "1508", "bez": "Schokospritzgebäck", "einheit": "Stück", "vk": 4.95}, {"nr": "2000", "bez": "Salamisandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2001", "bez": "Schinkensandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2002", "bez": "Fleischkäsesandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2006", "bez": "Schnitzelbrötchen", "einheit": "Stück", "vk": 3.8}, {"nr": "10114", "bez": "Schokostreuselkranz klein", "einheit": "Stück", "vk": 12.0}, {"nr": "10120", "bez": "Rahmkuchen klein mit Obst", "einheit": "Stück", "vk": 11.0}, {"nr": "10121", "bez": "Sahnerolle klein", "einheit": "Stück", "vk": 7.95}, {"nr": "10135", "bez": "Chickenburger", "einheit": "Stück", "vk": 3.8}, {"nr": "20000", "bez": "Lieferpauschale", "einheit": "Stück", "vk": 4.1}]}</script>
+
+<script>
+  var ENDPUNKT       = '/.netlify/functions/bestellungen';
+  var ENDPUNKT_UMSATZ = '/.netlify/functions/umsatz';
+
+  var bestellungen = [];
+  var artikelInfo = {};   // nr -> {bez, einheit, vk}
+  var alleFilialen = [];  // Ortsnamen aus der Bestell-Seite
+  var offenIds = {};
+  var ansicht = 'dashboard';
+  var retourenListe = [];
+
+  function el(id) { return document.getElementById(id); }
+  function txt(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function euro(n) { return n.toFixed(2).replace('.', ',') + ' &euro;'; }
+
+  // heute und morgen vorbelegen – das ist der Zeitraum, der den Chef interessiert
+  var heute = new Date();
+  var morgen = new Date(heute.getTime() + 86400000);
+  el('von').value = heute.toISOString().slice(0, 10);
+  el('bis').value = morgen.toISOString().slice(0, 10);
+
+  // ---------- Start ----------
+  melde('Daten werden geladen \u2026', 'ladend');
+  laden(function (fehler) {
+    if (fehler) melde(fehler, 'fehler');
+    stammdatenLaden();
+    dashboardLaden();
+  });
+
+  // ---------- Daten holen ----------
+  function laden(fertig) {
+    stammdatenLaden();
+    fetch(ENDPUNKT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    })
+    .then(function (a) {
+      if (a.status === 404) throw new Error(
+        'Die Bestellungen sind noch nicht angebunden. Sobald die Datei ' +
+        'netlify/functions/bestellungen.js deployt ist, erscheinen sie hier.');
+      if (!a.ok) throw new Error('Der Server antwortet mit Status ' + a.status + '.');
+      return a.json();
+    })
+    .then(function (daten) {
+      bestellungen = (daten.bestellungen || []).map(aufbereiten);
+      retourenListe = (daten.retouren || []).map(aufbereiten);
+      el('stand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE',
+        { hour: '2-digit', minute: '2-digit' }) + ' \u00b7 ' + bestellungen.length + ' Bestellungen';
+      melde('', '');
+      fertig(null);
+    })
+    .catch(function (fehler) { fertig(fehler.message); });
+  }
+
+  // Filialen und Artikel sind fest eingebaut – gleicher Stand wie die Bestellseite
+  function stammdatenLaden() {
+    if (alleFilialen.length) return;
+    try {
+      var daten = JSON.parse(el('stammdaten').textContent);
+      (daten.artikel || []).forEach(function (a) { artikelInfo[a.nr] = a; });
+      alleFilialen = (daten.filialen || []).map(function (f) { return f.ort; })
+        .filter(function (o, i, l) { return l.indexOf(o) === i; });
+      var aus = el('filter-filiale');
+      alleFilialen.forEach(function (ort) {
+        var o = document.createElement('option');
+        o.value = ort; o.textContent = ort; aus.appendChild(o);
+      });
+    } catch (fehler) { /* ohne Stammdaten läuft die Ansicht weiter */ }
+  }
+
+  function aufbereiten(b) {
+    var teile = String(b.datum || '').split('.');
+    b.datumIso = teile.length === 3 ? teile[2] + '-' + teile[1] + '-' + teile[0] : '';
+    b.posten = String(b.uebersicht || '').split('\n').map(function (zeile) {
+      var s = zeile.split('\t');
+      if (s.length < 3) return null;
+      return { nr: s[0].trim(), bez: s[1].trim(), menge: parseInt(s[2], 10) || 0,
+               geliefert: s.length > 3 ? (parseInt(s[3], 10) || 0) : 0 };
+    }).filter(Boolean);
+    b.wertZahl = parseFloat(String(b.warenwert || '0').replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+    return b;
+  }
+
+  // ---------- Filter ----------
+  function gefiltert() {
+    var von = el('von').value, bis = el('bis').value;
+    var ort = el('filter-filiale').value;
+
+    return bestellungen.filter(function (b) {
+      if (von && b.datumIso && b.datumIso < von) return false;
+      if (bis && b.datumIso && b.datumIso > bis) return false;
+      if (ort && b.filiale !== ort) return false;
+      return true;
+    }).sort(function (a, b) {
+      if (a.datumIso !== b.datumIso) return a.datumIso < b.datumIso ? -1 : 1;
+      return String(a.filiale).localeCompare(String(b.filiale), 'de');
+    });
+  }
+
+  ['von', 'bis', 'filter-filiale', 'suche'].forEach(function (id) {
+    el(id).addEventListener('input', zeichnen);
+    el(id).addEventListener('change', zeichnen);
+  });
+
+  var ANSICHTEN = ['dashboard', 'verkauf', 'bestellungen', 'produktion', 'umsatz',
+                   'auswertung', 'personal', 'dienstplan', 'kosten'];
+
+  ANSICHTEN.forEach(function (name) {
+    el('reiter-' + name).addEventListener('click', function () { wechseln(name); });
+  });
+
+  function wechseln(neu) {
+    ansicht = neu;
+    ANSICHTEN.forEach(function (name) {
+      el('reiter-' + name).classList.toggle('an', name === neu);
+      el('bereich-' + name).classList.toggle('verstecken', name !== neu);
+    });
+    if (neu === 'dashboard') dashboardLaden();
+    else if (neu === 'verkauf') verkaufLaden();
+    else if (neu === 'umsatz') umsatzTagLaden();
+    else if (neu === 'auswertung') auswertungLaden();
+    else if (neu === 'personal') personalLaden();
+    else if (neu === 'dienstplan') dienstplanLaden();
+    else if (neu === 'kosten') kostenLaden();
+    else zeichnen();
+  }
+
+  el('neuladen').addEventListener('click', function () {
+    el('neuladen').disabled = true;
+    melde('Bestellungen werden geladen \u2026', 'ladend');
+    laden(function (fehler) {
+      el('neuladen').disabled = false;
+      if (fehler) { melde(fehler, 'fehler'); return; }
+      zeichnen();
+    });
+  });
+
+  // ---------- Zeichnen ----------
+  function zeichnen() {
+    var liste = gefiltert();
+    zahlenZeichnen(liste);
+    offeneFilialen(liste);
+    if (ansicht === 'bestellungen') bestellungenZeichnen(liste);
+    else if (ansicht === 'produktion') produktionZeichnen(liste);
+    else if (ansicht === 'umsatz') umsatzZeichnen();
+  }
+
+  function zahlenZeichnen(liste) {
+    var stueck = 0, wert = 0, posten = 0, orte = {};
+    liste.forEach(function (b) {
+      stueck += parseInt(b.stueck, 10) || 0;
+      posten += parseInt(b.positionen, 10) || 0;
+      wert   += b.wertZahl;
+      orte[b.filiale] = true;
+    });
+    el('zahlen').innerHTML =
+      kachel(liste.length, liste.length === 1 ? 'Bestellung' : 'Bestellungen') +
+      kachel(Object.keys(orte).length, 'Filialen') +
+      kachel(stueck, 'St\u00fcck') +
+      kachel(euro(wert), 'Warenwert');
+  }
+  function kachel(wert, name) {
+    return '<div class="zahl"><b>' + wert + '</b><span>' + name + '</span></div>';
+  }
+
+  function offeneFilialen(liste) {
+    var ziel = el('offen');
+    if (!alleFilialen.length || el('filter-filiale').value) { ziel.innerHTML = ''; return; }
+    var da = {};
+    liste.forEach(function (b) { da[b.filiale] = true; });
+    var fehlt = alleFilialen.filter(function (o, i, l) {
+      return l.indexOf(o) === i && !da[o];
+    });
+    ziel.innerHTML = fehlt.length
+      ? '<div class="offen"><b>Noch keine Bestellung: ' + fehlt.length + ' von ' +
+        new Set(alleFilialen).size + ' Filialen</b><span>' + txt(fehlt.join(' \u00b7 ')) + '</span></div>'
+      : '';
+  }
+
+  function bestellungenZeichnen(liste) {
+    var ziel = el('bereich-bestellungen');
+    if (!liste.length) {
+      ziel.innerHTML = '<div class="leer">F\u00fcr diesen Zeitraum liegt keine Bestellung vor.<br>' +
+        'Zeitraum oder Filiale oben \u00e4ndern.</div>';
+      return;
+    }
+    ziel.innerHTML = liste.map(function (b) {
+      var auf = offenIds[b.id];
+      return '<div class="bestellung">' +
+        '<div class="kopfzeile" data-id="' + txt(b.id) + '">' +
+          '<div class="pfeil">' + (auf ? '\u25be' : '\u25b8') + '</div>' +
+          '<div class="ort">' + txt(b.filiale) +
+            '<small>' + txt(b.datum) + ' \u00b7 ' + txt(b.besteller) +
+            (b.bemerkung ? ' \u00b7 mit Bemerkung' : '') + '</small></div>' +
+          '<div class="menge"><b>' + txt(b.stueck) + ' St\u00fcck</b>' +
+            txt(b.positionen) + ' Positionen \u00b7 ' + txt(b.warenwert) + '</div>' +
+        '</div>' +
+        (auf ? detailsHtml(b) : '') +
+      '</div>';
+    }).join('');
+
+    ziel.querySelectorAll('.kopfzeile').forEach(function (k) {
+      k.addEventListener('click', function () {
+        var id = k.dataset.id;
+        if (offenIds[id]) delete offenIds[id]; else offenIds[id] = true;
+        bestellungenZeichnen(gefiltert());
+      });
+    });
+  }
+
+  function detailsHtml(b) {
+    var zeilen = b.posten.map(function (p) {
+      var info = artikelInfo[p.nr] || {};
+      return '<tr><td>' + txt(p.nr) + '</td><td>' + txt(p.bez) + '</td>' +
+        '<td class="zahl-rechts"><b>' + p.menge + '</b></td>' +
+        '<td class="zahl-rechts">' + (info.vk ? euro(info.vk * p.menge) : '&ndash;') + '</td></tr>';
+    }).join('');
+
+    var dateien = '';
+    if (b.pdf) dateien += '<a href="' + txt(b.pdf) + '" target="_blank" rel="noopener">PDF &ouml;ffnen</a>';
+    if (b.csv) dateien += '<a href="' + txt(b.csv) + '" target="_blank" rel="noopener">CSV laden</a>';
+
+    return '<div class="details">' +
+      (b.bemerkung ? '<div class="hinweis"><b>Bemerkung der Filiale:</b> ' + txt(b.bemerkung) + '</div>' : '') +
+      '<table><thead><tr><th>Nr.</th><th>Bezeichnung</th>' +
+      '<th class="zahl-rechts">Menge</th><th class="zahl-rechts">Wert</th></tr></thead>' +
+      '<tbody>' + (zeilen || '<tr><td colspan="4">Keine Einzelpositionen \u00fcbermittelt.</td></tr>') +
+      '</tbody></table>' +
+      (dateien ? '<div class="dateien">' + dateien + '</div>' : '') +
+    '</div>';
+  }
+
+  // ---------- Produktionsliste ----------
+  function produktionsDaten(liste) {
+    var suche = el('suche').value.trim().toLowerCase();
+    var summe = {};
+    liste.forEach(function (b) {
+      b.posten.forEach(function (p) {
+        if (suche && p.bez.toLowerCase().indexOf(suche) === -1 && p.nr.indexOf(suche) !== 0) return;
+        if (!summe[p.nr]) summe[p.nr] = { nr: p.nr, bez: p.bez, menge: 0, orte: {} };
+        summe[p.nr].menge += p.menge;
+        summe[p.nr].orte[b.filiale] = (summe[p.nr].orte[b.filiale] || 0) + p.menge;
+      });
+    });
+    return Object.keys(summe).map(function (k) { return summe[k]; })
+      .sort(function (a, b) { return (parseInt(a.nr, 10) || 0) - (parseInt(b.nr, 10) || 0); });
+  }
+
+  function produktionZeichnen(liste) {
+    var reihen = produktionsDaten(liste);
+    var ziel = el('produktion-inhalt');
+    if (!reihen.length) {
+      ziel.innerHTML = '<div class="leer">F\u00fcr diesen Zeitraum liegt keine Bestellung vor.</div>';
+      return;
+    }
+    var gesamt = reihen.reduce(function (s, r) { return s + r.menge; }, 0);
+    ziel.innerHTML =
+      '<table><thead><tr><th>Nr.</th><th>Artikel</th>' +
+      '<th class="zahl-rechts">Gesamt</th></tr></thead><tbody>' +
+      reihen.map(function (r) {
+        var info = artikelInfo[r.nr] || {};
+        var aufteilung = Object.keys(r.orte).sort().map(function (o) {
+          return txt(o) + ' ' + r.orte[o];
+        }).join(' \u00b7 ');
+        return '<tr><td>' + txt(r.nr) + '</td>' +
+          '<td>' + txt(r.bez) + '<div class="aufteilung">' + aufteilung + '</div></td>' +
+          '<td class="zahl-rechts"><b>' + r.menge + '</b><br>' +
+            '<span style="color:var(--grau);font-weight:400">' + txt(info.einheit || '') + '</span></td></tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<div style="margin-top:14px;font-weight:600">' + reihen.length + ' Artikel \u00b7 ' +
+        gesamt + ' St\u00fcck gesamt</div>';
+  }
+
+  el('produktion-druck').addEventListener('click', function () { window.print(); });
+
+  el('produktion-csv').addEventListener('click', function () {
+    var liste = gefiltert();
+    var reihen = produktionsDaten(liste);
+    if (!reihen.length) return;
+    var orte = [];
+    reihen.forEach(function (r) {
+      Object.keys(r.orte).forEach(function (o) { if (orte.indexOf(o) === -1) orte.push(o); });
+    });
+    orte.sort();
+    var kopf = ['Artikelnummer', 'Bezeichnung', 'Gesamt'].concat(orte);
+    var zeilen = [kopf].concat(reihen.map(function (r) {
+      return [r.nr, r.bez, String(r.menge)].concat(orte.map(function (o) {
+        return r.orte[o] ? String(r.orte[o]) : '';
+      }));
+    }));
+    var feld = function (w) {
+      var s = String(w);
+      return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    var csv = '\ufeff' + zeilen.map(function (r) { return r.map(feld).join(';'); }).join('\r\n') + '\r\n';
+    var name = 'Produktion_' + el('von').value + '_bis_' + el('bis').value + '.csv';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  // ---------- Tagesumsatz ----------
+  var umsaetze = {};        // Filiale -> Betrag für den gewählten Tag
+  var hinweise = {};        // Filiale -> true, wenn der Umsatz gepr\u00fcft werden soll
+  var nurAufGeraet = false; // true, wenn der Server nicht erreichbar ist
+
+  el('umsatz-datum').value = heute.toISOString().slice(0, 10);
+  el('umsatz-datum').addEventListener('change', umsatzTagLaden);
+
+  function umsatzTagLaden() {
+    var tag = el('umsatz-datum').value;
+    if (!tag) return;
+    meldeUmsatz('Umsätze werden geladen \u2026', 'ladend');
+    fetch(ENDPUNKT_UMSATZ, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'lesen', datum: tag })
+    })
+    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
+    .then(function (daten) {
+      umsaetze = daten.umsaetze || {};
+      hinweise = daten.hinweise || {};
+      nurAufGeraet = false;
+      meldeUmsatz('', '');
+      umsatzZeichnen();
+    })
+    .catch(function () {
+      var gespeichert = vomGeraet(tag);
+      umsaetze = gespeichert.umsaetze || gespeichert;
+      hinweise = gespeichert.hinweise || {};
+      nurAufGeraet = true;
+      meldeUmsatz('Der Server speichert noch nicht. Die Umsätze liegen vorerst nur auf diesem Gerät.', 'fehler');
+      umsatzZeichnen();
+    });
+  }
+
+  function vomGeraet(tag) {
+    try {
+      var d = JSON.parse(localStorage.getItem('umsatz-' + tag) || '{}');
+      return d.umsaetze ? d : { umsaetze: d, hinweise: {} };
+    } catch (e) { return { umsaetze: {}, hinweise: {} }; }
+  }
+
+  function betrag(text) {
+    var n = parseFloat(String(text).replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
+    return isNaN(n) ? 0 : n;
+  }
+
+  function bestellwertProFiliale(tag) {
+    var summe = {};
+    bestellungen.forEach(function (b) {
+      if (b.datumIso !== tag) return;
+      summe[b.filiale] = (summe[b.filiale] || 0) + b.wertZahl;
+    });
+    return summe;
+  }
+
+  function umsatzZeichnen() {
+    var tag = el('umsatz-datum').value;
+    var ware = bestellwertProFiliale(tag);
+    var orte = alleFilialen.slice();
+    Object.keys(umsaetze).concat(Object.keys(ware)).forEach(function (o) {
+      if (orte.indexOf(o) === -1) orte.push(o);
+    });
+    orte.sort(function (a, b) { return a.localeCompare(b, 'de'); });
+
+    if (!orte.length) {
+      el('umsatz-inhalt').innerHTML = '<div class="leer">Keine Filialen vorhanden.</div>';
+      return;
+    }
+
+    var summeUmsatz = 0, summeWare = 0, summeSoll = 0;
+    var zeilen = orte.map(function (ort) {
+      var u = umsaetze[ort] || 0;
+      var w = ware[ort] || 0;
+      var soll = errechneterUmsatz(ort, tag);
+      summeUmsatz += u; summeWare += w; summeSoll += soll;
+      var warnung = hinweise[ort]
+        ? ' <span class="warnung" title="Achtung Umsatz überprüfen">&#9650;!</span>' : '';
+      return '<tr>' +
+        '<td>' + txt(ort) + warnung + '</td>' +
+        '<td class="zahl-rechts">' +
+          '<input class="umsatz-feld" type="text" inputmode="decimal" data-ort="' + txt(ort) + '" ' +
+          'value="' + (u ? u.toFixed(2).replace('.', ',') : '') + '" placeholder="0,00"></td>' +
+        '<td class="zahl-rechts">' + (soll ? euro(soll) : '&ndash;') + '</td>' +
+        '<td class="zahl-rechts">' + (w ? euro(w) : '&ndash;') + '</td>' +
+        '<td class="zahl-rechts">' + (u && w ? (w / u * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '&ndash;') + '</td>' +
+      '</tr>';
+    }).join('');
+
+    el('umsatz-inhalt').innerHTML =
+      '<div class="rollen"><table><thead><tr><th>Filiale</th>' +
+      '<th class="zahl-rechts">Tagesumsatz &euro;</th>' +
+      '<th class="zahl-rechts">Errechnet</th>' +
+      '<th class="zahl-rechts">Warenwert Lieferung</th>' +
+      '<th class="zahl-rechts">Anteil</th></tr></thead><tbody>' + zeilen + '</tbody></table></div>' +
+      '<div style="margin-top:14px;font-weight:600">Gesamt ' + euro(summeUmsatz) +
+        ' \u00b7 errechnet ' + euro(summeSoll) +
+        (summeUmsatz ? ' \u00b7 Warenanteil ' + (summeWare / summeUmsatz * 100).toFixed(1).replace('.', ',') + ' %' : '') +
+      '</div>' +
+      '<div class="aufteilung" style="margin-top:8px">Errechnet = gelieferte Menge minus Retoure zum ' +
+      'Verkaufspreis. Das rote Zeichen bedeutet: der eingetragene Umsatz liegt darunter.</div>';
+
+    el('umsatz-inhalt').querySelectorAll('.umsatz-feld').forEach(function (feld) {
+      feld.addEventListener('change', function () {
+        var ort = feld.dataset.ort;
+        var wert = betrag(feld.value);
+        if (wert > 0) {
+          var soll = errechneterUmsatz(ort, el('umsatz-datum').value);
+          if (soll > 0 && wert < soll) {
+            window.alert('Achtung: der errechnete Umsatz für ' + ort + ' sollte ' +
+              soll.toFixed(2).replace('.', ',') + ' EUR sein.\n\n' +
+              'Eingetragen: ' + wert.toFixed(2).replace('.', ',') + ' EUR\n' +
+              'Abweichung: ' + (soll - wert).toFixed(2).replace('.', ',') + ' EUR\n\n' +
+              'Der Wert wird übernommen und mit einem Warnzeichen vermerkt.');
+            hinweise[ort] = true;
+          } else {
+            delete hinweise[ort];
+          }
+          umsaetze[ort] = wert;
+        } else {
+          delete umsaetze[ort];
+          delete hinweise[ort];
+        }
+        umsatzZeichnen();
+      });
+    });
+  }
+
+  el('umsatz-speichern').addEventListener('click', function () {
+    var tag = el('umsatz-datum').value;
+    el('umsatz-inhalt').querySelectorAll('.umsatz-feld').forEach(function (feld) {
+      var wert = betrag(feld.value);
+      if (wert > 0) umsaetze[feld.dataset.ort] = wert; else delete umsaetze[feld.dataset.ort];
+    });
+    try {
+      localStorage.setItem('umsatz-' + tag, JSON.stringify({ umsaetze: umsaetze, hinweise: hinweise }));
+    } catch (e) {}
+
+    meldeUmsatz('Wird gespeichert \u2026', 'ladend');
+    fetch(ENDPUNKT_UMSATZ, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'speichern', datum: tag, umsaetze: umsaetze, hinweise: hinweise })
+    })
+    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); })
+    .then(function () {
+      nurAufGeraet = false;
+      meldeUmsatz('Umsätze für den ' + tag.split('-').reverse().join('.') + ' gespeichert.', 'gut');
+      setTimeout(function () { meldeUmsatz('', ''); }, 3000);
+    })
+    .catch(function () {
+      nurAufGeraet = true;
+      meldeUmsatz('Der Server speichert noch nicht. Die Umsätze liegen vorerst nur auf diesem Gerät.', 'fehler');
+    });
+  });
+
+  el('umsatz-csv').addEventListener('click', function () {
+    var tag = el('umsatz-datum').value;
+    var ware = bestellwertProFiliale(tag);
+    var orte = Object.keys(umsaetze).concat(alleFilialen)
+      .filter(function (o, i, l) { return l.indexOf(o) === i; })
+      .sort(function (a, b) { return a.localeCompare(b, 'de'); });
+    var zeilen = [['Datum', 'Filiale', 'Tagesumsatz', 'Warenwert Bestellung', 'Anteil %']];
+    orte.forEach(function (o) {
+      var u = umsaetze[o] || 0, w = ware[o] || 0;
+      zeilen.push([tag.split('-').reverse().join('.'), o,
+        u ? u.toFixed(2).replace('.', ',') : '',
+        w ? w.toFixed(2).replace('.', ',') : '',
+        (u && w) ? (w / u * 100).toFixed(1).replace('.', ',') : '']);
+    });
+    var feld = function (w) {
+      var s = String(w);
+      return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    var csv = '\ufeff' + zeilen.map(function (r) { return r.map(feld).join(';'); }).join('\r\n') + '\r\n';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'Tagesumsatz_' + tag + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  function meldeUmsatz(text, art) {
+    el('umsatz-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+
+  // ---------- Auswertung ----------
+  var aTage = {}, aVorher = {}, aZeitraum = { von: '', bis: '' };
+
+  (function jahreFuellen() {
+    var jetzt = heute.getFullYear(), aus = el('a-jahr');
+    for (var j = jetzt; j >= jetzt - 3; j--) {
+      var o = document.createElement('option');
+      o.value = j; o.textContent = j; aus.appendChild(o);
+    }
+    el('a-zeitraum').value = String(Math.floor(heute.getMonth() / 3) + 1);
+    el('a-stichtag').value = heute.toISOString().slice(0, 10);
+    feldSichtbarkeit();
+  })();
+
+  el('a-jahr').addEventListener('change', auswertungLaden);
+  el('a-zeitraum').addEventListener('change', auswertungLaden);
+  el('a-stichtag').addEventListener('change', auswertungLaden);
+  el('a-art').addEventListener('change', function () {
+    feldSichtbarkeit();
+    auswertungLaden();
+  });
+
+  function feldSichtbarkeit() {
+    var art = el('a-art').value;
+    var mitStichtag = (art === 'tag' || art === 'woche' || art === 'monat');
+    el('feld-stichtag').classList.toggle('verstecken', !mitStichtag);
+    el('feld-jahr').classList.toggle('verstecken', mitStichtag);
+    el('feld-quartal').classList.toggle('verstecken', art !== 'quartal');
+  }
+
+  function tagPlus(iso, tage) {
+    var d = new Date(iso + 'T12:00:00');
+    d.setDate(d.getDate() + tage);
+    return d.toISOString().slice(0, 10);
+  }
+  function montagVon(iso) {
+    var d = new Date(iso + 'T12:00:00');
+    var abstand = (d.getDay() + 6) % 7;
+    return tagPlus(iso, -abstand);
+  }
+  function kalenderwoche(iso) {
+    var d = new Date(iso + 'T12:00:00');
+    d.setDate(d.getDate() + 4 - ((d.getDay() + 6) % 7 + 1));
+    var start = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil(((d - start) / 86400000 + 1) / 7);
+  }
+  function wochenSchluessel(iso) {
+    var mo = montagVon(iso);
+    return mo.slice(0, 4) + '-W' + zwei(kalenderwoche(mo));
+  }
+
+  function grenzen(jahr, wahl) {
+    if (wahl === 'jahr') return { von: jahr + '-01-01', bis: jahr + '-12-31', name: 'Jahr ' + jahr };
+    var q = parseInt(wahl, 10);
+    var ersterMonat = (q - 1) * 3 + 1;
+    var letzterTag = new Date(jahr, ersterMonat + 2, 0).getDate();
+    return {
+      von: jahr + '-' + zwei(ersterMonat) + '-01',
+      bis: jahr + '-' + zwei(ersterMonat + 2) + '-' + zwei(letzterTag),
+      name: q + '. Quartal ' + jahr
+    };
+  }
+
+  // Zeitraum aus der Auswahl oben bestimmen
+  function aktuellerZeitraum() {
+    var art = el('a-art').value;
+    var stichtag = el('a-stichtag').value || heute.toISOString().slice(0, 10);
+    var jahr = parseInt(el('a-jahr').value, 10);
+
+    if (art === 'tag') {
+      return { von: stichtag, bis: stichtag, name: tagText(stichtag), art: art };
+    }
+    if (art === 'woche') {
+      var mo = montagVon(stichtag);
+      return { von: mo, bis: tagPlus(mo, 6), art: art,
+               name: 'KW ' + kalenderwoche(mo) + ' (' + tagText(mo) + ' \u2013 ' + tagText(tagPlus(mo, 6)) + ')' };
+    }
+    if (art === 'monat') {
+      var t = stichtag.split('-');
+      var letzter = new Date(+t[0], +t[1], 0).getDate();
+      return { von: t[0] + '-' + t[1] + '-01', bis: t[0] + '-' + t[1] + '-' + zwei(letzter), art: art,
+               name: monatsnamen[+t[1] - 1] + ' ' + t[0] };
+    }
+    if (art === 'jahr') { var z = grenzen(jahr, 'jahr'); z.art = art; return z; }
+    var q = grenzen(jahr, el('a-zeitraum').value); q.art = art; return q;
+  }
+
+  function vorherigerZeitraum(z) {
+    if (z.art === 'tag') { var v = tagPlus(z.von, -1); return { von: v, bis: v, name: tagText(v) }; }
+    if (z.art === 'woche') {
+      var mo = tagPlus(z.von, -7);
+      return { von: mo, bis: tagPlus(mo, 6), name: 'KW ' + kalenderwoche(mo) };
+    }
+    if (z.art === 'monat') {
+      var t = z.von.split('-'); var jahr = +t[0], monat = +t[1] - 1;
+      if (monat === 0) { monat = 12; jahr--; }
+      var letzter = new Date(jahr, monat, 0).getDate();
+      return { von: jahr + '-' + zwei(monat) + '-01', bis: jahr + '-' + zwei(monat) + '-' + zwei(letzter),
+               name: monatsnamen[monat - 1] + ' ' + jahr };
+    }
+    if (z.art === 'jahr') return grenzen(parseInt(z.von.slice(0, 4), 10) - 1, 'jahr');
+    var q = parseInt(el('a-zeitraum').value, 10), j = parseInt(el('a-jahr').value, 10);
+    return q === 1 ? grenzen(j - 1, '4') : grenzen(j, String(q - 1));
+  }
+  function zwei(n) { return (n < 10 ? '0' : '') + n; }
+
+  function zeitraumLaden(z) {
+    return fetch(ENDPUNKT_UMSATZ, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'zeitraum', von: z.von, bis: z.bis })
+    })
+    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
+    .then(function (d) { return d.tage || {}; })
+    .catch(function () { return vomGeraetZeitraum(z); });
+  }
+
+  function vomGeraetZeitraum(z) {
+    var tage = {};
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var schluessel = localStorage.key(i);
+        if (schluessel.indexOf('umsatz-') !== 0) continue;
+        var tag = schluessel.slice(7);
+        if (tag < z.von || tag > z.bis) continue;
+        var roh = JSON.parse(localStorage.getItem(schluessel) || '{}');
+        tage[tag] = roh.umsaetze || roh;
+      }
+    } catch (e) {}
+    return tage;
+  }
+
+  function auswertungLaden() {
+    aZeitraum = aktuellerZeitraum();
+    var vorher = vorherigerZeitraum(aZeitraum);
+    aZeitraum.vorherName = vorher.name;
+    meldeAuswertung('Zahlen werden geladen \u2026', 'ladend');
+    Promise.all([
+      zeitraumLaden(aZeitraum),
+      zeitraumLaden(vorher),
+      personalHolen(),
+      kostenHolen(),
+      dienstplaeneHolen(aZeitraum)
+    ]).then(function (e) {
+      aTage = e[0]; aVorher = e[1];
+      meldeAuswertung('', '');
+      auswertungZeichnen();
+    });
+  }
+
+  function summieren(tage, von, bis) {
+    var proFiliale = {}, proMonat = {}, gesamt = 0, tageMitZahlen = 0, bester = { tag: '', wert: 0 };
+    Object.keys(tage).forEach(function (tag) {
+      if (von && (tag < von || tag > bis)) return;
+      var tagSumme = 0;
+      Object.keys(tage[tag] || {}).forEach(function (ort) {
+        var wert = Number(tage[tag][ort]) || 0;
+        proFiliale[ort] = (proFiliale[ort] || 0) + wert;
+        tagSumme += wert;
+      });
+      if (tagSumme > 0) {
+        tageMitZahlen++;
+        gesamt += tagSumme;
+        var monat = tag.slice(0, 7);
+        proMonat[monat] = (proMonat[monat] || 0) + tagSumme;
+        if (tagSumme > bester.wert) bester = { tag: tag, wert: tagSumme };
+      }
+    });
+    return { proFiliale: proFiliale, proMonat: proMonat, gesamt: gesamt, tage: tageMitZahlen, bester: bester };
+  }
+
+  function warenwertImZeitraum(von, bis) {
+    var proFiliale = {}, gesamt = 0, anzahl = 0;
+    bestellungen.forEach(function (b) {
+      if (!b.datumIso || b.datumIso < von || b.datumIso > bis) return;
+      proFiliale[b.filiale] = (proFiliale[b.filiale] || 0) + b.wertZahl;
+      gesamt += b.wertZahl; anzahl++;
+    });
+    return { proFiliale: proFiliale, gesamt: gesamt, anzahl: anzahl };
+  }
+
+  function trend(jetzt, vorher) {
+    if (!vorher) return '<span style="color:var(--grau)">&ndash;</span>';
+    var p = (jetzt - vorher) / vorher * 100;
+    var zeichen = p >= 0 ? '+' : '\u2212';
+    return '<span class="' + (p >= 0 ? 'hoch' : 'runter') + '">' + zeichen +
+      Math.abs(p).toFixed(1).replace('.', ',') + '&nbsp;%</span>';
+  }
+
+  var monatsnamen = ['Januar','Februar','M\u00e4rz','April','Mai','Juni',
+                     'Juli','August','September','Oktober','November','Dezember'];
+  function monatName(schluessel) {
+    var t = schluessel.split('-');
+    return monatsnamen[parseInt(t[1], 10) - 1] + ' ' + t[0];
+  }
+  function tagText(iso) { return iso.split('-').reverse().join('.'); }
+
+  function auswertungZeichnen() {
+    var jetzt = summieren(aTage, aZeitraum.von, aZeitraum.bis);
+    var alt   = summieren(aVorher, '', '');
+    var ware  = warenwertImZeitraum(aZeitraum.von, aZeitraum.bis);
+    var ziel  = el('auswertung-inhalt');
+
+    if (!jetzt.gesamt && !ware.gesamt) {
+      ziel.innerHTML = '<div class="leer">F&uuml;r ' + txt(aZeitraum.name) +
+        ' sind noch keine Zahlen erfasst.<br>Tagesums&auml;tze tr&auml;gst du im Reiter Tagesumsatz ein.</div>';
+      return;
+    }
+
+    var schnitt = jetzt.tage ? jetzt.gesamt / jetzt.tage : 0;
+    var anteil = jetzt.gesamt ? ware.gesamt / jetzt.gesamt * 100 : 0;
+    var erg = ergebnisBlock(jetzt);
+    var ergebnis = jetzt.gesamt - erg.lohn.gesamt - erg.fix.gesamt;
+    aBericht = { jetzt: jetzt, alt: alt, ware: ware, erg: erg, ergebnis: ergebnis };
+
+    var kacheln =
+      kachel(euro(jetzt.gesamt), 'Umsatz ' + aZeitraum.name) +
+      kachel(euro(schnitt), '\u00d8 pro Tag') +
+      kachel(jetzt.tage, 'Tage erfasst') +
+      kachel(euro(ware.gesamt), 'Warenwert bestellt') +
+      kachel(anteil ? anteil.toFixed(1).replace('.', ',') + ' %' : '&ndash;', 'Warenanteil') +
+      kachel(ware.anzahl, 'Bestellungen') +
+      kachel(euro(erg.lohn.gesamt), 'Personalkosten') +
+      kachel(jetzt.gesamt ? (erg.lohn.gesamt / jetzt.gesamt * 100).toFixed(1).replace('.', ',') + ' %' : '&ndash;', 'Personalquote') +
+      kachel(euro(erg.fix.gesamt), 'Fixkosten') +
+      kachel(euro(ergebnis), 'Ergebnis');
+
+    // Monatsbalken
+    var monate = Object.keys(jetzt.proMonat).sort();
+    var maxMonat = Math.max.apply(null, monate.map(function (m) { return jetzt.proMonat[m]; }).concat([1]));
+    var monatsBalken = monate.map(function (m) {
+      return balken(monatName(m), jetzt.proMonat[m], maxMonat);
+    }).join('') || '<div class="leer">Noch keine Monatswerte.</div>';
+
+    // Filialen
+    var orte = Object.keys(jetzt.proFiliale).concat(alleFilialen)
+      .filter(function (o, i, l) { return l.indexOf(o) === i; })
+      .sort(function (a, b) { return (jetzt.proFiliale[b] || 0) - (jetzt.proFiliale[a] || 0); });
+    var maxOrt = Math.max.apply(null, orte.map(function (o) { return jetzt.proFiliale[o] || 0; }).concat([1]));
+
+    var filialZeilen = orte.map(function (ort) {
+      var u = jetzt.proFiliale[ort] || 0;
+      var w = ware.proFiliale[ort] || 0;
+      return '<tr><td>' + txt(ort) + '</td>' +
+        '<td class="zahl-rechts"><b>' + euro(u) + '</b></td>' +
+        '<td class="zahl-rechts">' + (jetzt.gesamt ? (u / jetzt.gesamt * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '&ndash;') + '</td>' +
+        '<td class="zahl-rechts">' + euro(w) + '</td>' +
+        '<td class="zahl-rechts">' + (u ? (w / u * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '&ndash;') + '</td>' +
+        '<td class="zahl-rechts">' + trend(u, alt.proFiliale[ort] || 0) + '</td></tr>';
+    }).join('');
+
+    // Tagesrückblick
+    var tage = Object.keys(aTage).filter(function (t) {
+      return t >= aZeitraum.von && t <= aZeitraum.bis;
+    }).sort().reverse();
+    var tagesZeilen = tage.map(function (tag) {
+      var werte = aTage[tag] || {};
+      var summe = Object.keys(werte).reduce(function (s, o) { return s + (Number(werte[o]) || 0); }, 0);
+      if (!summe) return '';
+      var aufteilung = Object.keys(werte).sort().map(function (o) {
+        return txt(o) + ' ' + euro(Number(werte[o]) || 0);
+      }).join(' \u00b7 ');
+      return '<tr><td>' + tagText(tag) + '<div class="aufteilung">' + aufteilung + '</div></td>' +
+        '<td class="zahl-rechts"><b>' + euro(summe) + '</b></td></tr>';
+    }).join('');
+
+    ziel.innerHTML =
+      '<div class="zahlen">' + kacheln + '</div>' +
+      '<h3 class="abschnitt">Umsatz nach Monat</h3>' + monatsBalken +
+      '<h3 class="abschnitt">Umsatz nach Filiale</h3>' +
+      orte.map(function (o) { return balken(o, jetzt.proFiliale[o] || 0, maxOrt); }).join('') +
+      '<h3 class="abschnitt">Kennzahlen je Filiale</h3>' +
+      '<table><thead><tr><th>Filiale</th><th class="zahl-rechts">Umsatz</th>' +
+      '<th class="zahl-rechts">Anteil</th><th class="zahl-rechts">Warenwert</th>' +
+      '<th class="zahl-rechts">Warenquote</th><th class="zahl-rechts">ggü. ' +
+      txt(aZeitraum.vorherName || '') + '</th></tr></thead><tbody>' + filialZeilen + '</tbody></table>' +
+      erg.html +
+      '<h3 class="abschnitt">Tagesr\u00fcckblick</h3>' +
+      (tagesZeilen
+        ? '<table><thead><tr><th>Tag</th><th class="zahl-rechts">Umsatz</th></tr></thead><tbody>' +
+          tagesZeilen + '</tbody></table>'
+        : '<div class="leer">Noch keine Tagesums\u00e4tze in diesem Zeitraum.</div>') +
+      (jetzt.bester.tag
+        ? '<div style="margin-top:14px;font-weight:600">Bester Tag: ' + tagText(jetzt.bester.tag) +
+          ' mit ' + euro(jetzt.bester.wert) + ' \u00b7 Vorzeitraum ' + euro(alt.gesamt) +
+          ' \u00b7 Ver\u00e4nderung ' + trend(jetzt.gesamt, alt.gesamt) + '</div>'
+        : '');
+  }
+
+  function balken(name, wert, max) {
+    var breite = max ? Math.max(2, wert / max * 100) : 2;
+    return '<div class="balken"><div class="name">' + txt(name) + '</div>' +
+      '<div class="spur"><div class="fuellung" style="width:' + breite.toFixed(1) + '%"></div></div>' +
+      '<div class="wert">' + euro(wert) + '</div></div>';
+  }
+
+  function meldeAuswertung(text, art) {
+    el('auswertung-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+
+  el('a-druck').addEventListener('click', function () { window.print(); });
+
+  var aBericht = null;
+
+  el('a-pdf').addEventListener('click', function () {
+    if (!aBericht || !window.jspdf) { meldeAuswertung('Es sind noch keine Zahlen geladen.', 'fehler'); return; }
+    var b = aBericht;
+    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+    doc.setTextColor(46, 42, 121);
+    doc.text('Auswertung ' + entziffert(aZeitraum.name), 40, 52);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text('B\u00e4ckerei Jung \u00b7 ' + tagText(aZeitraum.von) + ' bis ' + tagText(aZeitraum.bis) +
+             ' \u00b7 erstellt am ' + new Date().toLocaleDateString('de-DE'), 40, 68);
+    doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5);
+    doc.line(40, 76, 555, 76);
+
+    var quote = b.jetzt.gesamt ? (b.erg.lohn.gesamt / b.jetzt.gesamt * 100) : 0;
+    doc.autoTable({
+      startY: 92,
+      head: [['Kennzahl', 'Wert']],
+      body: [
+        ['Umsatz', euroText(b.jetzt.gesamt)],
+        ['Umsatz Vorzeitraum (' + entziffert(aZeitraum.vorherName || '') + ')', euroText(b.alt.gesamt)],
+        ['Ver\u00e4nderung', b.alt.gesamt
+          ? ((b.jetzt.gesamt - b.alt.gesamt) / b.alt.gesamt * 100).toFixed(1).replace('.', ',') + ' %' : '-'],
+        ['Erfasste Tage / \u00d8 pro Tag', b.jetzt.tage + ' / ' +
+          euroText(b.jetzt.tage ? b.jetzt.gesamt / b.jetzt.tage : 0)],
+        ['Warenwert bestellt', euroText(b.ware.gesamt)],
+        ['Personalkosten (' + b.erg.lohn.quelle + ')', euroText(b.erg.lohn.gesamt)],
+        ['Personalquote', quote.toFixed(1).replace('.', ',') + ' %'],
+        ['Fixkosten anteilig', euroText(b.erg.fix.gesamt)],
+        ['Ergebnis', euroText(b.ergebnis)]
+      ],
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+      columnStyles: { 1: { halign: 'right', fontStyle: 'bold', cellWidth: 130 } },
+      margin: { left: 40, right: 40 }
+    });
+
+    var orte = Object.keys(b.jetzt.proFiliale).concat(alleFilialen)
+      .filter(function (o, i, l) { return l.indexOf(o) === i; })
+      .sort(function (x, y) { return (b.jetzt.proFiliale[y] || 0) - (b.jetzt.proFiliale[x] || 0); });
+
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 22,
+      head: [['Filiale', 'Umsatz', 'Personal', 'Quote', 'Fixkosten', 'Ergebnis']],
+      body: orte.map(function (ort) {
+        var u = b.jetzt.proFiliale[ort] || 0;
+        var l = b.erg.lohn.proFiliale[ort] || 0;
+        var f = b.erg.fix.proFiliale[ort] || 0;
+        return [ort, euroText(u), euroText(l),
+          u ? (l / u * 100).toFixed(1).replace('.', ',') + ' %' : '-',
+          euroText(f), euroText(u - l - f)];
+      }),
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+      columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' },
+                      4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' } },
+      margin: { left: 40, right: 40 }
+    });
+
+    var tage = Object.keys(aTage).filter(function (t) {
+      return t >= aZeitraum.von && t <= aZeitraum.bis;
+    }).sort();
+    if (tage.length) {
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 22,
+        head: [['Tag', 'Umsatz']],
+        body: tage.map(function (tag) {
+          var werte = aTage[tag] || {};
+          var summe = Object.keys(werte).reduce(function (s, o) { return s + (Number(werte[o]) || 0); }, 0);
+          return [tagText(tag), euroText(summe)];
+        }),
+        styles: { font: 'helvetica', fontSize: 9, cellPadding: 3.5 },
+        headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+        columnStyles: { 1: { halign: 'right' } },
+        margin: { left: 40, right: 40 }
+      });
+    }
+
+    doc.save('Auswertung_' + aZeitraum.von + '_bis_' + aZeitraum.bis + '.pdf');
+  });
+
+  function euroText(n) { return (Number(n) || 0).toFixed(2).replace('.', ',') + ' EUR'; }
+  function entziffert(text) { return String(text).replace(/[^\x20-\x7E\u00C0-\u017F]/g, ''); }
+
+  el('d-pdf').addEventListener('click', function () {
+    if (!window.jspdf) return;
+    var montag = montagVon(el('d-tag').value);
+    var ort = el('d-filiale').value;
+    var woche = wochenSchluessel(el('d-tag').value);
+    var plan = dienstplaene[woche] || {};
+    var leute = besetzung(woche, ort).alle;
+    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+    doc.setTextColor(46, 42, 121);
+    doc.text('Dienstplan ' + ort + ' - KW ' + kalenderwoche(montag), 40, 46);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+    doc.text(tagText(montag) + ' bis ' + tagText(tagPlus(montag, 6)), 40, 62);
+
+    var gesamt = 0;
+    doc.autoTable({
+      startY: 78,
+      head: [['Mitarbeiter'].concat(WOCHENTAGE.map(function (t, i) {
+        return t + ' ' + tagPlus(montag, i).slice(8) + '.';
+      })).concat(['Stunden'])],
+      body: leute.map(function (m) {
+        var eintrag = plan[m.id] || {};
+        var stunden = 0;
+        var spalten = WOCHENTAGE.map(function (t) {
+          var roh = eintrag[t];
+          var code = eintragCode(roh);
+          if (!code) return '';
+          if (eintragOrt(roh, m) !== ort) return '-> ' + eintragOrt(roh, m);
+          stunden += stundenAusEintrag(code);
+          var s = schichtZu(code);
+          return s ? s.code + ' ' + s.von + '-' + s.bis
+                   : (code === 'U' ? 'Urlaub' : code === 'K' ? 'Krank' : code);
+        });
+        gesamt += stunden;
+        return [m.name + (m.filiale !== ort ? ' (V)' : '')].concat(spalten)
+          .concat([stunden.toFixed(1).replace('.', ',') + ' h']);
+      }),
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+      margin: { left: 40, right: 40 }
+    });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(20, 20, 20);
+    doc.text('Gesamt ' + gesamt.toFixed(1).replace('.', ',') + ' Stunden',
+             40, doc.lastAutoTable.finalY + 20);
+    doc.save('Dienstplan_' + ort.replace(/[^\w]+/g, '_') + '_KW' + kalenderwoche(montag) + '.pdf');
+  });
+
+  function csvSpeichern(zeilen, name) {
+    var feld = function (w) {
+      var s = String(w);
+      return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    var csv = '\ufeff' + zeilen.map(function (r) { return r.map(feld).join(';'); }).join('\r\n') + '\r\n';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+
+  el('a-csv-tage').addEventListener('click', function () {
+    var ware = {};
+    bestellungen.forEach(function (b) {
+      if (!b.datumIso || b.datumIso < aZeitraum.von || b.datumIso > aZeitraum.bis) return;
+      ware[b.datumIso + '|' + b.filiale] = (ware[b.datumIso + '|' + b.filiale] || 0) + b.wertZahl;
+    });
+    var zeilen = [['Datum', 'Filiale', 'Tagesumsatz', 'Warenwert Bestellung', 'Warenquote %']];
+    Object.keys(aTage).filter(function (t) { return t >= aZeitraum.von && t <= aZeitraum.bis; })
+      .sort().forEach(function (tag) {
+        Object.keys(aTage[tag] || {}).sort().forEach(function (ort) {
+          var u = Number(aTage[tag][ort]) || 0;
+          var w = ware[tag + '|' + ort] || 0;
+          zeilen.push([tagText(tag), ort, u.toFixed(2).replace('.', ','),
+            w.toFixed(2).replace('.', ','), u ? (w / u * 100).toFixed(1).replace('.', ',') : '']);
+        });
+      });
+    csvSpeichern(zeilen, 'Tageswerte_' + aZeitraum.name.replace(/[ .]/g, '_') + '.csv');
+  });
+
+  el('a-csv-summe').addEventListener('click', function () {
+    var jetzt = summieren(aTage, aZeitraum.von, aZeitraum.bis);
+    var alt   = summieren(aVorher, '', '');
+    var ware  = warenwertImZeitraum(aZeitraum.von, aZeitraum.bis);
+    var orte = Object.keys(jetzt.proFiliale).concat(alleFilialen)
+      .filter(function (o, i, l) { return l.indexOf(o) === i; }).sort();
+    var zeilen = [['Zeitraum', aZeitraum.name], [], 
+      ['Filiale', 'Umsatz', 'Anteil %', 'Warenwert', 'Warenquote %', 'Vorzeitraum', 'Veränderung %']];
+    orte.forEach(function (ort) {
+      var u = jetzt.proFiliale[ort] || 0, w = ware.proFiliale[ort] || 0, v = alt.proFiliale[ort] || 0;
+      zeilen.push([ort, u.toFixed(2).replace('.', ','),
+        jetzt.gesamt ? (u / jetzt.gesamt * 100).toFixed(1).replace('.', ',') : '',
+        w.toFixed(2).replace('.', ','),
+        u ? (w / u * 100).toFixed(1).replace('.', ',') : '',
+        v.toFixed(2).replace('.', ','),
+        v ? ((u - v) / v * 100).toFixed(1).replace('.', ',') : '']);
+    });
+    zeilen.push([]);
+    zeilen.push(['Gesamt', jetzt.gesamt.toFixed(2).replace('.', ','), '',
+      ware.gesamt.toFixed(2).replace('.', ','),
+      jetzt.gesamt ? (ware.gesamt / jetzt.gesamt * 100).toFixed(1).replace('.', ',') : '',
+      alt.gesamt.toFixed(2).replace('.', ','),
+      alt.gesamt ? ((jetzt.gesamt - alt.gesamt) / alt.gesamt * 100).toFixed(1).replace('.', ',') : '']);
+    csvSpeichern(zeilen, 'Auswertung_' + aZeitraum.name.replace(/[ .]/g, '_') + '.csv');
+  });
+
+  // ---------- Gemeinsame Ablage (Personal, Kosten, Dienstpläne) ----------
+  var ENDPUNKT_DATEN = '/.netlify/functions/daten';
+  var personal = [], kosten = {}, dienstplaene = {};
+
+  function ablageLesen(bereich, schluessel, ersatz) {
+    return fetch(ENDPUNKT_DATEN, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'lesen', bereich: bereich, schluessel: schluessel })
+    })
+    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
+    .then(function (d) { return d.inhalt || ersatz; })
+    .catch(function () {
+      try { return JSON.parse(localStorage.getItem('chef-' + bereich + '-' + schluessel)) || ersatz; }
+      catch (e) { return ersatz; }
+    });
+  }
+
+  function ablageSchreiben(bereich, schluessel, inhalt) {
+    try { localStorage.setItem('chef-' + bereich + '-' + schluessel, JSON.stringify(inhalt)); } catch (e) {}
+    return fetch(ENDPUNKT_DATEN, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'speichern', bereich: bereich, schluessel: schluessel, inhalt: inhalt })
+    })
+    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return true; });
+  }
+
+  // ---------- Personal ----------
+  var FUNKTIONEN = ['Verkauf', 'Filialleitung', 'B\u00e4cker', 'Konditor', 'Fahrer', 'Auszubildende', 'Aushilfe', 'B\u00fcro'];
+  var VERTRAEGE  = ['Vollzeit', 'Teilzeit', 'Minijob', 'Ausbildung', 'Aushilfe'];
+
+  function personalHolen() {
+    if (personal.length) return Promise.resolve(personal);
+    return ablageLesen('personal', 'alle', { mitarbeiter: [] }).then(function (d) {
+      personal = d.mitarbeiter || [];
+      return personal;
+    });
+  }
+
+  function personalLaden() {
+    meldePersonal('Personal wird geladen \u2026', 'ladend');
+    personal = [];
+    personalHolen().then(function () { meldePersonal('', ''); personalZeichnen(); });
+  }
+
+  // Was der Mitarbeiter den Betrieb pro Stunde wirklich kostet
+  function vollkosten(m) {
+    var lohn = Number(m.stundenlohn) || 0;
+    var ag = m.agAnteil === undefined ? 21 : (Number(m.agAnteil) || 0);
+    return lohn * (1 + ag / 100);
+  }
+
+  function personalZeichnen() {
+    var ziel = el('personal-inhalt');
+    if (!personal.length) {
+      ziel.innerHTML = '<div class="leer">Noch keine Mitarbeiter angelegt.<br>' +
+        '&Uuml;ber &bdquo;Mitarbeiter anlegen&ldquo; oben startest du.</div>';
+      return;
+    }
+    var nachFiliale = {};
+    personal.forEach(function (m) { (nachFiliale[m.filiale || 'Ohne Filiale'] = nachFiliale[m.filiale || 'Ohne Filiale'] || []).push(m); });
+
+    ziel.innerHTML = Object.keys(nachFiliale).sort().map(function (ort) {
+      var zeilen = nachFiliale[ort].sort(function (a, b) {
+        return String(a.name).localeCompare(String(b.name), 'de');
+      }).map(function (m) {
+        var satz = vollkosten(m);
+        var monat = (Number(m.wochenstunden) || 0) * 4.33 * satz;
+        return '<tr>' +
+          '<td>' + txt(m.personalnummer || '\u2013') + '</td>' +
+          '<td><b>' + txt(m.name) + '</b>' +
+            (m.aktiv === false ? ' <span style="color:var(--rot)">(ausgetreten)</span>' : '') +
+            '<div class="aufteilung">' + txt(m.telefon || '') +
+            (m.email ? ' \u00b7 ' + txt(m.email) : '') +
+            (m.notiz ? ' \u00b7 ' + txt(m.notiz) : '') + '</div></td>' +
+          '<td>' + txt(m.funktion || '') + '</td>' +
+          '<td>' + txt(m.vertrag || '') + '</td>' +
+          '<td class="zahl-rechts">' + (m.wochenstunden || 0) + ' h</td>' +
+          '<td class="zahl-rechts">' + euro(Number(m.stundenlohn) || 0) + '</td>' +
+          '<td class="zahl-rechts">' + (m.agAnteil === undefined ? 21 : m.agAnteil) + '&nbsp;%</td>' +
+          '<td class="zahl-rechts"><b>' + euro(satz) + '</b></td>' +
+          '<td class="zahl-rechts">' + euro(monat) + '</td>' +
+          '<td class="zahl-rechts">' + (m.eintritt ? tagText(m.eintritt) : '\u2013') + '</td>' +
+          '<td class="zahl-rechts">' +
+            '<button class="zeilenknopf" data-bearbeiten="' + txt(m.id) + '">&Auml;ndern</button>' +
+            '<button class="zeilenknopf loeschen" data-loeschen="' + txt(m.id) + '">L&ouml;schen</button></td>' +
+        '</tr>';
+      }).join('');
+      return '<h3 class="abschnitt">' + txt(ort) + ' \u00b7 ' + nachFiliale[ort].length + ' Mitarbeiter</h3>' +
+        '<div class="rollen"><table><thead><tr><th>Pers.-Nr.</th><th>Name</th><th>Funktion</th><th>Vertrag</th>' +
+        '<th class="zahl-rechts">Woche</th><th class="zahl-rechts">Lohn/h</th>' +
+        '<th class="zahl-rechts">AG-Anteil</th><th class="zahl-rechts">Kosten/h</th>' +
+        '<th class="zahl-rechts">Kosten/Monat</th><th class="zahl-rechts">Eintritt</th>' +
+        '<th></th></tr></thead><tbody>' + zeilen + '</tbody></table></div>';
+    }).join('');
+
+    ziel.querySelectorAll('[data-bearbeiten]').forEach(function (b) {
+      b.addEventListener('click', function () { personalFormular(b.dataset.bearbeiten); });
+    });
+    ziel.querySelectorAll('[data-loeschen]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var m = personal.filter(function (x) { return x.id === b.dataset.loeschen; })[0];
+        if (!m || !confirm('„' + m.name + '“ wirklich löschen?')) return;
+        personal = personal.filter(function (x) { return x.id !== b.dataset.loeschen; });
+        personalSpeichern();
+      });
+    });
+  }
+
+  el('p-neu').addEventListener('click', function () { personalFormular(null); });
+
+  function personalFormular(id) {
+    var m = personal.filter(function (x) { return x.id === id; })[0] ||
+      { id: '', personalnummer: '', name: '', filiale: alleFilialen[0] || '', funktion: 'Verkauf', vertrag: 'Teilzeit',
+        wochenstunden: '', stundenlohn: '', agAnteil: 21, eintritt: '', austritt: '',
+        telefon: '', email: '', notiz: '', aktiv: true };
+
+    function auswahl(id, wert, liste) {
+      return '<select class="klein" id="' + id + '">' + liste.map(function (w) {
+        return '<option' + (w === wert ? ' selected' : '') + '>' + txt(w) + '</option>';
+      }).join('') + '</select>';
+    }
+    function feld(id, name, wert, typ) {
+      return '<div class="formularfeld"><label class="feldname" for="' + id + '">' + name + '</label>' +
+        '<input class="klein" type="' + (typ || 'text') + '" id="' + id + '" value="' + txt(wert || '') + '"></div>';
+    }
+
+    el('personal-formular').classList.remove('verstecken');
+    el('personal-formular').innerHTML =
+      '<div style="border:1px solid var(--linie);border-radius:11px;padding:14px;margin-bottom:16px">' +
+      '<h3 class="abschnitt" style="margin-top:0">' + (id ? 'Mitarbeiter &auml;ndern' : 'Neuer Mitarbeiter') + '</h3>' +
+      '<div class="raster">' +
+        feld('f-nummer', 'Personalnummer', m.personalnummer) +
+        feld('f-name', 'Name', m.name) +
+        '<div class="formularfeld"><label class="feldname">Stammfiliale</label>' +
+          auswahl('f-filiale', m.filiale, alleFilialen) + '</div>' +
+        '<div class="formularfeld"><label class="feldname">Funktion</label>' +
+          auswahl('f-funktion', m.funktion, FUNKTIONEN) + '</div>' +
+        '<div class="formularfeld"><label class="feldname">Vertrag</label>' +
+          auswahl('f-vertrag', m.vertrag, VERTRAEGE) + '</div>' +
+        feld('f-stunden', 'Wochenstunden', m.wochenstunden) +
+        feld('f-lohn', 'Stundenlohn €', m.stundenlohn) +
+        feld('f-ag', 'Arbeitgeberanteil %', m.agAnteil === undefined ? 21 : m.agAnteil) +
+        feld('f-eintritt', 'Eintritt', m.eintritt, 'date') +
+        feld('f-austritt', 'Austritt', m.austritt, 'date') +
+        feld('f-telefon', 'Telefon', m.telefon) +
+        feld('f-email', 'E-Mail', m.email) +
+        feld('f-notiz', 'Notiz', m.notiz) +
+      '</div>' +
+      '<div class="werkzeuge" style="margin-top:6px">' +
+        '<button type="button" id="f-sichern">Speichern</button>' +
+        '<button type="button" id="f-abbruch">Abbrechen</button></div></div>';
+
+    el('f-abbruch').addEventListener('click', function () {
+      el('personal-formular').classList.add('verstecken');
+      el('personal-formular').innerHTML = '';
+    });
+    el('f-sichern').addEventListener('click', function () {
+      var name = el('f-name').value.trim();
+      if (!name) { meldePersonal('Bitte einen Namen eintragen.', 'fehler'); return; }
+      var neu = {
+        id: id || 'm' + Date.now(),
+        personalnummer: el('f-nummer').value.trim(),
+        name: name,
+        filiale: el('f-filiale').value,
+        funktion: el('f-funktion').value,
+        vertrag: el('f-vertrag').value,
+        wochenstunden: betrag(el('f-stunden').value),
+        stundenlohn: betrag(el('f-lohn').value),
+        agAnteil: el('f-ag').value.trim() === '' ? 21 : betrag(el('f-ag').value),
+        eintritt: el('f-eintritt').value,
+        austritt: el('f-austritt').value,
+        telefon: el('f-telefon').value.trim(),
+        email: el('f-email').value.trim(),
+        notiz: el('f-notiz').value.trim(),
+        aktiv: !el('f-austritt').value
+      };
+      if (id) personal = personal.map(function (x) { return x.id === id ? neu : x; });
+      else personal.push(neu);
+      el('personal-formular').classList.add('verstecken');
+      el('personal-formular').innerHTML = '';
+      personalSpeichern();
+    });
+  }
+
+  function personalSpeichern() {
+    personalZeichnen();
+    meldePersonal('Wird gespeichert \u2026', 'ladend');
+    ablageSchreiben('personal', 'alle', { mitarbeiter: personal })
+      .then(function () {
+        meldePersonal('Gespeichert.', 'gut');
+        setTimeout(function () { meldePersonal('', ''); }, 2500);
+      })
+      .catch(function () {
+        meldePersonal('Der Server speichert noch nicht. Die Daten liegen vorerst nur auf diesem Gerät.', 'fehler');
+      });
+  }
+
+  el('p-csv').addEventListener('click', function () {
+    var zeilen = [['Personalnummer', 'Name', 'Stammfiliale', 'Funktion', 'Vertrag', 'Wochenstunden',
+                   'Stundenlohn', 'Arbeitgeberanteil %', 'Kosten pro Stunde', 'Kosten pro Monat',
+                   'Eintritt', 'Austritt', 'Telefon', 'E-Mail', 'Notiz']];
+    personal.forEach(function (m) {
+      var satz = vollkosten(m);
+      var monat = (Number(m.wochenstunden) || 0) * 4.33 * satz;
+      zeilen.push([m.personalnummer || '', m.name, m.filiale, m.funktion, m.vertrag,
+        String(m.wochenstunden || ''), String(m.stundenlohn || '').replace('.', ','),
+        String(m.agAnteil === undefined ? 21 : m.agAnteil).replace('.', ','),
+        satz.toFixed(2).replace('.', ','), monat.toFixed(2).replace('.', ','),
+        m.eintritt || '', m.austritt || '', m.telefon || '', m.email || '', m.notiz || '']);
+    });
+    csvSpeichern(zeilen, 'Personalliste.csv');
+  });
+
+  function meldePersonal(text, art) {
+    el('personal-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+
+  // ---------- Dienstplan ----------
+  var WOCHENTAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  var TAGNAMEN = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag',
+                   Fr: 'Freitag', Sa: 'Samstag', So: 'Sonntag' };
+
+  var SCHICHT_STANDARD = [
+    { code: 'F', name: 'Fr\u00fchschicht',  von: '05:00', bis: '13:00', farbe: '#2E2A79' },
+    { code: 'M', name: 'Mittelschicht',     von: '09:00', bis: '16:00', farbe: '#1E7B45' },
+    { code: 'S', name: 'Sp\u00e4tschicht',  von: '12:00', bis: '19:30', farbe: '#B36B00' }
+  ];
+  var ABWESEND = [
+    { code: 'U', name: 'Urlaub' },
+    { code: 'K', name: 'Krank' }
+  ];
+
+  var schichten = JSON.parse(JSON.stringify(SCHICHT_STANDARD));
+  var dienstplanAnsicht = 'plan';
+
+  el('d-tag').value = heute.toISOString().slice(0, 10);
+  el('d-tag').addEventListener('change', dienstplanLaden);
+  el('d-filiale').addEventListener('change', dienstplanZeichnen);
+
+  ['plan', 'kalender', 'zeiten'].forEach(function (name) {
+    el('d-ansicht-' + name).addEventListener('click', function () {
+      dienstplanAnsicht = name;
+      ['plan', 'kalender', 'zeiten'].forEach(function (n) {
+        el('d-ansicht-' + n).classList.toggle('an', n === name);
+      });
+      el('dienstplan-zeiten').classList.toggle('verstecken', name !== 'zeiten');
+      el('dienstplan-inhalt').classList.toggle('verstecken', name === 'zeiten');
+      if (name === 'zeiten') zeitenZeichnen(); else dienstplanZeichnen();
+    });
+  });
+
+  function dienstplanLaden() {
+    if (!el('d-filiale').options.length) {
+      alleFilialen.forEach(function (ort) {
+        var o = document.createElement('option');
+        o.value = ort; o.textContent = ort; el('d-filiale').appendChild(o);
+      });
+    }
+    var woche = wochenSchluessel(el('d-tag').value || heute.toISOString().slice(0, 10));
+    meldeDienstplan('Dienstplan wird geladen \u2026', 'ladend');
+    Promise.all([
+      personalHolen(),
+      ablageLesen('dienstplan', woche, { plan: {} }),
+      ablageLesen('dienstplan', 'schichten', { schichten: SCHICHT_STANDARD })
+    ]).then(function (e) {
+      dienstplaene[woche] = e[1].plan || {};
+      if (e[2] && e[2].schichten && e[2].schichten.length) schichten = e[2].schichten;
+      meldeDienstplan('', '');
+      if (dienstplanAnsicht === 'zeiten') zeitenZeichnen(); else dienstplanZeichnen();
+    });
+  }
+
+  function schichtZu(code) {
+    return schichten.filter(function (s) { return s.code === code; })[0] || null;
+  }
+
+  // Stunden aus einem Eintrag: Schichtkürzel, Urlaub/Krank oder freie Zeitangabe
+  function stundenAusEintrag(roh) {
+    var wert = (roh && typeof roh === 'object') ? (roh.s || '') : roh;
+    if (!wert) return 0;
+    var s = schichtZu(wert);
+    if (s) return stundenAusText(s.von + '-' + s.bis);
+    if (wert === 'U' || wert === 'K') return 0;
+    return stundenAusText(wert);
+  }
+
+  function eintragText(roh) {
+    var wert = (roh && typeof roh === 'object') ? (roh.s || '') : roh;
+    if (!wert) return '';
+    var s = schichtZu(wert);
+    if (s) return s.name + ' ' + s.von + '\u2013' + s.bis;
+    if (wert === 'U') return 'Urlaub';
+    if (wert === 'K') return 'Krank';
+    return wert;
+  }
+
+  function stundenAusText(text) {
+    var t = String(text || '').replace(/\s/g, '').replace(/[\u2013\u2014]/g, '-');
+    var m = t.match(/^(\d{1,2})[:.]?(\d{2})?-(\d{1,2})[:.]?(\d{2})?$/);
+    if (!m) return 0;
+    var von = (+m[1]) + (m[2] ? +m[2] / 60 : 0);
+    var bis = (+m[3]) + (m[4] ? +m[4] / 60 : 0);
+    if (bis <= von) return 0;
+    var dauer = bis - von;
+    return dauer > 6 ? dauer - 0.5 : dauer;   // ab 6 Stunden 30 Minuten Pause
+  }
+
+  // ---------- Einträge lesen ----------
+  // Ein Eintrag ist entweder "F" (eigene Filiale) oder {s:"F", f:"Landstuhl"} bei Vertretung
+  function eintragCode(e) { return !e ? '' : (typeof e === 'string' ? e : (e.s || '')); }
+  function eintragOrt(e, m) {
+    if (e && typeof e === 'object' && e.f) return e.f;
+    return m ? m.filiale : '';
+  }
+
+  // ---------- Schichtzeiten pflegen ----------
+  function zeitenZeichnen() {
+    el('dienstplan-zeiten').innerHTML =
+      '<h3 class="abschnitt" style="margin-top:0">Schichtzeiten</h3>' +
+      '<div class="aufteilung" style="margin-bottom:12px">Gelten f\u00fcr alle Filialen. ' +
+      'Ab sechs Stunden wird eine halbe Stunde Pause abgezogen.</div>' +
+      '<div class="rollen"><table><thead><tr><th>Schicht</th><th>K\u00fcrzel</th>' +
+      '<th>Beginn</th><th>Ende</th><th class="zahl-rechts">Stunden</th></tr></thead><tbody>' +
+      schichten.map(function (s, i) {
+        return '<tr><td><input class="klein" type="text" data-schicht="' + i + '" data-teil="name" value="' +
+            txt(s.name) + '"></td>' +
+          '<td><b style="color:' + txt(s.farbe || '#2E2A79') + '">' + txt(s.code) + '</b></td>' +
+          '<td><input class="klein" type="time" data-schicht="' + i + '" data-teil="von" value="' + txt(s.von) + '"></td>' +
+          '<td><input class="klein" type="time" data-schicht="' + i + '" data-teil="bis" value="' + txt(s.bis) + '"></td>' +
+          '<td class="zahl-rechts">' + stundenAusText(s.von + '-' + s.bis).toFixed(1).replace('.', ',') + ' h</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="werkzeuge" style="margin-top:12px">' +
+        '<button type="button" id="z-sichern">Schichtzeiten speichern</button></div>';
+
+    el('dienstplan-zeiten').querySelectorAll('[data-schicht]').forEach(function (feld) {
+      feld.addEventListener('change', function () {
+        schichten[+feld.dataset.schicht][feld.dataset.teil] = feld.value;
+        zeitenZeichnen();
+      });
+    });
+    el('z-sichern').addEventListener('click', function () {
+      meldeDienstplan('Wird gespeichert \u2026', 'ladend');
+      ablageSchreiben('dienstplan', 'schichten', { schichten: schichten })
+        .then(function () {
+          meldeDienstplan('Schichtzeiten gespeichert.', 'gut');
+          setTimeout(function () { meldeDienstplan('', ''); }, 2500);
+        })
+        .catch(function () {
+          meldeDienstplan('Der Server speichert noch nicht. Die Zeiten liegen vorerst nur auf diesem Ger\u00e4t.', 'fehler');
+        });
+    });
+  }
+
+  // ---------- Wer arbeitet diese Woche in dieser Filiale ----------
+  var vertretungen = {};   // "2026-W35|Landstuhl" -> [Mitarbeiter-IDs]
+
+  function vertretungsListe(woche, ort) {
+    return vertretungen[woche + '|' + ort] || [];
+  }
+
+  function besetzung(woche, ort) {
+    var plan = dienstplaene[woche] || {};
+    var eigene = personal.filter(function (m) { return m.filiale === ort && m.aktiv !== false; });
+    var fremde = personal.filter(function (m) {
+      if (m.filiale === ort || m.aktiv === false) return false;
+      if (vertretungsListe(woche, ort).indexOf(m.id) > -1) return true;
+      var eintrag = plan[m.id] || {};
+      return WOCHENTAGE.some(function (tag) { return eintragOrt(eintrag[tag], m) === ort; });
+    });
+    return { eigene: eigene, fremde: fremde, alle: eigene.concat(fremde) };
+  }
+
+  // ---------- Plan eintragen ----------
+  function dienstplanZeichnen() {
+    if (dienstplanAnsicht === 'kalender') { kalenderZeichnen(); return; }
+
+    var woche = wochenSchluessel(el('d-tag').value);
+    var montag = montagVon(el('d-tag').value);
+    var ort = el('d-filiale').value;
+    var plan = dienstplaene[woche] || {};
+    var wer = besetzung(woche, ort);
+
+    if (!wer.alle.length) {
+      el('dienstplan-inhalt').innerHTML = '<div class="leer">F&uuml;r ' + txt(ort) +
+        ' sind keine Mitarbeiter angelegt.<br>Im Reiter Personal anlegen oder unten eine Vertretung holen.</div>' +
+        vertretungsFeld(woche, ort);
+      vertretungKnopf(woche, ort);
+      return;
+    }
+
+    var auswahlFelder = function (wert) {
+      var teile = ['<option value="">frei</option>'];
+      schichten.forEach(function (s) {
+        teile.push('<option value="' + txt(s.code) + '"' + (wert === s.code ? ' selected' : '') + '>' +
+          txt(s.name) + ' (' + txt(s.von) + ')</option>');
+      });
+      ABWESEND.forEach(function (a) {
+        teile.push('<option value="' + a.code + '"' + (wert === a.code ? ' selected' : '') + '>' + a.name + '</option>');
+      });
+      var eigen = wert && !schichtZu(wert) && wert !== 'U' && wert !== 'K';
+      teile.push('<option value="eigen"' + (eigen ? ' selected' : '') + '>eigene Zeit \u2026</option>');
+      return teile.join('');
+    };
+
+    var gesamtStunden = 0, gesamtKosten = 0;
+    var zeilen = wer.alle.map(function (m) {
+      var eintrag = plan[m.id] || {};
+      var fremd = m.filiale !== ort;
+      var stunden = 0;
+      var felder = WOCHENTAGE.map(function (tag) {
+        var roh = eintrag[tag];
+        var code = eintragCode(roh);
+        var einsatzOrt = eintragOrt(roh, m);
+
+        // Woanders eingeteilt: hier nur anzeigen, nicht mitrechnen
+        if (code && einsatzOrt !== ort) {
+          return '<td><div class="aufteilung" style="color:var(--rot)">\u2192 ' + txt(einsatzOrt) + '<br>' +
+            txt(kurzText(code)) + '</div>' +
+            '<select class="klein" style="margin-top:4px" data-person="' + txt(m.id) + '" data-tag="' + tag + '">' +
+            auswahlFelder('') + '</select></td>';
+        }
+        if (code) stunden += stundenAusEintrag(code);
+        var eigen = code && !schichtZu(code) && code !== 'U' && code !== 'K';
+        return '<td><select class="klein" data-person="' + txt(m.id) + '" data-tag="' + tag + '">' +
+          auswahlFelder(code) + '</select>' +
+          (eigen ? '<input class="klein" style="margin-top:4px" type="text" data-eigen="' + txt(m.id) +
+            '" data-tag="' + tag + '" value="' + txt(code) + '" placeholder="6-14">' : '') + '</td>';
+      }).join('');
+      var lohnkosten = stunden * vollkosten(m);
+      gesamtStunden += stunden; gesamtKosten += lohnkosten;
+      return '<tr><td><b>' + txt(m.name) + '</b>' +
+        (fremd ? ' <span style="color:var(--gruen);font-size:12px;font-weight:600">Vertretung</span>' : '') +
+        '<div class="aufteilung">' + txt(m.funktion || '') +
+        (fremd ? ' \u00b7 aus ' + txt(m.filiale) : ' \u00b7 ' + (m.wochenstunden || 0) + ' h vertraglich') +
+        ' \u00b7 ' + euro(vollkosten(m)) + '/h</div></td>' + felder +
+        '<td class="zahl-rechts"><b>' + stunden.toFixed(1).replace('.', ',') + ' h</b></td>' +
+        '<td class="zahl-rechts">' + euro(lohnkosten) + '</td></tr>';
+    }).join('');
+
+    el('dienstplan-inhalt').innerHTML =
+      '<h3 class="abschnitt" style="margin-top:0">' + txt(ort) + ' \u00b7 KW ' + kalenderwoche(montag) +
+        ' \u00b7 ' + tagText(montag) + ' bis ' + tagText(tagPlus(montag, 6)) + '</h3>' +
+      '<div class="rollen"><table><thead><tr><th>Mitarbeiter</th>' +
+      WOCHENTAGE.map(function (t, i) {
+        return '<th>' + t + '<div class="aufteilung">' + tagPlus(montag, i).slice(8) + '.' +
+          tagPlus(montag, i).slice(5, 7) + '.</div></th>';
+      }).join('') +
+      '<th class="zahl-rechts">Stunden</th><th class="zahl-rechts">Kosten</th></tr></thead>' +
+      '<tbody>' + zeilen + '</tbody></table></div>' +
+      '<div style="margin-top:14px;font-weight:600">' + gesamtStunden.toFixed(1).replace('.', ',') +
+        ' Stunden \u00b7 Personalkosten ' + euro(gesamtKosten) + '</div>' +
+      vertretungsFeld(woche, ort);
+
+    el('dienstplan-inhalt').querySelectorAll('select[data-person]').forEach(function (feld) {
+      feld.addEventListener('change', function () {
+        setzeSchicht(feld.dataset.person, feld.dataset.tag,
+                     feld.value === 'eigen' ? '6-14' : feld.value);
+      });
+    });
+    el('dienstplan-inhalt').querySelectorAll('input[data-eigen]').forEach(function (feld) {
+      feld.addEventListener('change', function () {
+        setzeSchicht(feld.dataset.eigen, feld.dataset.tag, feld.value.trim());
+      });
+    });
+    vertretungKnopf(woche, ort);
+  }
+
+  function kurzText(code) {
+    var s = schichtZu(code);
+    if (s) return s.name;
+    if (code === 'U') return 'Urlaub';
+    if (code === 'K') return 'Krank';
+    return code;
+  }
+
+  function vertretungsFeld(woche, ort) {
+    var andere = personal.filter(function (m) { return m.filiale !== ort && m.aktiv !== false; })
+      .sort(function (a, b) { return String(a.filiale).localeCompare(String(b.filiale), 'de'); });
+    if (!andere.length) return '';
+    return '<div style="border:1px solid var(--linie);border-radius:11px;padding:12px;margin-top:16px">' +
+      '<label class="feldname" for="v-person">Vertretung aus einer anderen Filiale holen</label>' +
+      '<div class="raster">' +
+        '<div style="flex:1 1 220px"><select class="klein" id="v-person">' +
+          andere.map(function (m) {
+            return '<option value="' + txt(m.id) + '">' + txt(m.name) + ' \u2013 ' + txt(m.filiale) +
+              ' (' + txt(m.funktion || '') + ')</option>';
+          }).join('') + '</select></div>' +
+        '<div style="flex:0 0 auto"><button type="button" class="zeilenknopf" id="v-holen" ' +
+          'style="padding:9px 14px;font-size:14px">In den Plan aufnehmen</button></div>' +
+      '</div>' +
+      '<div class="aufteilung" style="margin-top:6px">Die Person erscheint als Zeile im Plan. ' +
+      'Stunden und Kosten z\u00e4hlen dann zu ' + txt(ort) + ', nicht zur Stammfiliale.</div></div>';
+  }
+
+  function vertretungKnopf(woche, ort) {
+    var knopf = el('v-holen');
+    if (!knopf) return;
+    knopf.addEventListener('click', function () {
+      var id = el('v-person').value;
+      var schluessel = woche + '|' + ort;
+      vertretungen[schluessel] = vertretungen[schluessel] || [];
+      if (vertretungen[schluessel].indexOf(id) === -1) vertretungen[schluessel].push(id);
+      dienstplanZeichnen();
+    });
+  }
+
+  function setzeSchicht(personId, tag, wert) {
+    var w = wochenSchluessel(el('d-tag').value);
+    var ort = el('d-filiale').value;
+    var m = personal.filter(function (x) { return x.id === personId; })[0];
+    dienstplaene[w] = dienstplaene[w] || {};
+    var eintrag = dienstplaene[w][personId] || {};
+    if (!wert) delete eintrag[tag];
+    else if (m && m.filiale === ort) eintrag[tag] = wert;         // eigene Filiale
+    else eintrag[tag] = { s: wert, f: ort };                       // Vertretung
+    dienstplaene[w][personId] = eintrag;
+    dienstplanZeichnen();
+  }
+
+  // ---------- Wochenkalender ----------
+  function kalenderZeichnen() {
+    var woche = wochenSchluessel(el('d-tag').value);
+    var montag = montagVon(el('d-tag').value);
+    var ort = el('d-filiale').value;
+    var plan = dienstplaene[woche] || {};
+    var wer = besetzung(woche, ort);
+
+    if (!wer.alle.length) {
+      el('dienstplan-inhalt').innerHTML = '<div class="leer">F&uuml;r ' + txt(ort) +
+        ' sind keine Mitarbeiter angelegt.</div>';
+      return;
+    }
+
+    // Wer arbeitet an diesem Tag in dieser Filiale?
+    function hierAmTag(tag, code) {
+      return wer.alle.filter(function (m) {
+        var roh = (plan[m.id] || {})[tag];
+        if (eintragOrt(roh, m) !== ort) return false;
+        return code ? eintragCode(roh) === code : !!eintragCode(roh);
+      });
+    }
+    function name(m) {
+      return txt(m.name) + (m.filiale !== ort ? ' <span style="color:var(--gruen)">(V)</span>' : '');
+    }
+
+    var tage = WOCHENTAGE.map(function (tag, i) {
+      var datum = tagPlus(montag, i);
+      var bloecke = schichten.map(function (s) {
+        return { titel: s.name + ' ' + s.von + '\u2013' + s.bis, farbe: s.farbe || '#2E2A79',
+                 namen: hierAmTag(tag, s.code) };
+      });
+      var eigene = hierAmTag(tag, null).filter(function (m) {
+        var code = eintragCode((plan[m.id] || {})[tag]);
+        return code && !schichtZu(code) && code !== 'U' && code !== 'K';
+      });
+      if (eigene.length) bloecke.push({ titel: 'Sonderzeiten', farbe: '#6B6880', namen: eigene, zeigeZeit: true });
+
+      var abwesend = wer.eigene.filter(function (m) {
+        var code = eintragCode((plan[m.id] || {})[tag]);
+        return code === 'U' || code === 'K';
+      });
+      var ausgeliehen = wer.eigene.filter(function (m) {
+        var roh = (plan[m.id] || {})[tag];
+        return eintragCode(roh) && eintragOrt(roh, m) !== ort;
+      });
+
+      var stunden = 0, kosten = 0;
+      hierAmTag(tag, null).forEach(function (m) {
+        var h = stundenAusEintrag(eintragCode((plan[m.id] || {})[tag]));
+        stunden += h; kosten += h * vollkosten(m);
+      });
+
+      return '<div style="border:1px solid var(--linie);border-radius:11px;padding:12px;margin-bottom:10px">' +
+        '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">' +
+          '<b style="font-family:Nunito,sans-serif;font-size:15px">' + TAGNAMEN[tag] + '</b>' +
+          '<span class="aufteilung">' + tagText(datum) + '</span>' +
+          '<span style="margin-left:auto;font-size:12px;font-weight:600">' +
+            stunden.toFixed(1).replace('.', ',') + ' h \u00b7 ' + euro(kosten) + '</span></div>' +
+        bloecke.map(function (b) {
+          return '<div style="display:flex;gap:9px;margin-bottom:6px;font-size:13px">' +
+            '<span style="flex:0 0 6px;border-radius:3px;background:' + b.farbe + '"></span>' +
+            '<span style="flex:0 0 118px;color:var(--grau)">' + txt(b.titel) + '</span>' +
+            '<span style="flex:1">' + (b.namen.length
+              ? b.namen.map(function (m) {
+                  return name(m) + (b.zeigeZeit ? ' (' + txt(eintragCode((plan[m.id] || {})[tag])) + ')' : '');
+                }).join(', ')
+              : '<span style="color:var(--rot)">nicht besetzt</span>') + '</span></div>';
+        }).join('') +
+        (abwesend.length ? '<div class="aufteilung" style="margin-top:8px">Abwesend: ' +
+          abwesend.map(function (m) {
+            return txt(m.name) + ' (' + kurzText(eintragCode((plan[m.id] || {})[tag])) + ')';
+          }).join(', ') + '</div>' : '') +
+        (ausgeliehen.length ? '<div class="aufteilung">Aushilfe in anderer Filiale: ' +
+          ausgeliehen.map(function (m) {
+            return txt(m.name) + ' \u2192 ' + txt(eintragOrt((plan[m.id] || {})[tag], m));
+          }).join(', ') + '</div>' : '') +
+      '</div>';
+    }).join('');
+
+    var summeStunden = 0, summeKosten = 0;
+    WOCHENTAGE.forEach(function (tag) {
+      hierAmTag(tag, null).forEach(function (m) {
+        var h = stundenAusEintrag(eintragCode((plan[m.id] || {})[tag]));
+        summeStunden += h; summeKosten += h * vollkosten(m);
+      });
+    });
+
+    el('dienstplan-inhalt').innerHTML =
+      '<h3 class="abschnitt" style="margin-top:0">' + txt(ort) + ' \u00b7 KW ' + kalenderwoche(montag) +
+        ' \u00b7 ' + tagText(montag) + ' bis ' + tagText(tagPlus(montag, 6)) + '</h3>' +
+      tage +
+      '<div style="margin-top:6px;font-weight:600">Woche gesamt: ' +
+        summeStunden.toFixed(1).replace('.', ',') + ' Stunden \u00b7 ' + euro(summeKosten) + '</div>' +
+      '<div class="aufteilung">(V) = Vertretung aus einer anderen Filiale</div>';
+  }
+
+  el('d-speichern').addEventListener('click', function () {
+    var woche = wochenSchluessel(el('d-tag').value);
+    meldeDienstplan('Wird gespeichert \u2026', 'ladend');
+    ablageSchreiben('dienstplan', woche, { plan: dienstplaene[woche] || {} })
+      .then(function () {
+        meldeDienstplan('Dienstplan f\u00fcr ' + woche.replace('-W', ', KW ') + ' gespeichert.', 'gut');
+        setTimeout(function () { meldeDienstplan('', ''); }, 2500);
+      })
+      .catch(function () {
+        meldeDienstplan('Der Server speichert noch nicht. Der Plan liegt vorerst nur auf diesem Ger\u00e4t.', 'fehler');
+      });
+  });
+
+  function meldeDienstplan(text, art) {
+    el('dienstplan-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+
+  // ---------- Kosten je Filiale ----------
+  function kostenHolen() {
+    if (Object.keys(kosten).length) return Promise.resolve(kosten);
+    return ablageLesen('kosten', 'alle', { filialen: {} }).then(function (d) {
+      kosten = d.filialen || {};
+      return kosten;
+    });
+  }
+
+  function kostenLaden() {
+    meldeKosten('Kosten werden geladen \u2026', 'ladend');
+    kosten = {};
+    Promise.all([personalHolen(), kostenHolen()]).then(function () {
+      meldeKosten('', ''); kostenZeichnen();
+    });
+  }
+
+  function personalkostenVertraglichProMonat(ort) {
+    return personal.filter(function (m) { return m.filiale === ort && m.aktiv !== false; })
+      .reduce(function (s, m) {
+        return s + (Number(m.wochenstunden) || 0) * 4.33 * vollkosten(m);
+      }, 0);
+  }
+
+  function kostenZeichnen() {
+    var summeGesamt = 0;
+    var zeilen = alleFilialen.map(function (ort) {
+      var k = kosten[ort] || {};
+      var lohn = personalkostenVertraglichProMonat(ort);
+      var pauschal = Number(k.pauschal) || 0;
+      var gesamt = monatskosten(ort);
+      summeGesamt += gesamt;
+      var feld = function (name, wert, klasse) {
+        return '<td class="zahl-rechts"><input class="geld' + (klasse || '') + '" type="text" inputmode="decimal" ' +
+          'data-ort="' + txt(ort) + '" data-art="' + name + '" value="' +
+          (wert ? Number(wert).toFixed(2).replace('.', ',') : '') + '" placeholder="0,00"></td>';
+      };
+      return '<tr><td>' + txt(ort) + '</td>' +
+        feld('pauschal', k.pauschal) +
+        feld('miete', k.miete) + feld('energie', k.energie) + feld('sonstiges', k.sonstiges) +
+        '<td class="zahl-rechts">' + euro(lohn) + '</td>' +
+        '<td class="zahl-rechts"><b>' + euro(gesamt) + '</b>' +
+          (pauschal ? '<div class="aufteilung">Pauschale gilt</div>' : '') + '</td></tr>';
+    }).join('');
+
+    el('kosten-inhalt').innerHTML =
+      '<div class="rollen"><table><thead><tr><th>Filiale</th>' +
+      '<th class="zahl-rechts">Gesamt pauschal</th>' +
+      '<th class="zahl-rechts">Miete/Monat</th><th class="zahl-rechts">Energie/Monat</th>' +
+      '<th class="zahl-rechts">Sonstiges/Monat</th><th class="zahl-rechts">Personal/Monat</th>' +
+      '<th class="zahl-rechts">Gilt pro Monat</th></tr></thead><tbody>' + zeilen + '</tbody></table></div>' +
+      '<div style="margin-top:14px;font-weight:600">Gesamtkosten aller Filialen: ' +
+        euro(summeGesamt) + ' pro Monat</div>' +
+      '<div class="aufteilung">Tr\u00e4gt der Chef eine Pauschale ein, rechnet die Software nur mit ihr. ' +
+      'Bleibt das Feld leer, werden Miete, Energie, Sonstiges und Personal addiert.</div>';
+
+    el('kosten-inhalt').querySelectorAll('input[data-ort]').forEach(function (feld) {
+      feld.addEventListener('change', function () {
+        var ort = feld.dataset.ort;
+        kosten[ort] = kosten[ort] || {};
+        kosten[ort][feld.dataset.art] = betrag(feld.value);
+        kostenZeichnen();
+      });
+    });
+  }
+
+  el('k-speichern').addEventListener('click', function () {
+    meldeKosten('Wird gespeichert \u2026', 'ladend');
+    ablageSchreiben('kosten', 'alle', { filialen: kosten })
+      .then(function () {
+        meldeKosten('Kosten gespeichert.', 'gut');
+        setTimeout(function () { meldeKosten('', ''); }, 2500);
+      })
+      .catch(function () {
+        meldeKosten('Der Server speichert noch nicht. Die Kosten liegen vorerst nur auf diesem Gerät.', 'fehler');
+      });
+  });
+
+  function meldeKosten(text, art) {
+    el('kosten-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+
+  // ---------- Personalkosten im Zeitraum ----------
+  function dienstplaeneHolen(z) {
+    return fetch(ENDPUNKT_DATEN, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'liste', bereich: 'dienstplan' })
+    })
+    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
+    .then(function (d) {
+      Object.keys(d.eintraege || {}).forEach(function (k) {
+        dienstplaene[k] = (d.eintraege[k] || {}).plan || {};
+      });
+      return dienstplaene;
+    })
+    .catch(function () {
+      try {
+        for (var i = 0; i < localStorage.length; i++) {
+          var s = localStorage.key(i);
+          if (s.indexOf('chef-dienstplan-') !== 0) continue;
+          dienstplaene[s.slice(16)] = (JSON.parse(localStorage.getItem(s)) || {}).plan || {};
+        }
+      } catch (e) {}
+      return dienstplaene;
+    });
+  }
+
+  function personalkosten(z) {
+    var proFiliale = {}, gesamt = 0, ausPlan = false;
+    var person = {};
+    personal.forEach(function (m) { person[m.id] = m; });
+
+    Object.keys(dienstplaene).forEach(function (woche) {
+      var t = woche.split('-W');
+      var montag = montagAusWoche(parseInt(t[0], 10), parseInt(t[1], 10));
+      if (!montag) return;
+      WOCHENTAGE.forEach(function (tag, i) {
+        var datum = tagPlus(montag, i);
+        if (datum < z.von || datum > z.bis) return;
+        Object.keys(dienstplaene[woche]).forEach(function (id) {
+          var m = person[id]; if (!m) return;
+          var roh = (dienstplaene[woche][id] || {})[tag];
+          var stunden = stundenAusEintrag(roh);
+          if (!stunden) return;
+          var wert = stunden * vollkosten(m);
+          var ort = eintragOrt(roh, m);   // Vertretung zählt zur Einsatzfiliale
+          proFiliale[ort] = (proFiliale[ort] || 0) + wert;
+          gesamt += wert; ausPlan = true;
+        });
+      });
+    });
+
+    if (ausPlan) return { proFiliale: proFiliale, gesamt: gesamt, quelle: 'Dienstpl\u00e4ne' };
+
+    // ohne Dienstpläne: aus den Vertragsstunden hochgerechnet
+    var tage = tageImZeitraum(z);
+    personal.forEach(function (m) {
+      if (m.aktiv === false) return;
+      var proTag = (Number(m.wochenstunden) || 0) * vollkosten(m) / 7;
+      proFiliale[m.filiale] = (proFiliale[m.filiale] || 0) + proTag * tage;
+      gesamt += proTag * tage;
+    });
+    return { proFiliale: proFiliale, gesamt: gesamt, quelle: 'Vertragsstunden' };
+  }
+
+  function montagAusWoche(jahr, kw) {
+    var d = new Date(jahr, 0, 4);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + (kw - 1) * 7);
+    return d.toISOString().slice(0, 10);
+  }
+  function tageImZeitraum(z) {
+    return Math.round((new Date(z.bis + 'T12:00:00') - new Date(z.von + 'T12:00:00')) / 86400000) + 1;
+  }
+  function fixkosten(z) {
+    var anteil = tageImZeitraum(z) / 30.44;
+    var proFiliale = {}, gesamt = 0;
+    Object.keys(kosten).forEach(function (ort) {
+      var k = kosten[ort] || {};
+      // Ohne Pauschale nur die Sachkosten, das Personal wird getrennt ausgewiesen
+      var monat = Number(k.pauschal) > 0 ? Number(k.pauschal)
+        : (Number(k.miete) || 0) + (Number(k.energie) || 0) + (Number(k.sonstiges) || 0);
+      proFiliale[ort] = monat * anteil;
+      gesamt += monat * anteil;
+    });
+    return { proFiliale: proFiliale, gesamt: gesamt };
+  }
+
+  function ergebnisBlock(jetzt) {
+    var lohn = personalkosten(aZeitraum);
+    var fix = fixkosten(aZeitraum);
+    var orte = Object.keys(jetzt.proFiliale).concat(alleFilialen)
+      .filter(function (o, i, l) { return l.indexOf(o) === i; })
+      .sort(function (a, b) { return (jetzt.proFiliale[b] || 0) - (jetzt.proFiliale[a] || 0); });
+
+    var zeilen = orte.map(function (ort) {
+      var u = jetzt.proFiliale[ort] || 0;
+      var l = lohn.proFiliale[ort] || 0;
+      var f = fix.proFiliale[ort] || 0;
+      var ergebnis = u - l - f;
+      return '<tr><td>' + txt(ort) + '</td>' +
+        '<td class="zahl-rechts">' + euro(u) + '</td>' +
+        '<td class="zahl-rechts">' + euro(l) + '</td>' +
+        '<td class="zahl-rechts">' + (u ? (l / u * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '&ndash;') + '</td>' +
+        '<td class="zahl-rechts">' + euro(f) + '</td>' +
+        '<td class="zahl-rechts" style="color:' + (ergebnis >= 0 ? 'var(--gruen)' : 'var(--rot)') + '"><b>' +
+          euro(ergebnis) + '</b></td></tr>';
+    }).join('');
+
+    return { lohn: lohn, fix: fix, html:
+      '<h3 class="abschnitt">Kosten und Ergebnis</h3>' +
+      '<div class="rollen"><table><thead><tr><th>Filiale</th><th class="zahl-rechts">Umsatz</th>' +
+      '<th class="zahl-rechts">Personalkosten</th><th class="zahl-rechts">Personalquote</th>' +
+      '<th class="zahl-rechts">Fixkosten</th><th class="zahl-rechts">Ergebnis</th></tr></thead>' +
+      '<tbody>' + zeilen + '</tbody></table></div>' +
+      '<div class="aufteilung">Personalkosten aus: ' + lohn.quelle +
+      '. Fixkosten anteilig aus den Monatswerten im Reiter Kosten.</div>'
+    };
+  }
+
+  // ---------- Zeitraum-Auswahl (Dashboard und Verkaufsauswertung) ----------
+  function periodeFelder(vor) {
+    var art = el(vor + '-art').value;
+    el(vor + '-feld-stichtag').classList.toggle('verstecken',
+      art === 'gesamt' || art === 'individuell');
+    el(vor + '-feld-von').classList.toggle('verstecken', art !== 'individuell');
+    el(vor + '-feld-bis').classList.toggle('verstecken', art !== 'individuell');
+  }
+
+  function periodeLesen(vor) {
+    var art = el(vor + '-art').value;
+    var stichtag = el(vor + '-stichtag').value || heute.toISOString().slice(0, 10);
+    var t = stichtag.split('-');
+
+    if (art === 'tag')   return { von: stichtag, bis: stichtag, name: tagText(stichtag) };
+    if (art === 'woche') {
+      var mo = montagVon(stichtag);
+      return { von: mo, bis: tagPlus(mo, 6), name: 'KW ' + kalenderwoche(mo) + ' ' + mo.slice(0, 4) };
+    }
+    if (art === 'monat') {
+      var letzter = new Date(+t[0], +t[1], 0).getDate();
+      return { von: t[0] + '-' + t[1] + '-01', bis: t[0] + '-' + t[1] + '-' + zwei(letzter),
+               name: monatsnamen[+t[1] - 1] + ' ' + t[0] };
+    }
+    if (art === 'quartal') {
+      var q = Math.floor((+t[1] - 1) / 3) + 1;
+      return grenzen(+t[0], String(q));
+    }
+    if (art === 'jahr')   return grenzen(+t[0], 'jahr');
+    if (art === 'gesamt') return { von: '0000-01-01', bis: '9999-12-31', name: 'Gesamter Zeitraum' };
+    var von = el(vor + '-von').value || '0000-01-01';
+    var bis = el(vor + '-bis').value || '9999-12-31';
+    return { von: von, bis: bis, name: tagText(von) + ' bis ' + tagText(bis) };
+  }
+
+  // ---------- Mengen aus Bestellungen und Retouren ----------
+  function mengenImZeitraum(z, nurFiliale) {
+    var proArtikel = {};   // nr -> {bestellt, retour}
+    var proFiliale = {};   // ort -> {bestellt, retour, wert, retourwert}
+
+    function verbuchen(liste, feld) {
+      liste.forEach(function (b) {
+        if (!b.datumIso || b.datumIso < z.von || b.datumIso > z.bis) return;
+        if (nurFiliale && b.filiale !== nurFiliale) return;
+        proFiliale[b.filiale] = proFiliale[b.filiale] || { bestellt: 0, retour: 0, wert: 0, retourwert: 0 };
+        b.posten.forEach(function (p) {
+          var info = artikelInfo[p.nr] || {};
+          var wert = p.menge * (info.vk || 0);
+          proArtikel[p.nr] = proArtikel[p.nr] || { nr: p.nr, bez: p.bez || info.bez || '', bestellt: 0, retour: 0 };
+          proArtikel[p.nr][feld] += p.menge;
+          proFiliale[b.filiale][feld] += p.menge;
+          proFiliale[b.filiale][feld === 'retour' ? 'retourwert' : 'wert'] += wert;
+        });
+      });
+    }
+    verbuchen(bestellungen, 'bestellt');
+    verbuchen(retourenListe, 'retour');
+    return { proArtikel: proArtikel, proFiliale: proFiliale };
+  }
+
+  // Errechneter Umsatz eines Tages: geliefert minus retourniert, zum Verkaufspreis
+  function errechneterUmsatz(ort, tagIso) {
+    var z = { von: tagIso, bis: tagIso };
+    var d = mengenImZeitraum(z, ort).proFiliale[ort];
+    if (!d) return 0;
+    return Math.max(0, d.wert - d.retourwert);
+  }
+
+  // ---------- Monatliche Filialkosten ----------
+  function monatskosten(ort) {
+    var k = kosten[ort] || {};
+    if (Number(k.pauschal) > 0) return Number(k.pauschal);
+    return (Number(k.miete) || 0) + (Number(k.energie) || 0) + (Number(k.sonstiges) || 0) +
+           personalkostenVertraglichProMonat(ort);
+  }
+  function kostenAnteil(ort, z) {
+    var tage = Math.min(tageImZeitraum(z), 3650);
+    return monatskosten(ort) * (tage / 30.44);
+  }
+
+  // ---------- Dashboard ----------
+  var dashUmsatz = {};
+
+  ['art', 'stichtag', 'von', 'bis', 'sortierung'].forEach(function (feld) {
+    el('dash-' + feld).addEventListener('change', function () {
+      periodeFelder('dash');
+      dashboardLaden();
+    });
+  });
+  el('dash-verkauf').addEventListener('click', function () { wechseln('verkauf'); });
+
+  function dashboardLaden() {
+    if (!el('dash-stichtag').value) el('dash-stichtag').value = heute.toISOString().slice(0, 10);
+    periodeFelder('dash');
+    var z = periodeLesen('dash');
+    el('dashboard-inhalt').innerHTML = '<div class="leer">Zahlen werden geladen \u2026</div>';
+    Promise.all([zeitraumLaden(z), personalHolen(), kostenHolen()]).then(function (e) {
+      dashUmsatz = e[0];
+      dashboardZeichnen(z);
+    });
+  }
+
+  function dashboardZeichnen(z) {
+    var umsatz = summieren(dashUmsatz, z.von, z.bis);
+    var mengen = mengenImZeitraum(z);
+    var orte = alleFilialen.slice();
+    Object.keys(umsatz.proFiliale).forEach(function (o) { if (orte.indexOf(o) === -1) orte.push(o); });
+
+    var zeilen = orte.map(function (ort) {
+      var u = umsatz.proFiliale[ort] || 0;
+      var k = kostenAnteil(ort, z);
+      var m = mengen.proFiliale[ort] || { bestellt: 0, retour: 0, wert: 0, retourwert: 0 };
+      return { ort: ort, umsatz: u, kosten: k, bereinigt: u - k,
+               bestellt: m.bestellt, retour: m.retour, retourwert: m.retourwert };
+    });
+
+    var aufsteigend = el('dash-sortierung').value === 'auf';
+    zeilen.sort(function (a, b) { return aufsteigend ? a.umsatz - b.umsatz : b.umsatz - a.umsatz; });
+    dashZeilen = zeilen;
+
+    var gesamtUmsatz = zeilen.reduce(function (s, r) { return s + r.umsatz; }, 0);
+    var gesamtKosten = zeilen.reduce(function (s, r) { return s + r.kosten; }, 0);
+    var gesamtRetour = zeilen.reduce(function (s, r) { return s + r.retourwert; }, 0);
+    var gesamtWare = Object.keys(mengen.proFiliale).reduce(function (s, o) {
+      return s + mengen.proFiliale[o].wert; }, 0);
+
+    var kacheln =
+      kachel(euro(gesamtUmsatz), 'Umsatz ' + z.name) +
+      kachel(euro(gesamtKosten), 'Kosten') +
+      kachel(euro(gesamtUmsatz - gesamtKosten), 'Bereinigt') +
+      kachel(euro(gesamtWare), 'Warenwert geliefert') +
+      kachel(euro(gesamtRetour), 'Retourenwert') +
+      kachel(gesamtWare ? (gesamtRetour / gesamtWare * 100).toFixed(1).replace('.', ',') + ' %' : '\u2013',
+             'Retourenquote');
+
+    var maxU = Math.max.apply(null, zeilen.map(function (r) { return r.umsatz; }).concat([1]));
+
+    el('dashboard-inhalt').innerHTML =
+      '<div class="zahlen">' + kacheln + '</div>' +
+      '<h3 class="abschnitt">Filial-Ranking \u00b7 ' + txt(z.name) + '</h3>' +
+      zeilen.map(function (r) { return balken(r.ort, r.umsatz, maxU); }).join('') +
+      '<div class="rollen" style="margin-top:12px"><table><thead><tr>' +
+      '<th>#</th><th>Filiale</th><th class="zahl-rechts">Umsatz</th>' +
+      '<th class="zahl-rechts">Kosten</th><th class="zahl-rechts">Bereinigt</th>' +
+      '<th class="zahl-rechts">Retourenquote</th></tr></thead><tbody>' +
+      zeilen.map(function (r, i) {
+        var quote = (r.bestellt ? r.retour / r.bestellt * 100 : 0);
+        return '<tr><td>' + (i + 1) + '</td><td><b>' + txt(r.ort) + '</b></td>' +
+          '<td class="zahl-rechts">' + euro(r.umsatz) + '</td>' +
+          '<td class="zahl-rechts">' + euro(r.kosten) + '</td>' +
+          '<td class="zahl-rechts" style="color:' + (r.bereinigt >= 0 ? 'var(--gruen)' : 'var(--rot)') +
+            '"><b>' + euro(r.bereinigt) + '</b></td>' +
+          '<td class="zahl-rechts">' + (r.bestellt ? quote.toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') +
+          '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="aufteilung" style="margin-top:10px">Kosten anteilig aus dem Reiter Kosten. ' +
+      'Die Liste rechnet sich neu, sobald eine Bestellung, eine Retoure oder ein Tagesumsatz eingeht.</div>';
+  }
+
+  var dashZeilen = [];
+  el('dash-csv').addEventListener('click', function () {
+    var z = periodeLesen('dash');
+    var zeilen = [['Zeitraum', z.name], [],
+      ['Rang', 'Filiale', 'Umsatz', 'Kosten', 'Bereinigt', 'Retourenquote %']];
+    dashZeilen.forEach(function (r, i) {
+      zeilen.push([String(i + 1), r.ort, r.umsatz.toFixed(2).replace('.', ','),
+        r.kosten.toFixed(2).replace('.', ','), r.bereinigt.toFixed(2).replace('.', ','),
+        r.bestellt ? (r.retour / r.bestellt * 100).toFixed(1).replace('.', ',') : '']);
+    });
+    csvSpeichern(zeilen, 'Filialranking_' + z.von + '_bis_' + z.bis + '.csv');
+  });
+
+  // ---------- Verkaufsauswertung ----------
+  var verkaufZeilen = [];
+
+  ['art', 'stichtag', 'von', 'bis', 'filiale', 'kennzahl', 'sortierung'].forEach(function (feld) {
+    el('v-' + feld).addEventListener('change', function () {
+      periodeFelder('v');
+      verkaufZeichnen();
+    });
+  });
+
+  function verkaufLaden() {
+    if (!el('v-stichtag').value) el('v-stichtag').value = heute.toISOString().slice(0, 10);
+    if (el('v-filiale').options.length <= 1) {
+      alleFilialen.forEach(function (ort) {
+        var o = document.createElement('option');
+        o.value = ort; o.textContent = ort; el('v-filiale').appendChild(o);
+      });
+    }
+    periodeFelder('v');
+    verkaufZeichnen();
+  }
+
+  function verkaufZeichnen() {
+    var z = periodeLesen('v');
+    var ort = el('v-filiale').value;
+    var daten = mengenImZeitraum(z, ort || null).proArtikel;
+
+    var zeilen = Object.keys(daten).map(function (nr) {
+      var d = daten[nr];
+      var info = artikelInfo[nr] || {};
+      var verkauft = Math.max(0, d.bestellt - d.retour);
+      return { nr: nr, bez: d.bez || info.bez || '', bestellt: d.bestellt, retour: d.retour,
+               verkauft: verkauft, umsatz: verkauft * (info.vk || 0),
+               quote: d.bestellt ? d.retour / d.bestellt * 100 : 0 };
+    });
+
+    var kennzahl = el('v-kennzahl').value;
+    var schluessel = kennzahl === 'umsatz' ? 'umsatz'
+                   : kennzahl === 'retoure' ? 'quote'
+                   : kennzahl === 'bestellt' ? 'bestellt' : 'verkauft';
+    var auf = el('v-sortierung').value === 'auf';
+    zeilen.sort(function (a, b) { return auf ? a[schluessel] - b[schluessel] : b[schluessel] - a[schluessel]; });
+    verkaufZeilen = zeilen;
+
+    var ziel = el('verkauf-inhalt');
+    if (!zeilen.length) {
+      ziel.innerHTML = '<div class="leer">F\u00fcr ' + txt(z.name) +
+        (ort ? ' in ' + txt(ort) : '') + ' liegen keine Bestellungen vor.</div>';
+      return;
+    }
+
+    var summeVerkauft = zeilen.reduce(function (s, r) { return s + r.verkauft; }, 0);
+    var summeUmsatz = zeilen.reduce(function (s, r) { return s + r.umsatz; }, 0);
+    var summeRetour = zeilen.reduce(function (s, r) { return s + r.retour; }, 0);
+    var max = Math.max.apply(null, zeilen.map(function (r) { return r[schluessel]; }).concat([1]));
+
+    ziel.innerHTML =
+      '<div class="zahlen">' +
+        kachel(summeVerkauft, 'Verkaufte St\u00fcck') +
+        kachel(euro(summeUmsatz), 'Umsatz der Artikel') +
+        kachel(summeRetour, 'Retour St\u00fcck') +
+        kachel(zeilen.length, 'Artikel') + '</div>' +
+      '<h3 class="abschnitt">' + txt(kennzahlName(kennzahl)) + ' \u00b7 ' + txt(z.name) +
+        (ort ? ' \u00b7 ' + txt(ort) : ' \u00b7 alle Filialen') + '</h3>' +
+      zeilen.slice(0, 10).map(function (r) {
+        return balkenFrei(r.nr + '  ' + r.bez, r[schluessel], max,
+          kennzahl === 'umsatz' ? euro(r.umsatz)
+            : kennzahl === 'retoure' ? r.quote.toFixed(1).replace('.', ',') + ' %'
+            : String(r[schluessel]) + ' St.');
+      }).join('') +
+      '<div class="rollen" style="margin-top:12px"><table><thead><tr>' +
+      '<th>#</th><th>Nr.</th><th>Artikel</th><th class="zahl-rechts">Bestellt</th>' +
+      '<th class="zahl-rechts">Retour</th><th class="zahl-rechts">Verkauft</th>' +
+      '<th class="zahl-rechts">Umsatz</th><th class="zahl-rechts">Retourenquote</th></tr></thead><tbody>' +
+      zeilen.map(function (r, i) {
+        return '<tr><td>' + (i + 1) + '</td><td>' + txt(r.nr) + '</td><td>' + txt(r.bez) + '</td>' +
+          '<td class="zahl-rechts">' + r.bestellt + '</td>' +
+          '<td class="zahl-rechts">' + (r.retour || '\u2013') + '</td>' +
+          '<td class="zahl-rechts"><b>' + r.verkauft + '</b></td>' +
+          '<td class="zahl-rechts">' + euro(r.umsatz) + '</td>' +
+          '<td class="zahl-rechts"' + (r.quote > 15 ? ' style="color:var(--rot)"' : '') + '>' +
+            (r.bestellt ? r.quote.toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="aufteilung" style="margin-top:10px">Verkauft = bestellte Menge minus Retoure.</div>';
+  }
+
+  function kennzahlName(k) {
+    return k === 'umsatz' ? 'Umsatzst\u00e4rkste Artikel'
+         : k === 'retoure' ? 'H\u00f6chste Retourenquote'
+         : k === 'bestellt' ? 'Meist bestellte Artikel' : 'Meist verkaufte Artikel';
+  }
+
+  function balkenFrei(name, wert, max, beschriftung) {
+    var breite = max ? Math.max(2, wert / max * 100) : 2;
+    return '<div class="balken"><div class="name">' + txt(name) + '</div>' +
+      '<div class="spur"><div class="fuellung" style="width:' + breite.toFixed(1) + '%"></div></div>' +
+      '<div class="wert">' + txt(beschriftung) + '</div></div>';
+  }
+
+  el('v-csv').addEventListener('click', function () {
+    var z = periodeLesen('v');
+    var zeilen = [['Zeitraum', z.name], ['Filiale', el('v-filiale').value || 'Alle Filialen'], [],
+      ['Rang', 'Artikelnummer', 'Bezeichnung', 'Bestellt', 'Retour', 'Verkauft', 'Umsatz', 'Retourenquote %']];
+    verkaufZeilen.forEach(function (r, i) {
+      zeilen.push([String(i + 1), r.nr, r.bez, String(r.bestellt), String(r.retour),
+        String(r.verkauft), r.umsatz.toFixed(2).replace('.', ','),
+        r.bestellt ? r.quote.toFixed(1).replace('.', ',') : '']);
+    });
+    csvSpeichern(zeilen, 'Verkaufsauswertung_' + z.von + '_bis_' + z.bis + '.csv');
+  });
+
+  el('v-pdf').addEventListener('click', function () {
+    if (!window.jspdf || !verkaufZeilen.length) return;
+    var z = periodeLesen('v');
+    var ort = el('v-filiale').value || 'Alle Filialen';
+    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(46, 42, 121);
+    doc.text('Verkaufsauswertung', 40, 52);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+    doc.text(entziffert(z.name) + ' - ' + entziffert(ort) + ' - ' + entziffert(kennzahlName(el('v-kennzahl').value)), 40, 68);
+    doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5); doc.line(40, 76, 555, 76);
+    doc.autoTable({
+      startY: 92,
+      head: [['#', 'Nr.', 'Artikel', 'Bestellt', 'Retour', 'Verkauft', 'Umsatz']],
+      body: verkaufZeilen.map(function (r, i) {
+        return [String(i + 1), r.nr, r.bez, String(r.bestellt), String(r.retour),
+          String(r.verkauft), euroText(r.umsatz)];
+      }),
+      styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 3.5 },
+      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+      columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' },
+                      5: { halign: 'right', fontStyle: 'bold' }, 6: { halign: 'right' } },
+      margin: { left: 40, right: 40 }
+    });
+    doc.save('Verkaufsauswertung_' + z.von + '_bis_' + z.bis + '.pdf');
+  });
+
+  // ---------- Meldungen ----------
+  function melde(text, art) {
+    el('meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+</script>
+</body>
+</html>

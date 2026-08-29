@@ -1,0 +1,7 @@
+# Alle Dateien liegen in einem Ordner: die Funktionen werden direkt hier gesucht.
+[build]
+  publish = "."
+  functions = "."
+
+[functions]
+  node_bundler = "esbuild"
