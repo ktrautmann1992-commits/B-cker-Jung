@@ -994,7 +994,12 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ passwort: passwort, aktion: 'lesen', datum: tag })
     })
-    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
+    .then(function (a) {
+      return a.json().then(function (d) {
+        if (!a.ok) throw new Error(d.fehler || ('Status ' + a.status));
+        return d;
+      });
+    })
     .then(function (daten) {
       umsaetze = daten.umsaetze || {};
       hinweise = daten.hinweise || {};
@@ -1002,12 +1007,13 @@
       meldeUmsatz('', '');
       umsatzZeichnen();
     })
-    .catch(function () {
+    .catch(function (fehler) {
       var gespeichert = vomGeraet(tag);
       umsaetze = gespeichert.umsaetze || gespeichert;
       hinweise = gespeichert.hinweise || {};
       nurAufGeraet = true;
-      meldeUmsatz('Der Server speichert noch nicht. Die Umsätze liegen vorerst nur auf diesem Gerät.', 'fehler');
+      meldeUmsatz('Der Server antwortet nicht: ' + fehler.message +
+        ' \u2014 die Umsätze liegen vorerst nur auf diesem Gerät.', 'fehler');
       umsatzZeichnen();
     });
   }
@@ -1121,15 +1127,20 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ passwort: passwort, aktion: 'speichern', datum: tag, umsaetze: umsaetze, hinweise: hinweise })
     })
-    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); })
+    .then(function (a) {
+      if (!a.ok) return a.json().then(function (d) {
+        throw new Error(d.fehler || ('Status ' + a.status));
+      });
+    })
     .then(function () {
       nurAufGeraet = false;
       meldeUmsatz('Umsätze für den ' + tag.split('-').reverse().join('.') + ' gespeichert.', 'gut');
       setTimeout(function () { meldeUmsatz('', ''); }, 3000);
     })
-    .catch(function () {
+    .catch(function (fehler) {
       nurAufGeraet = true;
-      meldeUmsatz('Der Server speichert noch nicht. Die Umsätze liegen vorerst nur auf diesem Gerät.', 'fehler');
+      meldeUmsatz('Der Server speichert nicht: ' + fehler.message +
+        ' \u2014 die Umsätze liegen vorerst nur auf diesem Gerät.', 'fehler');
     });
   });
 

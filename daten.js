@@ -10,7 +10,21 @@
 //   { "aktion": "speichern", "bereich": "kosten",     "schluessel": "alle", "inhalt": { ... } }
 //   { "aktion": "liste",     "bereich": "dienstplan" }
 
-const { getStore } = require('@netlify/blobs');
+const blobs = require('@netlify/blobs');
+
+function getStore(name) {
+  // Steht die Blobs-Umgebung bereit, reicht der Name
+  if (process.env.NETLIFY_BLOBS_CONTEXT) return blobs.getStore(name);
+
+  // Sonst Zugang ausdrücklich mitgeben
+  const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+  const token = process.env.NETLIFY_API_TOKEN || process.env.NETLIFY_BLOBS_TOKEN;
+  if (!siteID || !token) {
+    throw new Error('Der Zugang zur Ablage fehlt. Bitte NETLIFY_API_TOKEN in den ' +
+                    'Umgebungsvariablen des Projekts eintragen.');
+  }
+  return blobs.getStore({ name: name, siteID: siteID, token: token, consistency: 'strong' });
+}
 
 const BEREICHE = ['personal', 'kosten', 'dienstplan'];
 
