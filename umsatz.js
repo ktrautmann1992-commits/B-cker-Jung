@@ -94,6 +94,33 @@ exports.handler = async function (event) {
     }
   }
 
+  // Meldung einer einzelnen Filiale (aus dem Formular der Filiale)
+  if (eingabe.aktion === 'filiale') {
+    const filiale = String(eingabe.filiale || '').slice(0, 80);
+    const tag = String(eingabe.datum || '');
+    const betrag = Math.round((Number(eingabe.betrag) || 0) * 100) / 100;
+    if (!filiale || !istDatum(tag) || betrag <= 0) {
+      return antwort(400, { fehler: 'Filiale, Datum und Betrag werden benötigt.' });
+    }
+    try {
+      const ablage = getStore('tagesumsatz');
+      const vorhanden = (await ablage.get(tag, { type: 'json' })) || {};
+      const umsaetze = vorhanden.umsaetze || {};
+      const hinweise = vorhanden.hinweise || {};
+      const meldungen = vorhanden.meldungen || {};
+      umsaetze[filiale] = betrag;
+      meldungen[filiale] = {
+        melder: String(eingabe.melder || '').slice(0, 80),
+        zeit: new Date().toISOString()
+      };
+      await ablage.setJSON(tag, { datum: tag, umsaetze: umsaetze, hinweise: hinweise,
+                                  meldungen: meldungen, geaendert: new Date().toISOString() });
+      return antwort(200, { gespeichert: true, filiale: filiale, betrag: betrag });
+    } catch (fehler) {
+      return antwort(502, { fehler: 'Der Umsatz konnte nicht gespeichert werden: ' + fehler.message });
+    }
+  }
+
   const datum = String(eingabe.datum || '');
   if (!istDatum(datum)) {
     return antwort(400, { fehler: 'Bitte ein Datum im Format JJJJ-MM-TT senden.' });
@@ -113,14 +140,17 @@ exports.handler = async function (event) {
       Object.keys(eingabe.hinweise || {}).forEach(function (ort) {
         if (roh[ort] !== undefined || sauber[ort] !== undefined) hinweise[String(ort).slice(0, 80)] = true;
       });
+      const alt = (await ablage.get(datum, { type: 'json' }).catch(function () { return null; })) || {};
       await ablage.setJSON(datum, { datum: datum, umsaetze: sauber, hinweise: hinweise,
+                                    meldungen: alt.meldungen || {},
                                     geaendert: new Date().toISOString() });
       return antwort(200, { gespeichert: true, umsaetze: sauber, hinweise: hinweise });
     }
 
     const daten = await ablage.get(datum, { type: 'json' });
     return antwort(200, { umsaetze: (daten && daten.umsaetze) || {},
-                          hinweise: (daten && daten.hinweise) || {} });
+                          hinweise: (daten && daten.hinweise) || {},
+                          meldungen: (daten && daten.meldungen) || {} });
   } catch (fehler) {
     return antwort(502, { fehler: 'Die Umsätze konnten nicht gespeichert werden: ' + fehler.message });
   }

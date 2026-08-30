@@ -360,7 +360,6 @@
     <button type="button" id="reiter-umsatz">Tagesumsatz</button>
     <button type="button" id="reiter-auswertung">Auswertung</button>
     <button type="button" id="reiter-personal">Personal</button>
-    <button type="button" id="reiter-dienstplan">Dienstplan</button>
     <button type="button" id="reiter-kosten">Kosten</button>
   </div>
 
@@ -537,32 +536,6 @@
     <div id="personal-meldung"></div>
     <div id="personal-formular" class="verstecken"></div>
     <div id="personal-inhalt"></div>
-  </div>
-
-  <!-- ---------- Dienstplan ---------- -->
-  <div class="karte verstecken" id="bereich-dienstplan">
-    <div class="raster" style="margin-bottom:14px">
-      <div style="flex:0 0 180px">
-        <label class="feldname" for="d-tag">Woche vom</label>
-        <input type="date" id="d-tag">
-      </div>
-      <div style="flex:0 0 240px">
-        <label class="feldname" for="d-filiale">Filiale</label>
-        <select id="d-filiale"></select>
-      </div>
-    </div>
-    <div id="dienstplan-meldung"></div>
-    <div class="reiter" style="margin-bottom:12px">
-      <button type="button" id="d-ansicht-plan" class="an">Plan eintragen</button>
-      <button type="button" id="d-ansicht-kalender">Wochenkalender</button>
-      <button type="button" id="d-ansicht-zeiten">Schichtzeiten</button>
-    </div>
-    <div id="dienstplan-zeiten" class="verstecken"></div>
-    <div id="dienstplan-inhalt"></div>
-    <div class="werkzeuge" style="margin-top:14px">
-      <button type="button" id="d-speichern">Dienstplan speichern</button>
-      <button type="button" id="d-pdf">Dienstplan als PDF</button>
-    </div>
   </div>
 
   <!-- ---------- Kosten ---------- -->
@@ -748,7 +721,7 @@
   });
 
   var ANSICHTEN = ['dashboard', 'verkauf', 'bestellungen', 'produktion', 'umsatz',
-                   'auswertung', 'personal', 'dienstplan', 'kosten'];
+                   'auswertung', 'personal', 'kosten'];
 
   ANSICHTEN.forEach(function (name) {
     el('reiter-' + name).addEventListener('click', function () { wechseln(name); });
@@ -765,7 +738,6 @@
     else if (neu === 'umsatz') umsatzTagLaden();
     else if (neu === 'auswertung') auswertungLaden();
     else if (neu === 'personal') personalLaden();
-    else if (neu === 'dienstplan') dienstplanLaden();
     else if (neu === 'kosten') kostenLaden();
     else zeichnen();
   }
@@ -980,6 +952,7 @@
   // ---------- Tagesumsatz ----------
   var umsaetze = {};        // Filiale -> Betrag für den gewählten Tag
   var hinweise = {};        // Filiale -> true, wenn der Umsatz gepr\u00fcft werden soll
+  var meldungen = {};       // Filiale -> wer den Umsatz gemeldet hat
   var nurAufGeraet = false; // true, wenn der Server nicht erreichbar ist
 
   el('umsatz-datum').value = heute.toISOString().slice(0, 10);
@@ -1003,6 +976,7 @@
     .then(function (daten) {
       umsaetze = daten.umsaetze || {};
       hinweise = daten.hinweise || {};
+      meldungen = daten.meldungen || {};
       nurAufGeraet = false;
       meldeUmsatz('', '');
       umsatzZeichnen();
@@ -1061,8 +1035,13 @@
       summeUmsatz += u; summeWare += w; summeSoll += soll;
       var warnung = hinweise[ort]
         ? ' <span class="warnung" title="Achtung Umsatz überprüfen">&#9650;!</span>' : '';
+      var gemeldet = meldungen[ort];
       return '<tr>' +
-        '<td>' + txt(ort) + warnung + '</td>' +
+        '<td>' + txt(ort) + warnung +
+          (gemeldet ? '<div class="aufteilung">gemeldet von ' + txt(gemeldet.melder || 'Filiale') +
+            (gemeldet.zeit ? ' \u00b7 ' + new Date(gemeldet.zeit).toLocaleString('de-DE',
+              { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') +
+            '</div>' : '') + '</td>' +
         '<td class="zahl-rechts">' +
           '<input class="umsatz-feld" type="text" inputmode="decimal" data-ort="' + txt(ort) + '" ' +
           'value="' + (u ? u.toFixed(2).replace('.', ',') : '') + '" placeholder="0,00"></td>' +
@@ -1563,6 +1542,9 @@
   function euroText(n) { return (Number(n) || 0).toFixed(2).replace('.', ',') + ' EUR'; }
   function entziffert(text) { return String(text).replace(/[^\x20-\x7E\u00C0-\u017F]/g, ''); }
 
+  function euroText(n) { return (Number(n) || 0).toFixed(2).replace('.', ',') + ' EUR'; }
+  function entziffert(text) { return String(text).replace(/[^\x20-\x7E\u00C0-\u017F]/g, ''); }
+
   el('d-pdf').addEventListener('click', function () {
     if (!window.jspdf) return;
     var montag = montagVon(el('d-tag').value);
@@ -1886,83 +1868,27 @@
     el('personal-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
   }
 
-  // ---------- Dienstplan ----------
+  // ---------- Schichten (Grundlage der Personalkosten) ----------
+  // Die Dienstpläne erstellt jede Filiale selbst. Die Chef-Ansicht liest sie nur,
+  // um daraus die Personalkosten und die Personalquote zu berechnen.
   var WOCHENTAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-  var TAGNAMEN = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag',
-                   Fr: 'Freitag', Sa: 'Samstag', So: 'Sonntag' };
 
   var SCHICHT_STANDARD = [
-    { code: 'F', name: 'Fr\u00fchschicht',  von: '05:00', bis: '13:00', farbe: '#2E2A79' },
-    { code: 'M', name: 'Mittelschicht',     von: '09:00', bis: '16:00', farbe: '#1E7B45' },
-    { code: 'S', name: 'Sp\u00e4tschicht',  von: '12:00', bis: '19:30', farbe: '#B36B00' }
+    { code: 'F', name: 'Fr\u00fchschicht',  von: '05:00', bis: '13:00' },
+    { code: 'M', name: 'Mittelschicht',     von: '09:00', bis: '16:00' },
+    { code: 'S', name: 'Sp\u00e4tschicht',  von: '12:00', bis: '19:30' }
   ];
-  var ABWESEND = [
-    { code: 'U', name: 'Urlaub' },
-    { code: 'K', name: 'Krank' }
-  ];
-
   var schichten = JSON.parse(JSON.stringify(SCHICHT_STANDARD));
-  var dienstplanAnsicht = 'plan';
-
-  el('d-tag').value = heute.toISOString().slice(0, 10);
-  el('d-tag').addEventListener('change', dienstplanLaden);
-  el('d-filiale').addEventListener('change', dienstplanZeichnen);
-
-  ['plan', 'kalender', 'zeiten'].forEach(function (name) {
-    el('d-ansicht-' + name).addEventListener('click', function () {
-      dienstplanAnsicht = name;
-      ['plan', 'kalender', 'zeiten'].forEach(function (n) {
-        el('d-ansicht-' + n).classList.toggle('an', n === name);
-      });
-      el('dienstplan-zeiten').classList.toggle('verstecken', name !== 'zeiten');
-      el('dienstplan-inhalt').classList.toggle('verstecken', name === 'zeiten');
-      if (name === 'zeiten') zeitenZeichnen(); else dienstplanZeichnen();
-    });
-  });
-
-  function dienstplanLaden() {
-    if (!el('d-filiale').options.length) {
-      alleFilialen.forEach(function (ort) {
-        var o = document.createElement('option');
-        o.value = ort; o.textContent = ort; el('d-filiale').appendChild(o);
-      });
-    }
-    var woche = wochenSchluessel(el('d-tag').value || heute.toISOString().slice(0, 10));
-    meldeDienstplan('Dienstplan wird geladen \u2026', 'ladend');
-    Promise.all([
-      personalHolen(),
-      ablageLesen('dienstplan', woche, { plan: {} }),
-      ablageLesen('dienstplan', 'schichten', { schichten: SCHICHT_STANDARD })
-    ]).then(function (e) {
-      dienstplaene[woche] = e[1].plan || {};
-      if (e[2] && e[2].schichten && e[2].schichten.length) schichten = e[2].schichten;
-      meldeDienstplan('', '');
-      if (dienstplanAnsicht === 'zeiten') zeitenZeichnen(); else dienstplanZeichnen();
-    });
-  }
 
   function schichtZu(code) {
     return schichten.filter(function (s) { return s.code === code; })[0] || null;
   }
 
-  // Stunden aus einem Eintrag: Schichtkürzel, Urlaub/Krank oder freie Zeitangabe
-  function stundenAusEintrag(roh) {
-    var wert = (roh && typeof roh === 'object') ? (roh.s || '') : roh;
-    if (!wert) return 0;
-    var s = schichtZu(wert);
-    if (s) return stundenAusText(s.von + '-' + s.bis);
-    if (wert === 'U' || wert === 'K') return 0;
-    return stundenAusText(wert);
-  }
-
-  function eintragText(roh) {
-    var wert = (roh && typeof roh === 'object') ? (roh.s || '') : roh;
-    if (!wert) return '';
-    var s = schichtZu(wert);
-    if (s) return s.name + ' ' + s.von + '\u2013' + s.bis;
-    if (wert === 'U') return 'Urlaub';
-    if (wert === 'K') return 'Krank';
-    return wert;
+  // Ein Eintrag ist "F" oder bei Vertretung {s:"F", f:"Landstuhl"}
+  function eintragCode(e) { return !e ? '' : (typeof e === 'string' ? e : (e.s || '')); }
+  function eintragOrt(e, m) {
+    if (e && typeof e === 'object' && e.f) return e.f;
+    return m ? m.filiale : '';
   }
 
   function stundenAusText(text) {
@@ -1976,330 +1902,13 @@
     return dauer > 6 ? dauer - 0.5 : dauer;   // ab 6 Stunden 30 Minuten Pause
   }
 
-  // ---------- Einträge lesen ----------
-  // Ein Eintrag ist entweder "F" (eigene Filiale) oder {s:"F", f:"Landstuhl"} bei Vertretung
-  function eintragCode(e) { return !e ? '' : (typeof e === 'string' ? e : (e.s || '')); }
-  function eintragOrt(e, m) {
-    if (e && typeof e === 'object' && e.f) return e.f;
-    return m ? m.filiale : '';
-  }
-
-  // ---------- Schichtzeiten pflegen ----------
-  function zeitenZeichnen() {
-    el('dienstplan-zeiten').innerHTML =
-      '<h3 class="abschnitt" style="margin-top:0">Schichtzeiten</h3>' +
-      '<div class="aufteilung" style="margin-bottom:12px">Gelten f\u00fcr alle Filialen. ' +
-      'Ab sechs Stunden wird eine halbe Stunde Pause abgezogen.</div>' +
-      '<div class="rollen"><table><thead><tr><th>Schicht</th><th>K\u00fcrzel</th>' +
-      '<th>Beginn</th><th>Ende</th><th class="zahl-rechts">Stunden</th></tr></thead><tbody>' +
-      schichten.map(function (s, i) {
-        return '<tr><td><input class="klein" type="text" data-schicht="' + i + '" data-teil="name" value="' +
-            txt(s.name) + '"></td>' +
-          '<td><b style="color:' + txt(s.farbe || '#2E2A79') + '">' + txt(s.code) + '</b></td>' +
-          '<td><input class="klein" type="time" data-schicht="' + i + '" data-teil="von" value="' + txt(s.von) + '"></td>' +
-          '<td><input class="klein" type="time" data-schicht="' + i + '" data-teil="bis" value="' + txt(s.bis) + '"></td>' +
-          '<td class="zahl-rechts">' + stundenAusText(s.von + '-' + s.bis).toFixed(1).replace('.', ',') + ' h</td></tr>';
-      }).join('') + '</tbody></table></div>' +
-      '<div class="werkzeuge" style="margin-top:12px">' +
-        '<button type="button" id="z-sichern">Schichtzeiten speichern</button></div>';
-
-    el('dienstplan-zeiten').querySelectorAll('[data-schicht]').forEach(function (feld) {
-      feld.addEventListener('change', function () {
-        schichten[+feld.dataset.schicht][feld.dataset.teil] = feld.value;
-        zeitenZeichnen();
-      });
-    });
-    el('z-sichern').addEventListener('click', function () {
-      meldeDienstplan('Wird gespeichert \u2026', 'ladend');
-      ablageSchreiben('dienstplan', 'schichten', { schichten: schichten })
-        .then(function () {
-          meldeDienstplan('Schichtzeiten gespeichert.', 'gut');
-          setTimeout(function () { meldeDienstplan('', ''); }, 2500);
-        })
-        .catch(function () {
-          meldeDienstplan('Der Server speichert noch nicht. Die Zeiten liegen vorerst nur auf diesem Ger\u00e4t.', 'fehler');
-        });
-    });
-  }
-
-  // ---------- Wer arbeitet diese Woche in dieser Filiale ----------
-  var vertretungen = {};   // "2026-W35|Landstuhl" -> [Mitarbeiter-IDs]
-
-  function vertretungsListe(woche, ort) {
-    return vertretungen[woche + '|' + ort] || [];
-  }
-
-  function besetzung(woche, ort) {
-    var plan = dienstplaene[woche] || {};
-    var eigene = personal.filter(function (m) { return m.filiale === ort && m.aktiv !== false; });
-    var fremde = personal.filter(function (m) {
-      if (m.filiale === ort || m.aktiv === false) return false;
-      if (vertretungsListe(woche, ort).indexOf(m.id) > -1) return true;
-      var eintrag = plan[m.id] || {};
-      return WOCHENTAGE.some(function (tag) { return eintragOrt(eintrag[tag], m) === ort; });
-    });
-    return { eigene: eigene, fremde: fremde, alle: eigene.concat(fremde) };
-  }
-
-  // ---------- Plan eintragen ----------
-  function dienstplanZeichnen() {
-    if (dienstplanAnsicht === 'kalender') { kalenderZeichnen(); return; }
-
-    var woche = wochenSchluessel(el('d-tag').value);
-    var montag = montagVon(el('d-tag').value);
-    var ort = el('d-filiale').value;
-    var plan = dienstplaene[woche] || {};
-    var wer = besetzung(woche, ort);
-
-    if (!wer.alle.length) {
-      el('dienstplan-inhalt').innerHTML = '<div class="leer">F&uuml;r ' + txt(ort) +
-        ' sind keine Mitarbeiter angelegt.<br>Im Reiter Personal anlegen oder unten eine Vertretung holen.</div>' +
-        vertretungsFeld(woche, ort);
-      vertretungKnopf(woche, ort);
-      return;
-    }
-
-    var auswahlFelder = function (wert) {
-      var teile = ['<option value="">frei</option>'];
-      schichten.forEach(function (s) {
-        teile.push('<option value="' + txt(s.code) + '"' + (wert === s.code ? ' selected' : '') + '>' +
-          txt(s.name) + ' (' + txt(s.von) + ')</option>');
-      });
-      ABWESEND.forEach(function (a) {
-        teile.push('<option value="' + a.code + '"' + (wert === a.code ? ' selected' : '') + '>' + a.name + '</option>');
-      });
-      var eigen = wert && !schichtZu(wert) && wert !== 'U' && wert !== 'K';
-      teile.push('<option value="eigen"' + (eigen ? ' selected' : '') + '>eigene Zeit \u2026</option>');
-      return teile.join('');
-    };
-
-    var gesamtStunden = 0, gesamtKosten = 0;
-    var zeilen = wer.alle.map(function (m) {
-      var eintrag = plan[m.id] || {};
-      var fremd = m.filiale !== ort;
-      var stunden = 0;
-      var felder = WOCHENTAGE.map(function (tag) {
-        var roh = eintrag[tag];
-        var code = eintragCode(roh);
-        var einsatzOrt = eintragOrt(roh, m);
-
-        // Woanders eingeteilt: hier nur anzeigen, nicht mitrechnen
-        if (code && einsatzOrt !== ort) {
-          return '<td><div class="aufteilung" style="color:var(--rot)">\u2192 ' + txt(einsatzOrt) + '<br>' +
-            txt(kurzText(code)) + '</div>' +
-            '<select class="klein" style="margin-top:4px" data-person="' + txt(m.id) + '" data-tag="' + tag + '">' +
-            auswahlFelder('') + '</select></td>';
-        }
-        if (code) stunden += stundenAusEintrag(code);
-        var eigen = code && !schichtZu(code) && code !== 'U' && code !== 'K';
-        return '<td><select class="klein" data-person="' + txt(m.id) + '" data-tag="' + tag + '">' +
-          auswahlFelder(code) + '</select>' +
-          (eigen ? '<input class="klein" style="margin-top:4px" type="text" data-eigen="' + txt(m.id) +
-            '" data-tag="' + tag + '" value="' + txt(code) + '" placeholder="6-14">' : '') + '</td>';
-      }).join('');
-      var lohnkosten = stunden * vollkosten(m);
-      gesamtStunden += stunden; gesamtKosten += lohnkosten;
-      return '<tr><td><b>' + txt(m.name) + '</b>' +
-        (fremd ? ' <span style="color:var(--gruen);font-size:12px;font-weight:600">Vertretung</span>' : '') +
-        '<div class="aufteilung">' + txt(m.funktion || '') +
-        (fremd ? ' \u00b7 aus ' + txt(m.filiale) : ' \u00b7 ' + (m.wochenstunden || 0) + ' h vertraglich') +
-        ' \u00b7 ' + euro(vollkosten(m)) + '/h</div></td>' + felder +
-        '<td class="zahl-rechts"><b>' + stunden.toFixed(1).replace('.', ',') + ' h</b></td>' +
-        '<td class="zahl-rechts">' + euro(lohnkosten) + '</td></tr>';
-    }).join('');
-
-    el('dienstplan-inhalt').innerHTML =
-      '<h3 class="abschnitt" style="margin-top:0">' + txt(ort) + ' \u00b7 KW ' + kalenderwoche(montag) +
-        ' \u00b7 ' + tagText(montag) + ' bis ' + tagText(tagPlus(montag, 6)) + '</h3>' +
-      '<div class="rollen"><table><thead><tr><th>Mitarbeiter</th>' +
-      WOCHENTAGE.map(function (t, i) {
-        return '<th>' + t + '<div class="aufteilung">' + tagPlus(montag, i).slice(8) + '.' +
-          tagPlus(montag, i).slice(5, 7) + '.</div></th>';
-      }).join('') +
-      '<th class="zahl-rechts">Stunden</th><th class="zahl-rechts">Kosten</th></tr></thead>' +
-      '<tbody>' + zeilen + '</tbody></table></div>' +
-      '<div style="margin-top:14px;font-weight:600">' + gesamtStunden.toFixed(1).replace('.', ',') +
-        ' Stunden \u00b7 Personalkosten ' + euro(gesamtKosten) + '</div>' +
-      vertretungsFeld(woche, ort);
-
-    el('dienstplan-inhalt').querySelectorAll('select[data-person]').forEach(function (feld) {
-      feld.addEventListener('change', function () {
-        setzeSchicht(feld.dataset.person, feld.dataset.tag,
-                     feld.value === 'eigen' ? '6-14' : feld.value);
-      });
-    });
-    el('dienstplan-inhalt').querySelectorAll('input[data-eigen]').forEach(function (feld) {
-      feld.addEventListener('change', function () {
-        setzeSchicht(feld.dataset.eigen, feld.dataset.tag, feld.value.trim());
-      });
-    });
-    vertretungKnopf(woche, ort);
-  }
-
-  function kurzText(code) {
-    var s = schichtZu(code);
-    if (s) return s.name;
-    if (code === 'U') return 'Urlaub';
-    if (code === 'K') return 'Krank';
-    return code;
-  }
-
-  function vertretungsFeld(woche, ort) {
-    var andere = personal.filter(function (m) { return m.filiale !== ort && m.aktiv !== false; })
-      .sort(function (a, b) { return String(a.filiale).localeCompare(String(b.filiale), 'de'); });
-    if (!andere.length) return '';
-    return '<div style="border:1px solid var(--linie);border-radius:11px;padding:12px;margin-top:16px">' +
-      '<label class="feldname" for="v-person">Vertretung aus einer anderen Filiale holen</label>' +
-      '<div class="raster">' +
-        '<div style="flex:1 1 220px"><select class="klein" id="v-person">' +
-          andere.map(function (m) {
-            return '<option value="' + txt(m.id) + '">' + txt(m.name) + ' \u2013 ' + txt(m.filiale) +
-              ' (' + txt(m.funktion || '') + ')</option>';
-          }).join('') + '</select></div>' +
-        '<div style="flex:0 0 auto"><button type="button" class="zeilenknopf" id="v-holen" ' +
-          'style="padding:9px 14px;font-size:14px">In den Plan aufnehmen</button></div>' +
-      '</div>' +
-      '<div class="aufteilung" style="margin-top:6px">Die Person erscheint als Zeile im Plan. ' +
-      'Stunden und Kosten z\u00e4hlen dann zu ' + txt(ort) + ', nicht zur Stammfiliale.</div></div>';
-  }
-
-  function vertretungKnopf(woche, ort) {
-    var knopf = el('v-holen');
-    if (!knopf) return;
-    knopf.addEventListener('click', function () {
-      var id = el('v-person').value;
-      var schluessel = woche + '|' + ort;
-      vertretungen[schluessel] = vertretungen[schluessel] || [];
-      if (vertretungen[schluessel].indexOf(id) === -1) vertretungen[schluessel].push(id);
-      dienstplanZeichnen();
-    });
-  }
-
-  function setzeSchicht(personId, tag, wert) {
-    var w = wochenSchluessel(el('d-tag').value);
-    var ort = el('d-filiale').value;
-    var m = personal.filter(function (x) { return x.id === personId; })[0];
-    dienstplaene[w] = dienstplaene[w] || {};
-    var eintrag = dienstplaene[w][personId] || {};
-    if (!wert) delete eintrag[tag];
-    else if (m && m.filiale === ort) eintrag[tag] = wert;         // eigene Filiale
-    else eintrag[tag] = { s: wert, f: ort };                       // Vertretung
-    dienstplaene[w][personId] = eintrag;
-    dienstplanZeichnen();
-  }
-
-  // ---------- Wochenkalender ----------
-  function kalenderZeichnen() {
-    var woche = wochenSchluessel(el('d-tag').value);
-    var montag = montagVon(el('d-tag').value);
-    var ort = el('d-filiale').value;
-    var plan = dienstplaene[woche] || {};
-    var wer = besetzung(woche, ort);
-
-    if (!wer.alle.length) {
-      el('dienstplan-inhalt').innerHTML = '<div class="leer">F&uuml;r ' + txt(ort) +
-        ' sind keine Mitarbeiter angelegt.</div>';
-      return;
-    }
-
-    // Wer arbeitet an diesem Tag in dieser Filiale?
-    function hierAmTag(tag, code) {
-      return wer.alle.filter(function (m) {
-        var roh = (plan[m.id] || {})[tag];
-        if (eintragOrt(roh, m) !== ort) return false;
-        return code ? eintragCode(roh) === code : !!eintragCode(roh);
-      });
-    }
-    function name(m) {
-      return txt(m.name) + (m.filiale !== ort ? ' <span style="color:var(--gruen)">(V)</span>' : '');
-    }
-
-    var tage = WOCHENTAGE.map(function (tag, i) {
-      var datum = tagPlus(montag, i);
-      var bloecke = schichten.map(function (s) {
-        return { titel: s.name + ' ' + s.von + '\u2013' + s.bis, farbe: s.farbe || '#2E2A79',
-                 namen: hierAmTag(tag, s.code) };
-      });
-      var eigene = hierAmTag(tag, null).filter(function (m) {
-        var code = eintragCode((plan[m.id] || {})[tag]);
-        return code && !schichtZu(code) && code !== 'U' && code !== 'K';
-      });
-      if (eigene.length) bloecke.push({ titel: 'Sonderzeiten', farbe: '#6B6880', namen: eigene, zeigeZeit: true });
-
-      var abwesend = wer.eigene.filter(function (m) {
-        var code = eintragCode((plan[m.id] || {})[tag]);
-        return code === 'U' || code === 'K';
-      });
-      var ausgeliehen = wer.eigene.filter(function (m) {
-        var roh = (plan[m.id] || {})[tag];
-        return eintragCode(roh) && eintragOrt(roh, m) !== ort;
-      });
-
-      var stunden = 0, kosten = 0;
-      hierAmTag(tag, null).forEach(function (m) {
-        var h = stundenAusEintrag(eintragCode((plan[m.id] || {})[tag]));
-        stunden += h; kosten += h * vollkosten(m);
-      });
-
-      return '<div style="border:1px solid var(--linie);border-radius:11px;padding:12px;margin-bottom:10px">' +
-        '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">' +
-          '<b style="font-family:Nunito,sans-serif;font-size:15px">' + TAGNAMEN[tag] + '</b>' +
-          '<span class="aufteilung">' + tagText(datum) + '</span>' +
-          '<span style="margin-left:auto;font-size:12px;font-weight:600">' +
-            stunden.toFixed(1).replace('.', ',') + ' h \u00b7 ' + euro(kosten) + '</span></div>' +
-        bloecke.map(function (b) {
-          return '<div style="display:flex;gap:9px;margin-bottom:6px;font-size:13px">' +
-            '<span style="flex:0 0 6px;border-radius:3px;background:' + b.farbe + '"></span>' +
-            '<span style="flex:0 0 118px;color:var(--grau)">' + txt(b.titel) + '</span>' +
-            '<span style="flex:1">' + (b.namen.length
-              ? b.namen.map(function (m) {
-                  return name(m) + (b.zeigeZeit ? ' (' + txt(eintragCode((plan[m.id] || {})[tag])) + ')' : '');
-                }).join(', ')
-              : '<span style="color:var(--rot)">nicht besetzt</span>') + '</span></div>';
-        }).join('') +
-        (abwesend.length ? '<div class="aufteilung" style="margin-top:8px">Abwesend: ' +
-          abwesend.map(function (m) {
-            return txt(m.name) + ' (' + kurzText(eintragCode((plan[m.id] || {})[tag])) + ')';
-          }).join(', ') + '</div>' : '') +
-        (ausgeliehen.length ? '<div class="aufteilung">Aushilfe in anderer Filiale: ' +
-          ausgeliehen.map(function (m) {
-            return txt(m.name) + ' \u2192 ' + txt(eintragOrt((plan[m.id] || {})[tag], m));
-          }).join(', ') + '</div>' : '') +
-      '</div>';
-    }).join('');
-
-    var summeStunden = 0, summeKosten = 0;
-    WOCHENTAGE.forEach(function (tag) {
-      hierAmTag(tag, null).forEach(function (m) {
-        var h = stundenAusEintrag(eintragCode((plan[m.id] || {})[tag]));
-        summeStunden += h; summeKosten += h * vollkosten(m);
-      });
-    });
-
-    el('dienstplan-inhalt').innerHTML =
-      '<h3 class="abschnitt" style="margin-top:0">' + txt(ort) + ' \u00b7 KW ' + kalenderwoche(montag) +
-        ' \u00b7 ' + tagText(montag) + ' bis ' + tagText(tagPlus(montag, 6)) + '</h3>' +
-      tage +
-      '<div style="margin-top:6px;font-weight:600">Woche gesamt: ' +
-        summeStunden.toFixed(1).replace('.', ',') + ' Stunden \u00b7 ' + euro(summeKosten) + '</div>' +
-      '<div class="aufteilung">(V) = Vertretung aus einer anderen Filiale</div>';
-  }
-
-  el('d-speichern').addEventListener('click', function () {
-    var woche = wochenSchluessel(el('d-tag').value);
-    meldeDienstplan('Wird gespeichert \u2026', 'ladend');
-    ablageSchreiben('dienstplan', woche, { plan: dienstplaene[woche] || {} })
-      .then(function () {
-        meldeDienstplan('Dienstplan f\u00fcr ' + woche.replace('-W', ', KW ') + ' gespeichert.', 'gut');
-        setTimeout(function () { meldeDienstplan('', ''); }, 2500);
-      })
-      .catch(function () {
-        meldeDienstplan('Der Server speichert noch nicht. Der Plan liegt vorerst nur auf diesem Ger\u00e4t.', 'fehler');
-      });
-  });
-
-  function meldeDienstplan(text, art) {
-    el('dienstplan-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  function stundenAusEintrag(roh) {
+    var wert = (roh && typeof roh === 'object') ? (roh.s || '') : roh;
+    if (!wert) return 0;
+    var s = schichtZu(wert);
+    if (s) return stundenAusText(s.von + '-' + s.bis);
+    if (wert === 'U' || wert === 'K') return 0;
+    return stundenAusText(wert);
   }
 
   // ---------- Kosten je Filiale ----------
@@ -2393,6 +2002,11 @@
     .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
     .then(function (d) {
       Object.keys(d.eintraege || {}).forEach(function (k) {
+        if (k === 'schichten') {
+          var s = (d.eintraege[k] || {}).schichten;
+          if (s && s.length) schichten = s;
+          return;
+        }
         dienstplaene[k] = (d.eintraege[k] || {}).plan || {};
       });
       return dienstplaene;

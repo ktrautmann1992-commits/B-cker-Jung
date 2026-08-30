@@ -89,7 +89,19 @@ exports.handler = async function (event) {
             }
           });
         });
-      return antwort(200, { filiale: filiale, datum: datum, positionen: positionen });
+      const retourPositionen = [];
+      (await ausArchiv('retouren'))
+        .filter(function (r) { return r.filiale === filiale && r.datum === deutsch; })
+        .forEach(function (r) {
+          String(r.uebersicht || '').split('\n').forEach(function (zeile) {
+            const s = zeile.split('\t');
+            if (s.length >= 3) {
+              retourPositionen.push({ nr: s[0].trim(), bez: s[1].trim(), menge: parseInt(s[2], 10) || 0 });
+            }
+          });
+        });
+      return antwort(200, { filiale: filiale, datum: datum,
+                            positionen: positionen, retouren: retourPositionen });
     } catch (fehler) {
       return antwort(502, { fehler: 'Die Lieferung konnte nicht geladen werden.' });
     }
