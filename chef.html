@@ -264,6 +264,19 @@
   }
 
   .warnung { color: var(--rot); font-weight: 700; font-size: 13px; cursor: help; }
+  .schnell {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .schnell-teil {
+    flex: 1 1 150px; background: #F4F2FB; border: 1px solid #E3E0F2;
+    border-radius: 12px; padding: 14px 15px;
+  }
+  .schnell-teil span {
+    display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--grau); margin-bottom: 5px;
+  }
+  .schnell-teil b { font-family: 'Nunito', sans-serif; font-size: 25px; line-height: 1.1; }
+
   .hoch { color: var(--gruen); font-weight: 600; }
   .runter { color: var(--rot); font-weight: 600; }
 
@@ -516,13 +529,15 @@
           <option value="4">4. Quartal (Okt–Dez)</option>
         </select>
       </div>
+      <div style="flex:0 0 220px">
+        <label class="feldname" for="a-filiale">Filiale</label>
+        <select id="a-filiale"><option value="">Alle Filialen</option></select>
+      </div>
     </div>
     <div id="auswertung-meldung"></div>
     <div id="auswertung-inhalt"></div>
     <div class="werkzeuge" style="margin-top:16px">
-      <button type="button" id="a-pdf">Als PDF speichern</button>
-      <button type="button" id="a-csv-tage">Tageswerte als CSV</button>
-      <button type="button" id="a-csv-summe">Zusammenfassung als CSV</button>
+      <button type="button" id="a-pdf">Auswertung als PDF</button>
       <button type="button" id="a-druck">Drucken</button>
     </div>
   </div>
@@ -1167,6 +1182,7 @@
     feldSichtbarkeit();
   })();
 
+  el('a-filiale').addEventListener('change', function () { auswertungZeichnen(); });
   el('a-jahr').addEventListener('change', auswertungLaden);
   el('a-zeitraum').addEventListener('change', auswertungLaden);
   el('a-stichtag').addEventListener('change', auswertungLaden);
@@ -1285,7 +1301,15 @@
     return tage;
   }
 
+  function nurFiliale() { return el('a-filiale').value || ''; }
+
   function auswertungLaden() {
+    if (el('a-filiale').options.length <= 1) {
+      alleFilialen.forEach(function (ort) {
+        var o = document.createElement('option');
+        o.value = ort; o.textContent = ort; el('a-filiale').appendChild(o);
+      });
+    }
     aZeitraum = aktuellerZeitraum();
     var vorher = vorherigerZeitraum(aZeitraum);
     aZeitraum.vorherName = vorher.name;
@@ -1303,14 +1327,15 @@
     });
   }
 
-  function summieren(tage, von, bis) {
+  function summieren(tage, von, bis, ort) {
     var proFiliale = {}, proMonat = {}, gesamt = 0, tageMitZahlen = 0, bester = { tag: '', wert: 0 };
     Object.keys(tage).forEach(function (tag) {
       if (von && (tag < von || tag > bis)) return;
       var tagSumme = 0;
-      Object.keys(tage[tag] || {}).forEach(function (ort) {
-        var wert = Number(tage[tag][ort]) || 0;
-        proFiliale[ort] = (proFiliale[ort] || 0) + wert;
+      Object.keys(tage[tag] || {}).forEach(function (o) {
+        if (ort && o !== ort) return;
+        var wert = Number(tage[tag][o]) || 0;
+        proFiliale[o] = (proFiliale[o] || 0) + wert;
         tagSumme += wert;
       });
       if (tagSumme > 0) {
@@ -1324,10 +1349,11 @@
     return { proFiliale: proFiliale, proMonat: proMonat, gesamt: gesamt, tage: tageMitZahlen, bester: bester };
   }
 
-  function warenwertImZeitraum(von, bis) {
+  function warenwertImZeitraum(von, bis, ort) {
     var proFiliale = {}, gesamt = 0, anzahl = 0;
     bestellungen.forEach(function (b) {
       if (!b.datumIso || b.datumIso < von || b.datumIso > bis) return;
+      if (ort && b.filiale !== ort) return;
       proFiliale[b.filiale] = (proFiliale[b.filiale] || 0) + b.wertZahl;
       gesamt += b.wertZahl; anzahl++;
     });
@@ -1351,57 +1377,69 @@
   function tagText(iso) { return iso.split('-').reverse().join('.'); }
 
   function auswertungZeichnen() {
-    var jetzt = summieren(aTage, aZeitraum.von, aZeitraum.bis);
-    var alt   = summieren(aVorher, '', '');
-    var ware  = warenwertImZeitraum(aZeitraum.von, aZeitraum.bis);
+    var ort   = nurFiliale();
+    var jetzt = summieren(aTage, aZeitraum.von, aZeitraum.bis, ort);
+    var alt   = summieren(aVorher, '', '', ort);
+    var ware  = warenwertImZeitraum(aZeitraum.von, aZeitraum.bis, ort);
     var ziel  = el('auswertung-inhalt');
+    var titel = aZeitraum.name + (ort ? ' \u00b7 ' + ort : ' \u00b7 alle Filialen');
 
     if (!jetzt.gesamt && !ware.gesamt) {
-      ziel.innerHTML = '<div class="leer">F&uuml;r ' + txt(aZeitraum.name) +
+      ziel.innerHTML = '<div class="leer">F&uuml;r ' + txt(titel) +
         ' sind noch keine Zahlen erfasst.<br>Tagesums&auml;tze tr&auml;gst du im Reiter Tagesumsatz ein.</div>';
+      aBericht = null;
       return;
     }
 
     var schnitt = jetzt.tage ? jetzt.gesamt / jetzt.tage : 0;
     var anteil = jetzt.gesamt ? ware.gesamt / jetzt.gesamt * 100 : 0;
     var erg = ergebnisBlock(jetzt);
-    var ergebnis = jetzt.gesamt - erg.lohn.gesamt - erg.fix.gesamt;
-    aBericht = { jetzt: jetzt, alt: alt, ware: ware, erg: erg, ergebnis: ergebnis };
+    var ergebnis = jetzt.gesamt - erg.kosten.gesamt;
+    aBericht = { jetzt: jetzt, alt: alt, ware: ware, erg: erg,
+                 ergebnis: ergebnis, titel: titel, ort: ort };
+
+    // Schnellauswertung: die drei Zahlen, die der Chef zuerst sehen will
+    var schnell =
+      '<div class="schnell">' +
+        '<div class="schnell-teil"><span>Umsatz ' + txt(titel) + '</span><b>' + euro(jetzt.gesamt) + '</b></div>' +
+        '<div class="schnell-teil"><span>Kosten im Zeitraum</span><b>' + euro(erg.kosten.gesamt) + '</b></div>' +
+        '<div class="schnell-teil"><span>Bereinigt</span><b style="color:' +
+          (ergebnis >= 0 ? 'var(--gruen)' : 'var(--rot)') + '">' + euro(ergebnis) + '</b></div>' +
+      '</div>';
 
     var kacheln =
-      kachel(euro(jetzt.gesamt), 'Umsatz ' + aZeitraum.name) +
       kachel(euro(schnitt), '\u00d8 pro Tag') +
       kachel(jetzt.tage, 'Tage erfasst') +
-      kachel(euro(ware.gesamt), 'Warenwert bestellt') +
+      kachel(euro(ware.gesamt), 'Warenwert geliefert') +
       kachel(anteil ? anteil.toFixed(1).replace('.', ',') + ' %' : '&ndash;', 'Warenanteil') +
       kachel(ware.anzahl, 'Bestellungen') +
-      kachel(euro(erg.lohn.gesamt), 'Personalkosten') +
-      kachel(jetzt.gesamt ? (erg.lohn.gesamt / jetzt.gesamt * 100).toFixed(1).replace('.', ',') + ' %' : '&ndash;', 'Personalquote') +
-      kachel(euro(erg.fix.gesamt), 'Fixkosten') +
-      kachel(euro(ergebnis), 'Ergebnis');
+      kachel(trendText(jetzt.gesamt, alt.gesamt), 'ggü. ' + (aZeitraum.vorherName || 'Vorzeitraum'));
 
     // Monatsbalken
     var monate = Object.keys(jetzt.proMonat).sort();
     var maxMonat = Math.max.apply(null, monate.map(function (m) { return jetzt.proMonat[m]; }).concat([1]));
-    var monatsBalken = monate.map(function (m) {
-      return balken(monatName(m), jetzt.proMonat[m], maxMonat);
-    }).join('') || '<div class="leer">Noch keine Monatswerte.</div>';
+    var monatsBalken = monate.length > 1
+      ? '<h3 class="abschnitt">Umsatz nach Monat</h3>' +
+        monate.map(function (m) { return balken(monatName(m), jetzt.proMonat[m], maxMonat); }).join('')
+      : '';
 
     // Filialen
-    var orte = Object.keys(jetzt.proFiliale).concat(alleFilialen)
-      .filter(function (o, i, l) { return l.indexOf(o) === i; })
-      .sort(function (a, b) { return (jetzt.proFiliale[b] || 0) - (jetzt.proFiliale[a] || 0); });
+    var orte = erg.orte;
     var maxOrt = Math.max.apply(null, orte.map(function (o) { return jetzt.proFiliale[o] || 0; }).concat([1]));
+    var filialBalken = orte.length > 1
+      ? '<h3 class="abschnitt">Umsatz nach Filiale</h3>' +
+        orte.map(function (o) { return balken(o, jetzt.proFiliale[o] || 0, maxOrt); }).join('')
+      : '';
 
-    var filialZeilen = orte.map(function (ort) {
-      var u = jetzt.proFiliale[ort] || 0;
-      var w = ware.proFiliale[ort] || 0;
-      return '<tr><td>' + txt(ort) + '</td>' +
+    var filialZeilen = orte.map(function (o) {
+      var u = jetzt.proFiliale[o] || 0;
+      var w = ware.proFiliale[o] || 0;
+      return '<tr><td>' + txt(o) + '</td>' +
         '<td class="zahl-rechts"><b>' + euro(u) + '</b></td>' +
         '<td class="zahl-rechts">' + (jetzt.gesamt ? (u / jetzt.gesamt * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '&ndash;') + '</td>' +
         '<td class="zahl-rechts">' + euro(w) + '</td>' +
         '<td class="zahl-rechts">' + (u ? (w / u * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '&ndash;') + '</td>' +
-        '<td class="zahl-rechts">' + trend(u, alt.proFiliale[ort] || 0) + '</td></tr>';
+        '<td class="zahl-rechts">' + trend(u, alt.proFiliale[o] || 0) + '</td></tr>';
     }).join('');
 
     // Tagesrückblick
@@ -1410,36 +1448,45 @@
     }).sort().reverse();
     var tagesZeilen = tage.map(function (tag) {
       var werte = aTage[tag] || {};
-      var summe = Object.keys(werte).reduce(function (s, o) { return s + (Number(werte[o]) || 0); }, 0);
+      var summe = 0, teile = [];
+      Object.keys(werte).sort().forEach(function (o) {
+        if (ort && o !== ort) return;
+        var wert = Number(werte[o]) || 0;
+        summe += wert;
+        teile.push(txt(o) + ' ' + euro(wert));
+      });
       if (!summe) return '';
-      var aufteilung = Object.keys(werte).sort().map(function (o) {
-        return txt(o) + ' ' + euro(Number(werte[o]) || 0);
-      }).join(' \u00b7 ');
-      return '<tr><td>' + tagText(tag) + '<div class="aufteilung">' + aufteilung + '</div></td>' +
+      return '<tr><td>' + tagText(tag) +
+        (ort ? '' : '<div class="aufteilung">' + teile.join(' \u00b7 ') + '</div>') + '</td>' +
         '<td class="zahl-rechts"><b>' + euro(summe) + '</b></td></tr>';
     }).join('');
 
     ziel.innerHTML =
+      schnell +
       '<div class="zahlen">' + kacheln + '</div>' +
-      '<h3 class="abschnitt">Umsatz nach Monat</h3>' + monatsBalken +
-      '<h3 class="abschnitt">Umsatz nach Filiale</h3>' +
-      orte.map(function (o) { return balken(o, jetzt.proFiliale[o] || 0, maxOrt); }).join('') +
-      '<h3 class="abschnitt">Kennzahlen je Filiale</h3>' +
-      '<table><thead><tr><th>Filiale</th><th class="zahl-rechts">Umsatz</th>' +
+      erg.html +
+      monatsBalken +
+      filialBalken +
+      '<h3 class="abschnitt">Umsatz und Warenwert je Filiale</h3>' +
+      '<div class="rollen"><table><thead><tr><th>Filiale</th><th class="zahl-rechts">Umsatz</th>' +
       '<th class="zahl-rechts">Anteil</th><th class="zahl-rechts">Warenwert</th>' +
       '<th class="zahl-rechts">Warenquote</th><th class="zahl-rechts">ggü. ' +
-      txt(aZeitraum.vorherName || '') + '</th></tr></thead><tbody>' + filialZeilen + '</tbody></table>' +
-      erg.html +
+      txt(aZeitraum.vorherName || '') + '</th></tr></thead><tbody>' + filialZeilen + '</tbody></table></div>' +
       '<h3 class="abschnitt">Tagesr\u00fcckblick</h3>' +
       (tagesZeilen
-        ? '<table><thead><tr><th>Tag</th><th class="zahl-rechts">Umsatz</th></tr></thead><tbody>' +
-          tagesZeilen + '</tbody></table>'
+        ? '<div class="rollen"><table><thead><tr><th>Tag</th><th class="zahl-rechts">Umsatz</th></tr></thead><tbody>' +
+          tagesZeilen + '</tbody></table></div>'
         : '<div class="leer">Noch keine Tagesums\u00e4tze in diesem Zeitraum.</div>') +
       (jetzt.bester.tag
         ? '<div style="margin-top:14px;font-weight:600">Bester Tag: ' + tagText(jetzt.bester.tag) +
-          ' mit ' + euro(jetzt.bester.wert) + ' \u00b7 Vorzeitraum ' + euro(alt.gesamt) +
-          ' \u00b7 Ver\u00e4nderung ' + trend(jetzt.gesamt, alt.gesamt) + '</div>'
+          ' mit ' + euro(jetzt.bester.wert) + '</div>'
         : '');
+  }
+
+  function trendText(jetzt, vorher) {
+    if (!vorher) return '\u2013';
+    var p = (jetzt - vorher) / vorher * 100;
+    return (p >= 0 ? '+' : '\u2212') + Math.abs(p).toFixed(1).replace('.', ',') + ' %';
   }
 
   function balken(name, wert, max) {
@@ -1464,56 +1511,69 @@
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
     doc.setTextColor(46, 42, 121);
-    doc.text('Auswertung ' + entziffert(aZeitraum.name), 40, 52);
+    doc.text('Umsatzauswertung', 40, 52);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
     doc.setTextColor(90, 90, 90);
-    doc.text('B\u00e4ckerei Jung \u00b7 ' + tagText(aZeitraum.von) + ' bis ' + tagText(aZeitraum.bis) +
-             ' \u00b7 erstellt am ' + new Date().toLocaleDateString('de-DE'), 40, 68);
+    doc.text(entziffert(b.titel) + '  \u00b7  ' + tagText(aZeitraum.von) + ' bis ' + tagText(aZeitraum.bis) +
+             '  \u00b7  erstellt am ' + new Date().toLocaleDateString('de-DE'), 40, 68);
     doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5);
     doc.line(40, 76, 555, 76);
 
-    var quote = b.jetzt.gesamt ? (b.erg.lohn.gesamt / b.jetzt.gesamt * 100) : 0;
+    // Die drei wichtigsten Zahlen groß
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20, 20, 20);
+    var kaesten = [['Umsatz', euroText(b.jetzt.gesamt)],
+                   ['Kosten', euroText(b.erg.kosten.gesamt)],
+                   ['Bereinigt', euroText(b.ergebnis)]];
+    kaesten.forEach(function (k, i) {
+      var x = 40 + i * 172;
+      doc.setDrawColor(221, 218, 232); doc.setLineWidth(1);
+      doc.roundedRect(x, 90, 162, 52, 6, 6);
+      doc.setFontSize(8); doc.setTextColor(107, 104, 128);
+      doc.text(k[0].toUpperCase(), x + 12, 108);
+      doc.setFontSize(14); doc.setTextColor(20, 20, 20);
+      doc.text(k[1], x + 12, 130);
+    });
+
     doc.autoTable({
-      startY: 92,
-      head: [['Kennzahl', 'Wert']],
-      body: [
-        ['Umsatz', euroText(b.jetzt.gesamt)],
-        ['Umsatz Vorzeitraum (' + entziffert(aZeitraum.vorherName || '') + ')', euroText(b.alt.gesamt)],
-        ['Ver\u00e4nderung', b.alt.gesamt
-          ? ((b.jetzt.gesamt - b.alt.gesamt) / b.alt.gesamt * 100).toFixed(1).replace('.', ',') + ' %' : '-'],
-        ['Erfasste Tage / \u00d8 pro Tag', b.jetzt.tage + ' / ' +
-          euroText(b.jetzt.tage ? b.jetzt.gesamt / b.jetzt.tage : 0)],
-        ['Warenwert bestellt', euroText(b.ware.gesamt)],
-        ['Personalkosten (' + b.erg.lohn.quelle + ')', euroText(b.erg.lohn.gesamt)],
-        ['Personalquote', quote.toFixed(1).replace('.', ',') + ' %'],
-        ['Fixkosten anteilig', euroText(b.erg.fix.gesamt)],
-        ['Ergebnis', euroText(b.ergebnis)]
-      ],
+      startY: 162,
+      head: [['Filiale', 'Umsatz', 'Kosten', 'Bereinigt', 'Personal', 'Quote']],
+      body: b.erg.orte.map(function (o) {
+        var u = b.jetzt.proFiliale[o] || 0;
+        var k = b.erg.kosten.proFiliale[o] || 0;
+        var l = b.erg.lohn.proFiliale[o] || 0;
+        return [o, euroText(u), euroText(k), euroText(u - k), euroText(l),
+                u ? (l / u * 100).toFixed(1).replace('.', ',') + ' %' : '-'];
+      }).concat(b.erg.orte.length > 1
+        ? [['Gesamt', euroText(b.jetzt.gesamt), euroText(b.erg.kosten.gesamt),
+            euroText(b.ergebnis), euroText(b.erg.lohn.gesamt), '']]
+        : []),
       styles: { font: 'helvetica', fontSize: 9, cellPadding: 4 },
       headStyles: { fillColor: [46, 42, 121], textColor: 255 },
-      columnStyles: { 1: { halign: 'right', fontStyle: 'bold', cellWidth: 130 } },
+      columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' },
+                      3: { halign: 'right', fontStyle: 'bold' },
+                      4: { halign: 'right' }, 5: { halign: 'right' } },
       margin: { left: 40, right: 40 }
     });
 
-    var orte = Object.keys(b.jetzt.proFiliale).concat(alleFilialen)
-      .filter(function (o, i, l) { return l.indexOf(o) === i; })
-      .sort(function (x, y) { return (b.jetzt.proFiliale[y] || 0) - (b.jetzt.proFiliale[x] || 0); });
-
     doc.autoTable({
       startY: doc.lastAutoTable.finalY + 22,
-      head: [['Filiale', 'Umsatz', 'Personal', 'Quote', 'Fixkosten', 'Ergebnis']],
-      body: orte.map(function (ort) {
-        var u = b.jetzt.proFiliale[ort] || 0;
-        var l = b.erg.lohn.proFiliale[ort] || 0;
-        var f = b.erg.fix.proFiliale[ort] || 0;
-        return [ort, euroText(u), euroText(l),
-          u ? (l / u * 100).toFixed(1).replace('.', ',') + ' %' : '-',
-          euroText(f), euroText(u - l - f)];
-      }),
+      head: [['Kennzahl', 'Wert']],
+      body: [
+        ['Erfasste Tage', String(b.jetzt.tage)],
+        ['\u00d8 Umsatz pro Tag', euroText(b.jetzt.tage ? b.jetzt.gesamt / b.jetzt.tage : 0)],
+        ['Bester Tag', b.jetzt.bester.tag
+          ? tagText(b.jetzt.bester.tag) + '  ' + euroText(b.jetzt.bester.wert) : '-'],
+        ['Warenwert geliefert', euroText(b.ware.gesamt)],
+        ['Warenanteil am Umsatz', b.jetzt.gesamt
+          ? (b.ware.gesamt / b.jetzt.gesamt * 100).toFixed(1).replace('.', ',') + ' %' : '-'],
+        ['Bestellungen', String(b.ware.anzahl)],
+        ['Vorzeitraum ' + entziffert(aZeitraum.vorherName || ''), euroText(b.alt.gesamt)],
+        ['Ver\u00e4nderung', b.alt.gesamt
+          ? ((b.jetzt.gesamt - b.alt.gesamt) / b.alt.gesamt * 100).toFixed(1).replace('.', ',') + ' %' : '-']
+      ],
       styles: { font: 'helvetica', fontSize: 9, cellPadding: 4 },
       headStyles: { fillColor: [46, 42, 121], textColor: 255 },
-      columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' },
-                      4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' } },
+      columnStyles: { 1: { halign: 'right', fontStyle: 'bold', cellWidth: 150 } },
       margin: { left: 40, right: 40 }
     });
 
@@ -1526,9 +1586,13 @@
         head: [['Tag', 'Umsatz']],
         body: tage.map(function (tag) {
           var werte = aTage[tag] || {};
-          var summe = Object.keys(werte).reduce(function (s, o) { return s + (Number(werte[o]) || 0); }, 0);
+          var summe = 0;
+          Object.keys(werte).forEach(function (o) {
+            if (b.ort && o !== b.ort) return;
+            summe += Number(werte[o]) || 0;
+          });
           return [tagText(tag), euroText(summe)];
-        }),
+        }).filter(function (z) { return z[1] !== '0,00 EUR'; }),
         styles: { font: 'helvetica', fontSize: 9, cellPadding: 3.5 },
         headStyles: { fillColor: [46, 42, 121], textColor: 255 },
         columnStyles: { 1: { halign: 'right' } },
@@ -1536,7 +1600,8 @@
       });
     }
 
-    doc.save('Auswertung_' + aZeitraum.von + '_bis_' + aZeitraum.bis + '.pdf');
+    doc.save('Umsatzauswertung_' + (b.ort ? b.ort.replace(/[^\w]+/g, '_') + '_' : '') +
+             aZeitraum.von + '_bis_' + aZeitraum.bis + '.pdf');
   });
 
   function euroText(n) { return (Number(n) || 0).toFixed(2).replace('.', ',') + ' EUR'; }
@@ -1544,54 +1609,6 @@
 
   function euroText(n) { return (Number(n) || 0).toFixed(2).replace('.', ',') + ' EUR'; }
   function entziffert(text) { return String(text).replace(/[^\x20-\x7E\u00C0-\u017F]/g, ''); }
-
-  el('d-pdf').addEventListener('click', function () {
-    if (!window.jspdf) return;
-    var montag = montagVon(el('d-tag').value);
-    var ort = el('d-filiale').value;
-    var woche = wochenSchluessel(el('d-tag').value);
-    var plan = dienstplaene[woche] || {};
-    var leute = besetzung(woche, ort).alle;
-    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
-
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
-    doc.setTextColor(46, 42, 121);
-    doc.text('Dienstplan ' + ort + ' - KW ' + kalenderwoche(montag), 40, 46);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
-    doc.text(tagText(montag) + ' bis ' + tagText(tagPlus(montag, 6)), 40, 62);
-
-    var gesamt = 0;
-    doc.autoTable({
-      startY: 78,
-      head: [['Mitarbeiter'].concat(WOCHENTAGE.map(function (t, i) {
-        return t + ' ' + tagPlus(montag, i).slice(8) + '.';
-      })).concat(['Stunden'])],
-      body: leute.map(function (m) {
-        var eintrag = plan[m.id] || {};
-        var stunden = 0;
-        var spalten = WOCHENTAGE.map(function (t) {
-          var roh = eintrag[t];
-          var code = eintragCode(roh);
-          if (!code) return '';
-          if (eintragOrt(roh, m) !== ort) return '-> ' + eintragOrt(roh, m);
-          stunden += stundenAusEintrag(code);
-          var s = schichtZu(code);
-          return s ? s.code + ' ' + s.von + '-' + s.bis
-                   : (code === 'U' ? 'Urlaub' : code === 'K' ? 'Krank' : code);
-        });
-        gesamt += stunden;
-        return [m.name + (m.filiale !== ort ? ' (V)' : '')].concat(spalten)
-          .concat([stunden.toFixed(1).replace('.', ',') + ' h']);
-      }),
-      styles: { font: 'helvetica', fontSize: 9, cellPadding: 4 },
-      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
-      margin: { left: 40, right: 40 }
-    });
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(20, 20, 20);
-    doc.text('Gesamt ' + gesamt.toFixed(1).replace('.', ',') + ' Stunden',
-             40, doc.lastAutoTable.finalY + 20);
-    doc.save('Dienstplan_' + ort.replace(/[^\w]+/g, '_') + '_KW' + kalenderwoche(montag) + '.pdf');
-  });
 
   function csvSpeichern(zeilen, name) {
     var feld = function (w) {
@@ -1606,50 +1623,405 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
   }
 
-  el('a-csv-tage').addEventListener('click', function () {
-    var ware = {};
-    bestellungen.forEach(function (b) {
-      if (!b.datumIso || b.datumIso < aZeitraum.von || b.datumIso > aZeitraum.bis) return;
-      ware[b.datumIso + '|' + b.filiale] = (ware[b.datumIso + '|' + b.filiale] || 0) + b.wertZahl;
-    });
-    var zeilen = [['Datum', 'Filiale', 'Tagesumsatz', 'Warenwert Bestellung', 'Warenquote %']];
-    Object.keys(aTage).filter(function (t) { return t >= aZeitraum.von && t <= aZeitraum.bis; })
-      .sort().forEach(function (tag) {
-        Object.keys(aTage[tag] || {}).sort().forEach(function (ort) {
-          var u = Number(aTage[tag][ort]) || 0;
-          var w = ware[tag + '|' + ort] || 0;
-          zeilen.push([tagText(tag), ort, u.toFixed(2).replace('.', ','),
-            w.toFixed(2).replace('.', ','), u ? (w / u * 100).toFixed(1).replace('.', ',') : '']);
+  // ---------- Zeitraum-Auswahl (Dashboard und Verkaufsauswertung) ----------
+  function periodeFelder(vor) {
+    var art = el(vor + '-art').value;
+    el(vor + '-feld-stichtag').classList.toggle('verstecken',
+      art === 'gesamt' || art === 'individuell');
+    el(vor + '-feld-von').classList.toggle('verstecken', art !== 'individuell');
+    el(vor + '-feld-bis').classList.toggle('verstecken', art !== 'individuell');
+  }
+
+  function periodeLesen(vor) {
+    var art = el(vor + '-art').value;
+    var stichtag = el(vor + '-stichtag').value || heute.toISOString().slice(0, 10);
+    var t = stichtag.split('-');
+
+    if (art === 'tag')   return { von: stichtag, bis: stichtag, name: tagText(stichtag) };
+    if (art === 'woche') {
+      var mo = montagVon(stichtag);
+      return { von: mo, bis: tagPlus(mo, 6), name: 'KW ' + kalenderwoche(mo) + ' ' + mo.slice(0, 4) };
+    }
+    if (art === 'monat') {
+      var letzter = new Date(+t[0], +t[1], 0).getDate();
+      return { von: t[0] + '-' + t[1] + '-01', bis: t[0] + '-' + t[1] + '-' + zwei(letzter),
+               name: monatsnamen[+t[1] - 1] + ' ' + t[0] };
+    }
+    if (art === 'quartal') {
+      var q = Math.floor((+t[1] - 1) / 3) + 1;
+      return grenzen(+t[0], String(q));
+    }
+    if (art === 'jahr')   return grenzen(+t[0], 'jahr');
+    if (art === 'gesamt') return { von: '0000-01-01', bis: '9999-12-31', name: 'Gesamter Zeitraum' };
+    var von = el(vor + '-von').value || '0000-01-01';
+    var bis = el(vor + '-bis').value || '9999-12-31';
+    return { von: von, bis: bis, name: tagText(von) + ' bis ' + tagText(bis) };
+  }
+
+  // ---------- Mengen aus Bestellungen und Retouren ----------
+  function mengenImZeitraum(z, nurFiliale) {
+    var proArtikel = {};   // nr -> {bestellt, retour}
+    var proFiliale = {};   // ort -> {bestellt, retour, wert, retourwert}
+
+    function verbuchen(liste, feld) {
+      liste.forEach(function (b) {
+        if (!b.datumIso || b.datumIso < z.von || b.datumIso > z.bis) return;
+        if (nurFiliale && b.filiale !== nurFiliale) return;
+        proFiliale[b.filiale] = proFiliale[b.filiale] || { bestellt: 0, retour: 0, wert: 0, retourwert: 0 };
+        b.posten.forEach(function (p) {
+          var info = artikelInfo[p.nr] || {};
+          var wert = p.menge * (info.vk || 0);
+          proArtikel[p.nr] = proArtikel[p.nr] || { nr: p.nr, bez: p.bez || info.bez || '', bestellt: 0, retour: 0 };
+          proArtikel[p.nr][feld] += p.menge;
+          proFiliale[b.filiale][feld] += p.menge;
+          proFiliale[b.filiale][feld === 'retour' ? 'retourwert' : 'wert'] += wert;
         });
       });
-    csvSpeichern(zeilen, 'Tageswerte_' + aZeitraum.name.replace(/[ .]/g, '_') + '.csv');
+    }
+    verbuchen(bestellungen, 'bestellt');
+    verbuchen(retourenListe, 'retour');
+    return { proArtikel: proArtikel, proFiliale: proFiliale };
+  }
+
+  // Errechneter Umsatz eines Tages: geliefert minus retourniert, zum Verkaufspreis
+  function errechneterUmsatz(ort, tagIso) {
+    var z = { von: tagIso, bis: tagIso };
+    var d = mengenImZeitraum(z, ort).proFiliale[ort];
+    if (!d) return 0;
+    return Math.max(0, d.wert - d.retourwert);
+  }
+
+  // ---------- Monatliche Filialkosten ----------
+  function monatskosten(ort) {
+    var k = kosten[ort] || {};
+    if (Number(k.pauschal) > 0) return Number(k.pauschal);
+    return (Number(k.miete) || 0) + (Number(k.energie) || 0) + (Number(k.sonstiges) || 0) +
+           personalkostenVertraglichProMonat(ort);
+  }
+  function kostenAnteil(ort, z) {
+    var tage = Math.min(tageImZeitraum(z), 3650);
+    return monatskosten(ort) * (tage / 30.44);
+  }
+
+  // ---------- Dashboard ----------
+  var dashUmsatz = {};
+
+  ['art', 'stichtag', 'von', 'bis', 'sortierung'].forEach(function (feld) {
+    el('dash-' + feld).addEventListener('change', function () {
+      periodeFelder('dash');
+      dashboardLaden();
+    });
+  });
+  el('dash-verkauf').addEventListener('click', function () { wechseln('verkauf'); });
+
+  function dashboardLaden() {
+    if (!el('dash-stichtag').value) el('dash-stichtag').value = heute.toISOString().slice(0, 10);
+    periodeFelder('dash');
+    var z = periodeLesen('dash');
+    el('dashboard-inhalt').innerHTML = '<div class="leer">Zahlen werden geladen \u2026</div>';
+    Promise.all([zeitraumLaden(z), personalHolen(), kostenHolen()]).then(function (e) {
+      dashUmsatz = e[0];
+      dashboardZeichnen(z);
+    });
+  }
+
+  function dashboardZeichnen(z) {
+    var umsatz = summieren(dashUmsatz, z.von, z.bis);
+    var mengen = mengenImZeitraum(z);
+    var orte = alleFilialen.slice();
+    Object.keys(umsatz.proFiliale).forEach(function (o) { if (orte.indexOf(o) === -1) orte.push(o); });
+
+    var zeilen = orte.map(function (ort) {
+      var u = umsatz.proFiliale[ort] || 0;
+      var k = kostenAnteil(ort, z);
+      var m = mengen.proFiliale[ort] || { bestellt: 0, retour: 0, wert: 0, retourwert: 0 };
+      return { ort: ort, umsatz: u, kosten: k, bereinigt: u - k,
+               bestellt: m.bestellt, retour: m.retour, retourwert: m.retourwert };
+    });
+
+    var aufsteigend = el('dash-sortierung').value === 'auf';
+    zeilen.sort(function (a, b) { return aufsteigend ? a.umsatz - b.umsatz : b.umsatz - a.umsatz; });
+    dashZeilen = zeilen;
+
+    var gesamtUmsatz = zeilen.reduce(function (s, r) { return s + r.umsatz; }, 0);
+    var gesamtKosten = zeilen.reduce(function (s, r) { return s + r.kosten; }, 0);
+    var gesamtRetour = zeilen.reduce(function (s, r) { return s + r.retourwert; }, 0);
+    var gesamtWare = Object.keys(mengen.proFiliale).reduce(function (s, o) {
+      return s + mengen.proFiliale[o].wert; }, 0);
+
+    var kacheln =
+      kachel(euro(gesamtUmsatz), 'Umsatz ' + z.name) +
+      kachel(euro(gesamtKosten), 'Kosten') +
+      kachel(euro(gesamtUmsatz - gesamtKosten), 'Bereinigt') +
+      kachel(euro(gesamtWare), 'Warenwert geliefert') +
+      kachel(euro(gesamtRetour), 'Retourenwert') +
+      kachel(gesamtWare ? (gesamtRetour / gesamtWare * 100).toFixed(1).replace('.', ',') + ' %' : '\u2013',
+             'Retourenquote');
+
+    var maxU = Math.max.apply(null, zeilen.map(function (r) { return r.umsatz; }).concat([1]));
+
+    el('dashboard-inhalt').innerHTML =
+      '<div class="zahlen">' + kacheln + '</div>' +
+      '<h3 class="abschnitt">Filial-Ranking \u00b7 ' + txt(z.name) + '</h3>' +
+      zeilen.map(function (r) { return balken(r.ort, r.umsatz, maxU); }).join('') +
+      '<div class="rollen" style="margin-top:12px"><table><thead><tr>' +
+      '<th>#</th><th>Filiale</th><th class="zahl-rechts">Umsatz</th>' +
+      '<th class="zahl-rechts">Kosten</th><th class="zahl-rechts">Bereinigt</th>' +
+      '<th class="zahl-rechts">Retourenquote</th></tr></thead><tbody>' +
+      zeilen.map(function (r, i) {
+        var quote = (r.bestellt ? r.retour / r.bestellt * 100 : 0);
+        return '<tr><td>' + (i + 1) + '</td><td><b>' + txt(r.ort) + '</b></td>' +
+          '<td class="zahl-rechts">' + euro(r.umsatz) + '</td>' +
+          '<td class="zahl-rechts">' + euro(r.kosten) + '</td>' +
+          '<td class="zahl-rechts" style="color:' + (r.bereinigt >= 0 ? 'var(--gruen)' : 'var(--rot)') +
+            '"><b>' + euro(r.bereinigt) + '</b></td>' +
+          '<td class="zahl-rechts">' + (r.bestellt ? quote.toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') +
+          '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="aufteilung" style="margin-top:10px">Kosten anteilig aus dem Reiter Kosten. ' +
+      'Die Liste rechnet sich neu, sobald eine Bestellung, eine Retoure oder ein Tagesumsatz eingeht.</div>';
+  }
+
+  var dashZeilen = [];
+  el('dash-csv').addEventListener('click', function () {
+    var z = periodeLesen('dash');
+    var zeilen = [['Zeitraum', z.name], [],
+      ['Rang', 'Filiale', 'Umsatz', 'Kosten', 'Bereinigt', 'Retourenquote %']];
+    dashZeilen.forEach(function (r, i) {
+      zeilen.push([String(i + 1), r.ort, r.umsatz.toFixed(2).replace('.', ','),
+        r.kosten.toFixed(2).replace('.', ','), r.bereinigt.toFixed(2).replace('.', ','),
+        r.bestellt ? (r.retour / r.bestellt * 100).toFixed(1).replace('.', ',') : '']);
+    });
+    csvSpeichern(zeilen, 'Filialranking_' + z.von + '_bis_' + z.bis + '.csv');
   });
 
-  el('a-csv-summe').addEventListener('click', function () {
-    var jetzt = summieren(aTage, aZeitraum.von, aZeitraum.bis);
-    var alt   = summieren(aVorher, '', '');
-    var ware  = warenwertImZeitraum(aZeitraum.von, aZeitraum.bis);
-    var orte = Object.keys(jetzt.proFiliale).concat(alleFilialen)
-      .filter(function (o, i, l) { return l.indexOf(o) === i; }).sort();
-    var zeilen = [['Zeitraum', aZeitraum.name], [], 
-      ['Filiale', 'Umsatz', 'Anteil %', 'Warenwert', 'Warenquote %', 'Vorzeitraum', 'Veränderung %']];
-    orte.forEach(function (ort) {
-      var u = jetzt.proFiliale[ort] || 0, w = ware.proFiliale[ort] || 0, v = alt.proFiliale[ort] || 0;
-      zeilen.push([ort, u.toFixed(2).replace('.', ','),
-        jetzt.gesamt ? (u / jetzt.gesamt * 100).toFixed(1).replace('.', ',') : '',
-        w.toFixed(2).replace('.', ','),
-        u ? (w / u * 100).toFixed(1).replace('.', ',') : '',
-        v.toFixed(2).replace('.', ','),
-        v ? ((u - v) / v * 100).toFixed(1).replace('.', ',') : '']);
+  // ---------- Verkaufsauswertung ----------
+  var verkaufZeilen = [];
+
+  ['art', 'stichtag', 'von', 'bis', 'filiale', 'kennzahl', 'sortierung'].forEach(function (feld) {
+    el('v-' + feld).addEventListener('change', function () {
+      periodeFelder('v');
+      verkaufZeichnen();
     });
-    zeilen.push([]);
-    zeilen.push(['Gesamt', jetzt.gesamt.toFixed(2).replace('.', ','), '',
-      ware.gesamt.toFixed(2).replace('.', ','),
-      jetzt.gesamt ? (ware.gesamt / jetzt.gesamt * 100).toFixed(1).replace('.', ',') : '',
-      alt.gesamt.toFixed(2).replace('.', ','),
-      alt.gesamt ? ((jetzt.gesamt - alt.gesamt) / alt.gesamt * 100).toFixed(1).replace('.', ',') : '']);
-    csvSpeichern(zeilen, 'Auswertung_' + aZeitraum.name.replace(/[ .]/g, '_') + '.csv');
   });
+
+  function verkaufLaden() {
+    if (!el('v-stichtag').value) el('v-stichtag').value = heute.toISOString().slice(0, 10);
+    if (el('v-filiale').options.length <= 1) {
+      alleFilialen.forEach(function (ort) {
+        var o = document.createElement('option');
+        o.value = ort; o.textContent = ort; el('v-filiale').appendChild(o);
+      });
+    }
+    periodeFelder('v');
+    verkaufZeichnen();
+  }
+
+  function verkaufZeichnen() {
+    var z = periodeLesen('v');
+    var ort = el('v-filiale').value;
+    var daten = mengenImZeitraum(z, ort || null).proArtikel;
+
+    var zeilen = Object.keys(daten).map(function (nr) {
+      var d = daten[nr];
+      var info = artikelInfo[nr] || {};
+      var verkauft = Math.max(0, d.bestellt - d.retour);
+      return { nr: nr, bez: d.bez || info.bez || '', bestellt: d.bestellt, retour: d.retour,
+               verkauft: verkauft, umsatz: verkauft * (info.vk || 0),
+               quote: d.bestellt ? d.retour / d.bestellt * 100 : 0 };
+    });
+
+    var kennzahl = el('v-kennzahl').value;
+    var schluessel = kennzahl === 'umsatz' ? 'umsatz'
+                   : kennzahl === 'retoure' ? 'quote'
+                   : kennzahl === 'bestellt' ? 'bestellt' : 'verkauft';
+    var auf = el('v-sortierung').value === 'auf';
+    zeilen.sort(function (a, b) { return auf ? a[schluessel] - b[schluessel] : b[schluessel] - a[schluessel]; });
+    verkaufZeilen = zeilen;
+
+    var ziel = el('verkauf-inhalt');
+    if (!zeilen.length) {
+      ziel.innerHTML = '<div class="leer">F\u00fcr ' + txt(z.name) +
+        (ort ? ' in ' + txt(ort) : '') + ' liegen keine Bestellungen vor.</div>';
+      return;
+    }
+
+    var summeVerkauft = zeilen.reduce(function (s, r) { return s + r.verkauft; }, 0);
+    var summeUmsatz = zeilen.reduce(function (s, r) { return s + r.umsatz; }, 0);
+    var summeRetour = zeilen.reduce(function (s, r) { return s + r.retour; }, 0);
+    var max = Math.max.apply(null, zeilen.map(function (r) { return r[schluessel]; }).concat([1]));
+
+    ziel.innerHTML =
+      '<div class="zahlen">' +
+        kachel(summeVerkauft, 'Verkaufte St\u00fcck') +
+        kachel(euro(summeUmsatz), 'Umsatz der Artikel') +
+        kachel(summeRetour, 'Retour St\u00fcck') +
+        kachel(zeilen.length, 'Artikel') + '</div>' +
+      '<h3 class="abschnitt">' + txt(kennzahlName(kennzahl)) + ' \u00b7 ' + txt(z.name) +
+        (ort ? ' \u00b7 ' + txt(ort) : ' \u00b7 alle Filialen') + '</h3>' +
+      zeilen.slice(0, 10).map(function (r) {
+        return balkenFrei(r.nr + '  ' + r.bez, r[schluessel], max,
+          kennzahl === 'umsatz' ? euro(r.umsatz)
+            : kennzahl === 'retoure' ? r.quote.toFixed(1).replace('.', ',') + ' %'
+            : String(r[schluessel]) + ' St.');
+      }).join('') +
+      '<div class="rollen" style="margin-top:12px"><table><thead><tr>' +
+      '<th>#</th><th>Nr.</th><th>Artikel</th><th class="zahl-rechts">Bestellt</th>' +
+      '<th class="zahl-rechts">Retour</th><th class="zahl-rechts">Verkauft</th>' +
+      '<th class="zahl-rechts">Umsatz</th><th class="zahl-rechts">Retourenquote</th></tr></thead><tbody>' +
+      zeilen.map(function (r, i) {
+        return '<tr><td>' + (i + 1) + '</td><td>' + txt(r.nr) + '</td><td>' + txt(r.bez) + '</td>' +
+          '<td class="zahl-rechts">' + r.bestellt + '</td>' +
+          '<td class="zahl-rechts">' + (r.retour || '\u2013') + '</td>' +
+          '<td class="zahl-rechts"><b>' + r.verkauft + '</b></td>' +
+          '<td class="zahl-rechts">' + euro(r.umsatz) + '</td>' +
+          '<td class="zahl-rechts"' + (r.quote > 15 ? ' style="color:var(--rot)"' : '') + '>' +
+            (r.bestellt ? r.quote.toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="aufteilung" style="margin-top:10px">Verkauft = bestellte Menge minus Retoure.</div>';
+  }
+
+  function kennzahlName(k) {
+    return k === 'umsatz' ? 'Umsatzst\u00e4rkste Artikel'
+         : k === 'retoure' ? 'H\u00f6chste Retourenquote'
+         : k === 'bestellt' ? 'Meist bestellte Artikel' : 'Meist verkaufte Artikel';
+  }
+
+  function balkenFrei(name, wert, max, beschriftung) {
+    var breite = max ? Math.max(2, wert / max * 100) : 2;
+    return '<div class="balken"><div class="name">' + txt(name) + '</div>' +
+      '<div class="spur"><div class="fuellung" style="width:' + breite.toFixed(1) + '%"></div></div>' +
+      '<div class="wert">' + txt(beschriftung) + '</div></div>';
+  }
+
+  el('v-csv').addEventListener('click', function () {
+    var z = periodeLesen('v');
+    var zeilen = [['Zeitraum', z.name], ['Filiale', el('v-filiale').value || 'Alle Filialen'], [],
+      ['Rang', 'Artikelnummer', 'Bezeichnung', 'Bestellt', 'Retour', 'Verkauft', 'Umsatz', 'Retourenquote %']];
+    verkaufZeilen.forEach(function (r, i) {
+      zeilen.push([String(i + 1), r.nr, r.bez, String(r.bestellt), String(r.retour),
+        String(r.verkauft), r.umsatz.toFixed(2).replace('.', ','),
+        r.bestellt ? r.quote.toFixed(1).replace('.', ',') : '']);
+    });
+    csvSpeichern(zeilen, 'Verkaufsauswertung_' + z.von + '_bis_' + z.bis + '.csv');
+  });
+
+  el('v-pdf').addEventListener('click', function () {
+    if (!window.jspdf || !verkaufZeilen.length) return;
+    var z = periodeLesen('v');
+    var ort = el('v-filiale').value || 'Alle Filialen';
+    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(46, 42, 121);
+    doc.text('Verkaufsauswertung', 40, 52);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+    doc.text(entziffert(z.name) + ' - ' + entziffert(ort) + ' - ' + entziffert(kennzahlName(el('v-kennzahl').value)), 40, 68);
+    doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5); doc.line(40, 76, 555, 76);
+    doc.autoTable({
+      startY: 92,
+      head: [['#', 'Nr.', 'Artikel', 'Bestellt', 'Retour', 'Verkauft', 'Umsatz']],
+      body: verkaufZeilen.map(function (r, i) {
+        return [String(i + 1), r.nr, r.bez, String(r.bestellt), String(r.retour),
+          String(r.verkauft), euroText(r.umsatz)];
+      }),
+      styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 3.5 },
+      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+      columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' },
+                      5: { halign: 'right', fontStyle: 'bold' }, 6: { halign: 'right' } },
+      margin: { left: 40, right: 40 }
+    });
+    doc.save('Verkaufsauswertung_' + z.von + '_bis_' + z.bis + '.pdf');
+  });
+
+  // ---------- Benachrichtigungen ----------
+  var gelesenStand = '';
+  try { gelesenStand = localStorage.getItem('chef-gelesen') || ''; } catch (e) {}
+  var glockeOffen = false;
+
+  function neueEingaenge() {
+    var alle = bestellungen.map(function (b) { return { art: 'bestellung', d: b }; })
+      .concat(retourenListe.map(function (r) { return { art: 'retoure', d: r }; }));
+    return alle.filter(function (e) { return String(e.d.erstellt || '') > gelesenStand; })
+      .sort(function (a, b) { return String(a.d.erstellt) < String(b.d.erstellt) ? 1 : -1; });
+  }
+
+  function glockeZeichnen() {
+    var neue = neueEingaenge();
+    var zahl = el('glocke-zahl');
+    zahl.textContent = neue.length > 99 ? '99+' : neue.length;
+    zahl.classList.toggle('verstecken', neue.length === 0);
+    if (glockeOffen) feldZeichnen(neue);
+  }
+
+  function zeitText(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    var heuteTag = new Date().toDateString() === d.toDateString();
+    var uhr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return heuteTag ? uhr + ' Uhr' : d.toLocaleDateString('de-DE') + ' ' + uhr;
+  }
+
+  function feldZeichnen(neue) {
+    neue = neue || neueEingaenge();
+    var feld = el('glocke-feld');
+    var zeilen = neue.slice(0, 20).map(function (e) {
+      var retoure = e.art === 'retoure';
+      return '<div class="glocke-zeile" data-id="' + txt(e.d.id) + '">' +
+        '<span class="punkt" style="background:' + (retoure ? 'var(--rot)' : 'var(--gruen)') + '"></span>' +
+        '<span><b>' + (retoure ? 'Retoure' : 'Neue Bestellung') + '</b> \u00b7 ' + txt(e.d.filiale) + '</span>' +
+        '<span class="zeit">' + zeitText(e.d.erstellt) + '</span></div>';
+    }).join('');
+
+    feld.innerHTML = '<div class="glocke-karte">' +
+      '<div class="glocke-kopf">' + (neue.length
+        ? neue.length + (neue.length === 1 ? ' neue Meldung' : ' neue Meldungen')
+        : 'Nichts Neues') + '</div>' +
+      (zeilen || '<div class="leer" style="padding:22px 14px">Seit dem letzten Blick ist nichts eingegangen.</div>') +
+      (neue.length > 20 ? '<div class="aufteilung" style="padding:8px 14px">und ' +
+        (neue.length - 20) + ' weitere</div>' : '') +
+      '<div class="glocke-fuss">' +
+        (neue.length ? '<button type="button" id="glocke-gelesen">Alle als gelesen markieren</button>' : '') +
+        '<button type="button" id="glocke-zu">Schlie\u00dfen</button>' +
+      '</div></div>';
+
+    feld.querySelectorAll('.glocke-zeile').forEach(function (z) {
+      z.addEventListener('click', function () {
+        offenIds[z.dataset.id] = true;
+        glockeSchliessen();
+        wechseln('bestellungen');
+      });
+    });
+    if (el('glocke-gelesen')) {
+      el('glocke-gelesen').addEventListener('click', function () {
+        gelesenStand = new Date().toISOString();
+        try { localStorage.setItem('chef-gelesen', gelesenStand); } catch (e) {}
+        glockeSchliessen();
+        glockeZeichnen();
+      });
+    }
+    el('glocke-zu').addEventListener('click', glockeSchliessen);
+  }
+
+  function glockeSchliessen() {
+    glockeOffen = false;
+    el('glocke-feld').classList.add('verstecken');
+  }
+
+  el('glocke').addEventListener('click', function () {
+    glockeOffen = !glockeOffen;
+    el('glocke-feld').classList.toggle('verstecken', !glockeOffen);
+    if (glockeOffen) feldZeichnen();
+  });
+
+  // Alle zwei Minuten still nachsehen, ob etwas eingegangen ist
+  setInterval(function () {
+    laden(function (fehler) {
+      if (fehler) return;
+      glockeZeichnen();
+      if (ansicht === 'dashboard') dashboardLaden();
+      else if (ansicht === 'bestellungen' || ansicht === 'verkauf') zeichnen();
+    });
+  }, 120000);
 
   // ---------- Gemeinsame Ablage (Personal, Kosten, Dienstpläne) ----------
   var ENDPUNKT_DATEN = '/.netlify/functions/daten';
@@ -2084,436 +2456,57 @@
   }
 
   function ergebnisBlock(jetzt) {
+    var ort = nurFiliale();
     var lohn = personalkosten(aZeitraum);
-    var fix = fixkosten(aZeitraum);
-    var orte = Object.keys(jetzt.proFiliale).concat(alleFilialen)
-      .filter(function (o, i, l) { return l.indexOf(o) === i; })
+    var orte = (ort ? [ort] : Object.keys(jetzt.proFiliale).concat(alleFilialen)
+      .filter(function (o, i, l) { return l.indexOf(o) === i; }))
       .sort(function (a, b) { return (jetzt.proFiliale[b] || 0) - (jetzt.proFiliale[a] || 0); });
 
-    var zeilen = orte.map(function (ort) {
-      var u = jetzt.proFiliale[ort] || 0;
-      var l = lohn.proFiliale[ort] || 0;
-      var f = fix.proFiliale[ort] || 0;
-      var ergebnis = u - l - f;
-      return '<tr><td>' + txt(ort) + '</td>' +
+    var kostenProFiliale = {}, kostenGesamt = 0;
+    orte.forEach(function (o) {
+      kostenProFiliale[o] = kostenAnteil(o, aZeitraum);
+      kostenGesamt += kostenProFiliale[o];
+    });
+
+    var zeilen = orte.map(function (o) {
+      var u = jetzt.proFiliale[o] || 0;
+      var k = kostenProFiliale[o];
+      var l = lohn.proFiliale[o] || 0;
+      var ergebnis = u - k;
+      return '<tr><td><b>' + txt(o) + '</b></td>' +
         '<td class="zahl-rechts">' + euro(u) + '</td>' +
+        '<td class="zahl-rechts">' + euro(k) + '</td>' +
+        '<td class="zahl-rechts" style="color:' + (ergebnis >= 0 ? 'var(--gruen)' : 'var(--rot)') +
+          '"><b>' + euro(ergebnis) + '</b></td>' +
         '<td class="zahl-rechts">' + euro(l) + '</td>' +
-        '<td class="zahl-rechts">' + (u ? (l / u * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '&ndash;') + '</td>' +
-        '<td class="zahl-rechts">' + euro(f) + '</td>' +
-        '<td class="zahl-rechts" style="color:' + (ergebnis >= 0 ? 'var(--gruen)' : 'var(--rot)') + '"><b>' +
-          euro(ergebnis) + '</b></td></tr>';
+        '<td class="zahl-rechts">' + (u ? (l / u * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') +
+        '</td></tr>';
     }).join('');
 
-    return { lohn: lohn, fix: fix, html:
-      '<h3 class="abschnitt">Kosten und Ergebnis</h3>' +
-      '<div class="rollen"><table><thead><tr><th>Filiale</th><th class="zahl-rechts">Umsatz</th>' +
-      '<th class="zahl-rechts">Personalkosten</th><th class="zahl-rechts">Personalquote</th>' +
-      '<th class="zahl-rechts">Fixkosten</th><th class="zahl-rechts">Ergebnis</th></tr></thead>' +
-      '<tbody>' + zeilen + '</tbody></table></div>' +
-      '<div class="aufteilung">Personalkosten aus: ' + lohn.quelle +
-      '. Fixkosten anteilig aus den Monatswerten im Reiter Kosten.</div>'
+    var summeUmsatz = orte.reduce(function (s, o) { return s + (jetzt.proFiliale[o] || 0); }, 0);
+
+    return { kosten: { proFiliale: kostenProFiliale, gesamt: kostenGesamt },
+             lohn: lohn, orte: orte, umsatz: summeUmsatz,
+             ergebnis: summeUmsatz - kostenGesamt, html:
+      '<h3 class="abschnitt">Umsatz, Kosten und bereinigtes Ergebnis</h3>' +
+      '<div class="rollen"><table><thead><tr><th>Filiale</th>' +
+      '<th class="zahl-rechts">Umsatz</th><th class="zahl-rechts">Kosten</th>' +
+      '<th class="zahl-rechts">Bereinigt</th><th class="zahl-rechts">davon Personal</th>' +
+      '<th class="zahl-rechts">Personalquote</th></tr></thead>' +
+      '<tbody>' + zeilen +
+      (orte.length > 1
+        ? '<tr style="background:#F4F2FB"><td><b>Gesamt</b></td>' +
+          '<td class="zahl-rechts"><b>' + euro(summeUmsatz) + '</b></td>' +
+          '<td class="zahl-rechts"><b>' + euro(kostenGesamt) + '</b></td>' +
+          '<td class="zahl-rechts" style="color:' + (summeUmsatz - kostenGesamt >= 0 ? 'var(--gruen)' : 'var(--rot)') +
+            '"><b>' + euro(summeUmsatz - kostenGesamt) + '</b></td>' +
+          '<td class="zahl-rechts"><b>' + euro(lohn.gesamt) + '</b></td><td></td></tr>'
+        : '') +
+      '</tbody></table></div>' +
+      '<div class="aufteilung">Kosten anteilig aus dem Reiter Kosten f\u00fcr ' +
+      tageImZeitraum(aZeitraum) + ' Tage. Personalkosten aus: ' + lohn.quelle + '.</div>'
     };
   }
-
-  // ---------- Zeitraum-Auswahl (Dashboard und Verkaufsauswertung) ----------
-  function periodeFelder(vor) {
-    var art = el(vor + '-art').value;
-    el(vor + '-feld-stichtag').classList.toggle('verstecken',
-      art === 'gesamt' || art === 'individuell');
-    el(vor + '-feld-von').classList.toggle('verstecken', art !== 'individuell');
-    el(vor + '-feld-bis').classList.toggle('verstecken', art !== 'individuell');
-  }
-
-  function periodeLesen(vor) {
-    var art = el(vor + '-art').value;
-    var stichtag = el(vor + '-stichtag').value || heute.toISOString().slice(0, 10);
-    var t = stichtag.split('-');
-
-    if (art === 'tag')   return { von: stichtag, bis: stichtag, name: tagText(stichtag) };
-    if (art === 'woche') {
-      var mo = montagVon(stichtag);
-      return { von: mo, bis: tagPlus(mo, 6), name: 'KW ' + kalenderwoche(mo) + ' ' + mo.slice(0, 4) };
-    }
-    if (art === 'monat') {
-      var letzter = new Date(+t[0], +t[1], 0).getDate();
-      return { von: t[0] + '-' + t[1] + '-01', bis: t[0] + '-' + t[1] + '-' + zwei(letzter),
-               name: monatsnamen[+t[1] - 1] + ' ' + t[0] };
-    }
-    if (art === 'quartal') {
-      var q = Math.floor((+t[1] - 1) / 3) + 1;
-      return grenzen(+t[0], String(q));
-    }
-    if (art === 'jahr')   return grenzen(+t[0], 'jahr');
-    if (art === 'gesamt') return { von: '0000-01-01', bis: '9999-12-31', name: 'Gesamter Zeitraum' };
-    var von = el(vor + '-von').value || '0000-01-01';
-    var bis = el(vor + '-bis').value || '9999-12-31';
-    return { von: von, bis: bis, name: tagText(von) + ' bis ' + tagText(bis) };
-  }
-
-  // ---------- Mengen aus Bestellungen und Retouren ----------
-  function mengenImZeitraum(z, nurFiliale) {
-    var proArtikel = {};   // nr -> {bestellt, retour}
-    var proFiliale = {};   // ort -> {bestellt, retour, wert, retourwert}
-
-    function verbuchen(liste, feld) {
-      liste.forEach(function (b) {
-        if (!b.datumIso || b.datumIso < z.von || b.datumIso > z.bis) return;
-        if (nurFiliale && b.filiale !== nurFiliale) return;
-        proFiliale[b.filiale] = proFiliale[b.filiale] || { bestellt: 0, retour: 0, wert: 0, retourwert: 0 };
-        b.posten.forEach(function (p) {
-          var info = artikelInfo[p.nr] || {};
-          var wert = p.menge * (info.vk || 0);
-          proArtikel[p.nr] = proArtikel[p.nr] || { nr: p.nr, bez: p.bez || info.bez || '', bestellt: 0, retour: 0 };
-          proArtikel[p.nr][feld] += p.menge;
-          proFiliale[b.filiale][feld] += p.menge;
-          proFiliale[b.filiale][feld === 'retour' ? 'retourwert' : 'wert'] += wert;
-        });
-      });
-    }
-    verbuchen(bestellungen, 'bestellt');
-    verbuchen(retourenListe, 'retour');
-    return { proArtikel: proArtikel, proFiliale: proFiliale };
-  }
-
-  // Errechneter Umsatz eines Tages: geliefert minus retourniert, zum Verkaufspreis
-  function errechneterUmsatz(ort, tagIso) {
-    var z = { von: tagIso, bis: tagIso };
-    var d = mengenImZeitraum(z, ort).proFiliale[ort];
-    if (!d) return 0;
-    return Math.max(0, d.wert - d.retourwert);
-  }
-
-  // ---------- Monatliche Filialkosten ----------
-  function monatskosten(ort) {
-    var k = kosten[ort] || {};
-    if (Number(k.pauschal) > 0) return Number(k.pauschal);
-    return (Number(k.miete) || 0) + (Number(k.energie) || 0) + (Number(k.sonstiges) || 0) +
-           personalkostenVertraglichProMonat(ort);
-  }
-  function kostenAnteil(ort, z) {
-    var tage = Math.min(tageImZeitraum(z), 3650);
-    return monatskosten(ort) * (tage / 30.44);
-  }
-
-  // ---------- Dashboard ----------
-  var dashUmsatz = {};
-
-  ['art', 'stichtag', 'von', 'bis', 'sortierung'].forEach(function (feld) {
-    el('dash-' + feld).addEventListener('change', function () {
-      periodeFelder('dash');
-      dashboardLaden();
-    });
-  });
-  el('dash-verkauf').addEventListener('click', function () { wechseln('verkauf'); });
-
-  function dashboardLaden() {
-    if (!el('dash-stichtag').value) el('dash-stichtag').value = heute.toISOString().slice(0, 10);
-    periodeFelder('dash');
-    var z = periodeLesen('dash');
-    el('dashboard-inhalt').innerHTML = '<div class="leer">Zahlen werden geladen \u2026</div>';
-    Promise.all([zeitraumLaden(z), personalHolen(), kostenHolen()]).then(function (e) {
-      dashUmsatz = e[0];
-      dashboardZeichnen(z);
-    });
-  }
-
-  function dashboardZeichnen(z) {
-    var umsatz = summieren(dashUmsatz, z.von, z.bis);
-    var mengen = mengenImZeitraum(z);
-    var orte = alleFilialen.slice();
-    Object.keys(umsatz.proFiliale).forEach(function (o) { if (orte.indexOf(o) === -1) orte.push(o); });
-
-    var zeilen = orte.map(function (ort) {
-      var u = umsatz.proFiliale[ort] || 0;
-      var k = kostenAnteil(ort, z);
-      var m = mengen.proFiliale[ort] || { bestellt: 0, retour: 0, wert: 0, retourwert: 0 };
-      return { ort: ort, umsatz: u, kosten: k, bereinigt: u - k,
-               bestellt: m.bestellt, retour: m.retour, retourwert: m.retourwert };
-    });
-
-    var aufsteigend = el('dash-sortierung').value === 'auf';
-    zeilen.sort(function (a, b) { return aufsteigend ? a.umsatz - b.umsatz : b.umsatz - a.umsatz; });
-    dashZeilen = zeilen;
-
-    var gesamtUmsatz = zeilen.reduce(function (s, r) { return s + r.umsatz; }, 0);
-    var gesamtKosten = zeilen.reduce(function (s, r) { return s + r.kosten; }, 0);
-    var gesamtRetour = zeilen.reduce(function (s, r) { return s + r.retourwert; }, 0);
-    var gesamtWare = Object.keys(mengen.proFiliale).reduce(function (s, o) {
-      return s + mengen.proFiliale[o].wert; }, 0);
-
-    var kacheln =
-      kachel(euro(gesamtUmsatz), 'Umsatz ' + z.name) +
-      kachel(euro(gesamtKosten), 'Kosten') +
-      kachel(euro(gesamtUmsatz - gesamtKosten), 'Bereinigt') +
-      kachel(euro(gesamtWare), 'Warenwert geliefert') +
-      kachel(euro(gesamtRetour), 'Retourenwert') +
-      kachel(gesamtWare ? (gesamtRetour / gesamtWare * 100).toFixed(1).replace('.', ',') + ' %' : '\u2013',
-             'Retourenquote');
-
-    var maxU = Math.max.apply(null, zeilen.map(function (r) { return r.umsatz; }).concat([1]));
-
-    el('dashboard-inhalt').innerHTML =
-      '<div class="zahlen">' + kacheln + '</div>' +
-      '<h3 class="abschnitt">Filial-Ranking \u00b7 ' + txt(z.name) + '</h3>' +
-      zeilen.map(function (r) { return balken(r.ort, r.umsatz, maxU); }).join('') +
-      '<div class="rollen" style="margin-top:12px"><table><thead><tr>' +
-      '<th>#</th><th>Filiale</th><th class="zahl-rechts">Umsatz</th>' +
-      '<th class="zahl-rechts">Kosten</th><th class="zahl-rechts">Bereinigt</th>' +
-      '<th class="zahl-rechts">Retourenquote</th></tr></thead><tbody>' +
-      zeilen.map(function (r, i) {
-        var quote = (r.bestellt ? r.retour / r.bestellt * 100 : 0);
-        return '<tr><td>' + (i + 1) + '</td><td><b>' + txt(r.ort) + '</b></td>' +
-          '<td class="zahl-rechts">' + euro(r.umsatz) + '</td>' +
-          '<td class="zahl-rechts">' + euro(r.kosten) + '</td>' +
-          '<td class="zahl-rechts" style="color:' + (r.bereinigt >= 0 ? 'var(--gruen)' : 'var(--rot)') +
-            '"><b>' + euro(r.bereinigt) + '</b></td>' +
-          '<td class="zahl-rechts">' + (r.bestellt ? quote.toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') +
-          '</td></tr>';
-      }).join('') + '</tbody></table></div>' +
-      '<div class="aufteilung" style="margin-top:10px">Kosten anteilig aus dem Reiter Kosten. ' +
-      'Die Liste rechnet sich neu, sobald eine Bestellung, eine Retoure oder ein Tagesumsatz eingeht.</div>';
-  }
-
-  var dashZeilen = [];
-  el('dash-csv').addEventListener('click', function () {
-    var z = periodeLesen('dash');
-    var zeilen = [['Zeitraum', z.name], [],
-      ['Rang', 'Filiale', 'Umsatz', 'Kosten', 'Bereinigt', 'Retourenquote %']];
-    dashZeilen.forEach(function (r, i) {
-      zeilen.push([String(i + 1), r.ort, r.umsatz.toFixed(2).replace('.', ','),
-        r.kosten.toFixed(2).replace('.', ','), r.bereinigt.toFixed(2).replace('.', ','),
-        r.bestellt ? (r.retour / r.bestellt * 100).toFixed(1).replace('.', ',') : '']);
-    });
-    csvSpeichern(zeilen, 'Filialranking_' + z.von + '_bis_' + z.bis + '.csv');
-  });
-
-  // ---------- Verkaufsauswertung ----------
-  var verkaufZeilen = [];
-
-  ['art', 'stichtag', 'von', 'bis', 'filiale', 'kennzahl', 'sortierung'].forEach(function (feld) {
-    el('v-' + feld).addEventListener('change', function () {
-      periodeFelder('v');
-      verkaufZeichnen();
-    });
-  });
-
-  function verkaufLaden() {
-    if (!el('v-stichtag').value) el('v-stichtag').value = heute.toISOString().slice(0, 10);
-    if (el('v-filiale').options.length <= 1) {
-      alleFilialen.forEach(function (ort) {
-        var o = document.createElement('option');
-        o.value = ort; o.textContent = ort; el('v-filiale').appendChild(o);
-      });
-    }
-    periodeFelder('v');
-    verkaufZeichnen();
-  }
-
-  function verkaufZeichnen() {
-    var z = periodeLesen('v');
-    var ort = el('v-filiale').value;
-    var daten = mengenImZeitraum(z, ort || null).proArtikel;
-
-    var zeilen = Object.keys(daten).map(function (nr) {
-      var d = daten[nr];
-      var info = artikelInfo[nr] || {};
-      var verkauft = Math.max(0, d.bestellt - d.retour);
-      return { nr: nr, bez: d.bez || info.bez || '', bestellt: d.bestellt, retour: d.retour,
-               verkauft: verkauft, umsatz: verkauft * (info.vk || 0),
-               quote: d.bestellt ? d.retour / d.bestellt * 100 : 0 };
-    });
-
-    var kennzahl = el('v-kennzahl').value;
-    var schluessel = kennzahl === 'umsatz' ? 'umsatz'
-                   : kennzahl === 'retoure' ? 'quote'
-                   : kennzahl === 'bestellt' ? 'bestellt' : 'verkauft';
-    var auf = el('v-sortierung').value === 'auf';
-    zeilen.sort(function (a, b) { return auf ? a[schluessel] - b[schluessel] : b[schluessel] - a[schluessel]; });
-    verkaufZeilen = zeilen;
-
-    var ziel = el('verkauf-inhalt');
-    if (!zeilen.length) {
-      ziel.innerHTML = '<div class="leer">F\u00fcr ' + txt(z.name) +
-        (ort ? ' in ' + txt(ort) : '') + ' liegen keine Bestellungen vor.</div>';
-      return;
-    }
-
-    var summeVerkauft = zeilen.reduce(function (s, r) { return s + r.verkauft; }, 0);
-    var summeUmsatz = zeilen.reduce(function (s, r) { return s + r.umsatz; }, 0);
-    var summeRetour = zeilen.reduce(function (s, r) { return s + r.retour; }, 0);
-    var max = Math.max.apply(null, zeilen.map(function (r) { return r[schluessel]; }).concat([1]));
-
-    ziel.innerHTML =
-      '<div class="zahlen">' +
-        kachel(summeVerkauft, 'Verkaufte St\u00fcck') +
-        kachel(euro(summeUmsatz), 'Umsatz der Artikel') +
-        kachel(summeRetour, 'Retour St\u00fcck') +
-        kachel(zeilen.length, 'Artikel') + '</div>' +
-      '<h3 class="abschnitt">' + txt(kennzahlName(kennzahl)) + ' \u00b7 ' + txt(z.name) +
-        (ort ? ' \u00b7 ' + txt(ort) : ' \u00b7 alle Filialen') + '</h3>' +
-      zeilen.slice(0, 10).map(function (r) {
-        return balkenFrei(r.nr + '  ' + r.bez, r[schluessel], max,
-          kennzahl === 'umsatz' ? euro(r.umsatz)
-            : kennzahl === 'retoure' ? r.quote.toFixed(1).replace('.', ',') + ' %'
-            : String(r[schluessel]) + ' St.');
-      }).join('') +
-      '<div class="rollen" style="margin-top:12px"><table><thead><tr>' +
-      '<th>#</th><th>Nr.</th><th>Artikel</th><th class="zahl-rechts">Bestellt</th>' +
-      '<th class="zahl-rechts">Retour</th><th class="zahl-rechts">Verkauft</th>' +
-      '<th class="zahl-rechts">Umsatz</th><th class="zahl-rechts">Retourenquote</th></tr></thead><tbody>' +
-      zeilen.map(function (r, i) {
-        return '<tr><td>' + (i + 1) + '</td><td>' + txt(r.nr) + '</td><td>' + txt(r.bez) + '</td>' +
-          '<td class="zahl-rechts">' + r.bestellt + '</td>' +
-          '<td class="zahl-rechts">' + (r.retour || '\u2013') + '</td>' +
-          '<td class="zahl-rechts"><b>' + r.verkauft + '</b></td>' +
-          '<td class="zahl-rechts">' + euro(r.umsatz) + '</td>' +
-          '<td class="zahl-rechts"' + (r.quote > 15 ? ' style="color:var(--rot)"' : '') + '>' +
-            (r.bestellt ? r.quote.toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') + '</td></tr>';
-      }).join('') + '</tbody></table></div>' +
-      '<div class="aufteilung" style="margin-top:10px">Verkauft = bestellte Menge minus Retoure.</div>';
-  }
-
-  function kennzahlName(k) {
-    return k === 'umsatz' ? 'Umsatzst\u00e4rkste Artikel'
-         : k === 'retoure' ? 'H\u00f6chste Retourenquote'
-         : k === 'bestellt' ? 'Meist bestellte Artikel' : 'Meist verkaufte Artikel';
-  }
-
-  function balkenFrei(name, wert, max, beschriftung) {
-    var breite = max ? Math.max(2, wert / max * 100) : 2;
-    return '<div class="balken"><div class="name">' + txt(name) + '</div>' +
-      '<div class="spur"><div class="fuellung" style="width:' + breite.toFixed(1) + '%"></div></div>' +
-      '<div class="wert">' + txt(beschriftung) + '</div></div>';
-  }
-
-  el('v-csv').addEventListener('click', function () {
-    var z = periodeLesen('v');
-    var zeilen = [['Zeitraum', z.name], ['Filiale', el('v-filiale').value || 'Alle Filialen'], [],
-      ['Rang', 'Artikelnummer', 'Bezeichnung', 'Bestellt', 'Retour', 'Verkauft', 'Umsatz', 'Retourenquote %']];
-    verkaufZeilen.forEach(function (r, i) {
-      zeilen.push([String(i + 1), r.nr, r.bez, String(r.bestellt), String(r.retour),
-        String(r.verkauft), r.umsatz.toFixed(2).replace('.', ','),
-        r.bestellt ? r.quote.toFixed(1).replace('.', ',') : '']);
-    });
-    csvSpeichern(zeilen, 'Verkaufsauswertung_' + z.von + '_bis_' + z.bis + '.csv');
-  });
-
-  el('v-pdf').addEventListener('click', function () {
-    if (!window.jspdf || !verkaufZeilen.length) return;
-    var z = periodeLesen('v');
-    var ort = el('v-filiale').value || 'Alle Filialen';
-    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(46, 42, 121);
-    doc.text('Verkaufsauswertung', 40, 52);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
-    doc.text(entziffert(z.name) + ' - ' + entziffert(ort) + ' - ' + entziffert(kennzahlName(el('v-kennzahl').value)), 40, 68);
-    doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5); doc.line(40, 76, 555, 76);
-    doc.autoTable({
-      startY: 92,
-      head: [['#', 'Nr.', 'Artikel', 'Bestellt', 'Retour', 'Verkauft', 'Umsatz']],
-      body: verkaufZeilen.map(function (r, i) {
-        return [String(i + 1), r.nr, r.bez, String(r.bestellt), String(r.retour),
-          String(r.verkauft), euroText(r.umsatz)];
-      }),
-      styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 3.5 },
-      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
-      columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' },
-                      5: { halign: 'right', fontStyle: 'bold' }, 6: { halign: 'right' } },
-      margin: { left: 40, right: 40 }
-    });
-    doc.save('Verkaufsauswertung_' + z.von + '_bis_' + z.bis + '.pdf');
-  });
-
-  // ---------- Benachrichtigungen ----------
-  var gelesenStand = '';
-  try { gelesenStand = localStorage.getItem('chef-gelesen') || ''; } catch (e) {}
-  var glockeOffen = false;
-
-  function neueEingaenge() {
-    var alle = bestellungen.map(function (b) { return { art: 'bestellung', d: b }; })
-      .concat(retourenListe.map(function (r) { return { art: 'retoure', d: r }; }));
-    return alle.filter(function (e) { return String(e.d.erstellt || '') > gelesenStand; })
-      .sort(function (a, b) { return String(a.d.erstellt) < String(b.d.erstellt) ? 1 : -1; });
-  }
-
-  function glockeZeichnen() {
-    var neue = neueEingaenge();
-    var zahl = el('glocke-zahl');
-    zahl.textContent = neue.length > 99 ? '99+' : neue.length;
-    zahl.classList.toggle('verstecken', neue.length === 0);
-    if (glockeOffen) feldZeichnen(neue);
-  }
-
-  function zeitText(iso) {
-    if (!iso) return '';
-    var d = new Date(iso);
-    if (isNaN(d)) return '';
-    var heuteTag = new Date().toDateString() === d.toDateString();
-    var uhr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    return heuteTag ? uhr + ' Uhr' : d.toLocaleDateString('de-DE') + ' ' + uhr;
-  }
-
-  function feldZeichnen(neue) {
-    neue = neue || neueEingaenge();
-    var feld = el('glocke-feld');
-    var zeilen = neue.slice(0, 20).map(function (e) {
-      var retoure = e.art === 'retoure';
-      return '<div class="glocke-zeile" data-id="' + txt(e.d.id) + '">' +
-        '<span class="punkt" style="background:' + (retoure ? 'var(--rot)' : 'var(--gruen)') + '"></span>' +
-        '<span><b>' + (retoure ? 'Retoure' : 'Neue Bestellung') + '</b> \u00b7 ' + txt(e.d.filiale) + '</span>' +
-        '<span class="zeit">' + zeitText(e.d.erstellt) + '</span></div>';
-    }).join('');
-
-    feld.innerHTML = '<div class="glocke-karte">' +
-      '<div class="glocke-kopf">' + (neue.length
-        ? neue.length + (neue.length === 1 ? ' neue Meldung' : ' neue Meldungen')
-        : 'Nichts Neues') + '</div>' +
-      (zeilen || '<div class="leer" style="padding:22px 14px">Seit dem letzten Blick ist nichts eingegangen.</div>') +
-      (neue.length > 20 ? '<div class="aufteilung" style="padding:8px 14px">und ' +
-        (neue.length - 20) + ' weitere</div>' : '') +
-      '<div class="glocke-fuss">' +
-        (neue.length ? '<button type="button" id="glocke-gelesen">Alle als gelesen markieren</button>' : '') +
-        '<button type="button" id="glocke-zu">Schlie\u00dfen</button>' +
-      '</div></div>';
-
-    feld.querySelectorAll('.glocke-zeile').forEach(function (z) {
-      z.addEventListener('click', function () {
-        offenIds[z.dataset.id] = true;
-        glockeSchliessen();
-        wechseln('bestellungen');
-      });
-    });
-    if (el('glocke-gelesen')) {
-      el('glocke-gelesen').addEventListener('click', function () {
-        gelesenStand = new Date().toISOString();
-        try { localStorage.setItem('chef-gelesen', gelesenStand); } catch (e) {}
-        glockeSchliessen();
-        glockeZeichnen();
-      });
-    }
-    el('glocke-zu').addEventListener('click', glockeSchliessen);
-  }
-
-  function glockeSchliessen() {
-    glockeOffen = false;
-    el('glocke-feld').classList.add('verstecken');
-  }
-
-  el('glocke').addEventListener('click', function () {
-    glockeOffen = !glockeOffen;
-    el('glocke-feld').classList.toggle('verstecken', !glockeOffen);
-    if (glockeOffen) feldZeichnen();
-  });
-
-  // Alle zwei Minuten still nachsehen, ob etwas eingegangen ist
-  setInterval(function () {
-    laden(function (fehler) {
-      if (fehler) return;
-      glockeZeichnen();
-      if (ansicht === 'dashboard') dashboardLaden();
-      else if (ansicht === 'bestellungen' || ansicht === 'verkauf') zeichnen();
-    });
-  }, 120000);
 
   // ---------- Meldungen ----------
   function melde(text, art) {
