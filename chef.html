@@ -572,8 +572,8 @@
   <!-- ---------- Kunden ---------- -->
   <div class="karte verstecken" id="bereich-kunden">
     <p style="margin:0 0 12px;color:var(--grau);font-size:13px;line-height:1.5">
-      Kunden melden sich auf der Startseite mit E-Mail und Passwort an. &Uuml;ber die
-      H&auml;kchen legst du fest, was sie sehen: nur die Bestellung oder auch Retouren.
+      Du legst Name, E-Mail und die Rechte fest. Der Kunde bekommt einen Einladungslink
+      und vergibt sein Passwort selbst &ndash; du siehst es nie.
     </p>
     <div class="werkzeuge">
       <button type="button" id="ku-neu">Kunde anlegen</button>
@@ -2448,7 +2448,7 @@
     }
     ziel.innerHTML = '<div class="rollen"><table><thead><tr>' +
       '<th>Kunde</th><th>E-Mail</th><th>Bestellung</th><th>Retoure</th>' +
-      '<th>Zugang</th><th></th></tr></thead><tbody>' +
+      '<th>Status</th><th></th></tr></thead><tbody>' +
       kunden.slice().sort(function (a, b) {
         return String(a.name).localeCompare(String(b.name), 'de');
       }).map(function (k) {
@@ -2457,13 +2457,29 @@
           '<td>' + txt(k.email) + '</td>' +
           '<td>' + (k.darfBestellen !== false ? '<span class="hoch">ja</span>' : '\u2013') + '</td>' +
           '<td>' + (k.darfRetoure === true ? '<span class="hoch">ja</span>' : '\u2013') + '</td>' +
-          '<td>' + (k.aktiv === false ? '<span style="color:var(--rot)">gesperrt</span>' : 'frei') + '</td>' +
+          '<td>' + (k.aktiv === false ? '<span style="color:var(--rot)">gesperrt</span>'
+              : k.passwort ? '<span class="hoch">angemeldet</span>'
+              : '<span style="color:#8A6B00">eingeladen</span>') + '</td>' +
           '<td class="zahl-rechts">' +
+            (k.passwort ? '' : '<button class="zeilenknopf" data-einladung="' + txt(k.id) + '">Einladung</button>') +
             '<button class="zeilenknopf" data-kunde="' + txt(k.id) + '">&Auml;ndern</button>' +
             '<button class="zeilenknopf loeschen" data-kundeweg="' + txt(k.id) + '">L&ouml;schen</button>' +
           '</td></tr>';
       }).join('') + '</tbody></table></div>';
 
+    ziel.querySelectorAll('[data-einladung]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = kunden.filter(function (x) { return x.id === b.dataset.einladung; })[0];
+        if (!k) return;
+        if (!k.marke || (k.markeBis && new Date(k.markeBis) < new Date())) {
+          k.marke = marke();
+          k.markeBis = new Date(Date.now() + 14 * 86400000).toISOString();
+          kundenSpeichern(k);
+        } else {
+          einladungZeigen(k);
+        }
+      });
+    });
     ziel.querySelectorAll('[data-kunde]').forEach(function (b) {
       b.addEventListener('click', function () { kundenFormular(b.dataset.kunde); });
     });
@@ -2481,7 +2497,7 @@
 
   function kundenFormular(id) {
     var k = kunden.filter(function (x) { return x.id === id; })[0] ||
-      { id: '', name: '', email: '', passwort: '', notiz: '',
+      { id: '', name: '', email: '', notiz: '',
         darfBestellen: true, darfRetoure: false, aktiv: true };
 
     function feld(kennung, name, wert, typ) {
@@ -2500,7 +2516,7 @@
       '<div class="raster">' +
         feld('k-name', 'Name des Kunden', k.name) +
         feld('k-email', 'E-Mail (Anmeldung)', k.email, 'email') +
-        feld('k-passwort', 'Passwort', k.passwort) +
+
         feld('k-notiz', 'Notiz (optional)', k.notiz) +
       '</div>' +
       '<div style="margin:10px 0 4px">' +
@@ -2521,18 +2537,21 @@
     el('k-sichern').addEventListener('click', function () {
       var name = el('k-name').value.trim();
       var email = el('k-email').value.trim();
-      var passwort = el('k-passwort').value;
-      if (!name)     { meldeKunden('Bitte einen Namen eintragen.', 'fehler'); return; }
-      if (!email)    { meldeKunden('Bitte eine E-Mail-Adresse eintragen.', 'fehler'); return; }
-      if (!passwort) { meldeKunden('Bitte ein Passwort vergeben.', 'fehler'); return; }
+      if (!name)  { meldeKunden('Bitte einen Namen eintragen.', 'fehler'); return; }
+      if (!email) { meldeKunden('Bitte eine E-Mail-Adresse eintragen.', 'fehler'); return; }
       var doppelt = kunden.filter(function (x) {
         return x.id !== id && String(x.email).toLowerCase() === email.toLowerCase();
       }).length > 0;
       if (doppelt) { meldeKunden('Diese E-Mail ist schon vergeben.', 'fehler'); return; }
 
+      var vorher = kunden.filter(function (x) { return x.id === id; })[0] || {};
       var neu = {
         id: id || 'k' + Date.now(),
-        name: name, email: email, passwort: passwort,
+        name: name, email: email,
+        passwort: vorher.passwort || '',
+        marke: vorher.marke || '',
+        markeBis: vorher.markeBis || '',
+        freigeschaltet: vorher.freigeschaltet || '',
         notiz: el('k-notiz').value.trim(),
         darfBestellen: el('k-bestellung').checked,
         darfRetoure: el('k-retoure').checked,
@@ -2541,21 +2560,81 @@
       if (!neu.darfBestellen && !neu.darfRetoure) {
         meldeKunden('Mindestens eines von beiden muss angehakt sein.', 'fehler'); return;
       }
+      var neuerZugang = !neu.passwort;
+      if (neuerZugang) {
+        neu.marke = marke();
+        neu.markeBis = new Date(Date.now() + 14 * 86400000).toISOString();
+      }
       if (id) kunden = kunden.map(function (x) { return x.id === id ? neu : x; });
       else kunden.push(neu);
       el('kunden-formular').classList.add('verstecken');
       el('kunden-formular').innerHTML = '';
-      kundenSpeichern();
+      kundenSpeichern(neuerZugang ? neu : null);
     });
   }
 
-  function kundenSpeichern() {
+  // Zufällige Marke für den Einladungslink
+  function marke() {
+    var zeichen = 'abcdefghijkmnpqrstuvwxyz23456789';
+    var werte = new Uint8Array(24);
+    (window.crypto || window.msCrypto).getRandomValues(werte);
+    var s = '';
+    for (var i = 0; i < werte.length; i++) s += zeichen[werte[i] % zeichen.length];
+    return s;
+  }
+
+  function einladungLink(k) {
+    return location.origin + '/?einladung=' + encodeURIComponent(k.marke);
+  }
+
+  function einladungZeigen(k) {
+    var link = einladungLink(k);
+    var text = 'Guten Tag,\n\nfür ' + k.name + ' steht ab sofort die Bestellseite der Bäckerei Jung bereit.\n\n' +
+      'Über diesen Link vergeben Sie Ihr eigenes Passwort:\n' + link + '\n\n' +
+      'Der Link ist zwei Wochen gültig. Danach melden Sie sich auf ' + location.origin +
+      ' als Kunde mit Ihrer E-Mail-Adresse an.\n\nFreundliche Grüße\nBäckerei Jung';
+
+    el('kunden-formular').classList.remove('verstecken');
+    el('kunden-formular').innerHTML =
+      '<div style="border:1px solid var(--linie);border-radius:11px;padding:14px;margin-bottom:16px">' +
+      '<h3 class="abschnitt" style="margin-top:0">Einladung f\u00fcr ' + txt(k.name) + '</h3>' +
+      '<div class="aufteilung" style="margin-bottom:10px">Der Link ist bis ' +
+        txt(new Date(k.markeBis).toLocaleDateString('de-DE')) + ' g\u00fcltig. ' +
+        'Der Kunde vergibt darüber sein Passwort selbst.</div>' +
+      '<div style="background:#F4F2FB;border-radius:9px;padding:10px 12px;font-size:12.5px;' +
+        'word-break:break-all;margin-bottom:12px" id="ein-link">' + txt(link) + '</div>' +
+      '<div class="werkzeuge">' +
+        '<a class="zeilenknopf" style="padding:10px 14px;font-size:14px;text-decoration:none;' +
+          'background:var(--blau);color:#fff;border-color:var(--blau)" ' +
+          'href="mailto:' + encodeURIComponent(k.email) +
+          '?subject=' + encodeURIComponent('Ihr Zugang zur Bestellseite der Bäckerei Jung') +
+          '&body=' + encodeURIComponent(text) + '">E-Mail an ' + txt(k.email) + ' \u00f6ffnen</a>' +
+        '<button type="button" class="zeilenknopf" style="padding:10px 13px;font-size:14px" ' +
+          'id="ein-kopieren">Link kopieren</button>' +
+        '<button type="button" class="zeilenknopf" style="padding:10px 13px;font-size:14px" ' +
+          'id="ein-zu">Schlie\u00dfen</button>' +
+      '</div></div>';
+
+    el('ein-kopieren').addEventListener('click', function () {
+      var fertig = function () { meldeKunden('Link kopiert.', 'gut');
+        setTimeout(function () { meldeKunden('', ''); }, 2500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(link).then(fertig, fertig);
+      else fertig();
+    });
+    el('ein-zu').addEventListener('click', function () {
+      el('kunden-formular').classList.add('verstecken');
+      el('kunden-formular').innerHTML = '';
+    });
+  }
+
+  function kundenSpeichern(einladung) {
     kundenZeichnen();
     meldeKunden('Wird gespeichert \u2026', 'ladend');
     ablageSchreiben('kunden', 'alle', { kunden: kunden })
       .then(function () {
         meldeKunden('Gespeichert.', 'gut');
         setTimeout(function () { meldeKunden('', ''); }, 2500);
+        if (einladung) einladungZeigen(einladung);
       })
       .catch(function (fehler) {
         meldeKunden('Nicht gespeichert: ' + fehler.message, 'fehler');

@@ -320,6 +320,24 @@
     </div>
   </div>
 
+  <!-- ---------- Einladung: Passwort vergeben ---------- -->
+  <div class="start verstecken" id="einladung">
+    <div class="karte">
+      <h2>Passwort vergeben</h2>
+      <p id="ein-text">Der Einladungslink wird gepr&uuml;ft &hellip;</p>
+      <div id="ein-meldung"></div>
+      <div id="ein-formular" class="verstecken">
+        <label class="feldname" for="ein-passwort">Neues Passwort</label>
+        <input type="password" id="ein-passwort" autocomplete="new-password">
+        <div style="height:10px"></div>
+        <label class="feldname" for="ein-wieder">Passwort wiederholen</label>
+        <input type="password" id="ein-wieder" autocomplete="new-password">
+        <div class="aufteilung" style="margin-top:8px">Mindestens acht Zeichen.</div>
+        <button class="haupt" type="button" id="ein-sichern">Passwort speichern</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ---------- Bestellung ---------- -->
   <div id="bereich-bestellung" class="verstecken">
     <button class="zurueck" type="button" data-zurueck>&larr; Zur&uuml;ck zur Auswahl</button>
@@ -473,6 +491,72 @@
     });
   } catch (fehler) {
     document.body.innerHTML = '<p style="padding:20px">Die Artikelliste konnte nicht geladen werden.</p>';
+  }
+
+  // ---------- Einladung: Kunde vergibt sein Passwort ----------
+  (function einladungPruefen() {
+    var marke = new URLSearchParams(location.search).get('einladung');
+    if (!marke) return;
+
+    el('start').classList.add('verstecken');
+    el('einladung').classList.remove('verstecken');
+
+    fetch('/.netlify/functions/daten', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'einladung-pruefen', marke: marke })
+    })
+    .then(function (a) {
+      return a.json().then(function (d) {
+        if (!a.ok) throw new Error(d.fehler || ('Status ' + a.status));
+        return d;
+      });
+    })
+    .then(function (d) {
+      el('ein-text').textContent = 'Willkommen, ' + d.name +
+        '. Bitte vergeben Sie ein Passwort f\u00fcr ' + d.email + '.';
+      el('ein-formular').classList.remove('verstecken');
+    })
+    .catch(function (fehler) {
+      el('ein-text').textContent = '';
+      meldeEinladung(fehler.message, 'fehler');
+    });
+
+    el('ein-sichern').addEventListener('click', function () {
+      var eins = el('ein-passwort').value;
+      var zwei = el('ein-wieder').value;
+      if (eins.length < 8) { meldeEinladung('Bitte mindestens acht Zeichen w\u00e4hlen.', 'fehler'); return; }
+      if (eins !== zwei)   { meldeEinladung('Die beiden Eingaben stimmen nicht \u00fcberein.', 'fehler'); return; }
+
+      el('ein-sichern').disabled = true;
+      meldeEinladung('Wird gespeichert \u2026', 'ladend');
+
+      fetch('/.netlify/functions/daten', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aktion: 'einladung-einloesen', marke: marke, passwort: eins })
+      })
+      .then(function (a) {
+        return a.json().then(function (d) {
+          if (!a.ok) throw new Error(d.fehler || ('Status ' + a.status));
+          return d;
+        });
+      })
+      .then(function () {
+        el('einladung').innerHTML =
+          '<div class="fertig"><div class="haken">\u2713</div>' +
+          '<h2>Passwort gespeichert</h2>' +
+          '<p>Sie k\u00f6nnen sich jetzt als Kunde mit Ihrer E-Mail-Adresse anmelden.</p>' +
+          '<button type="button" onclick="location.href=location.pathname">Zur Anmeldung</button></div>';
+      })
+      .catch(function (fehler) {
+        el('ein-sichern').disabled = false;
+        meldeEinladung(fehler.message, 'fehler');
+      });
+    });
+  })();
+
+  function meldeEinladung(text, art) {
+    el('ein-meldung').innerHTML = text
+      ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
   }
 
   // ---------- Rollenwahl ----------
