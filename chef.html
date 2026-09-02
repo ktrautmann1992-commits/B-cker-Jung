@@ -169,6 +169,13 @@
     background: #fff; border: 1px solid var(--linie);
     border-radius: 12px; padding: 12px 14px;
   }
+  .werkzeuge button.gefahr { color: var(--rot); border-color: #E7C4C3; }
+  .werkzeuge button.gefahr:active { background: #FBF0EF; }
+
+  tr.eingang { cursor: pointer; }
+  tr.eingang:active td { background: #F4F2FB; }
+  .zahl.klickbar { cursor: pointer; border-color: var(--blau); background: #F7F6FD; }
+  .zahl.klickbar:active { background: #EFEDF8; }
   .zahl b { display: block; font-family: 'Nunito', sans-serif; font-size: 24px; line-height: 1.1; }
   .zahl span {
     font-size: 11px; font-weight: 600; letter-spacing: .06em;
@@ -277,6 +284,12 @@
   }
   .schnell-teil b { font-family: 'Nunito', sans-serif; font-size: 25px; line-height: 1.1; }
 
+  label.haken {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 2px; font-size: 14.5px; cursor: pointer;
+  }
+  label.haken input { width: 20px; height: 20px; accent-color: var(--blau); }
+
   .hoch { color: var(--gruen); font-weight: 600; }
   .runter { color: var(--rot); font-weight: 600; }
 
@@ -373,6 +386,7 @@
     <button type="button" id="reiter-umsatz">Tagesumsatz</button>
     <button type="button" id="reiter-auswertung">Auswertung</button>
     <button type="button" id="reiter-personal">Personal</button>
+    <button type="button" id="reiter-kunden">Kunden</button>
     <button type="button" id="reiter-kosten">Kosten</button>
   </div>
 
@@ -465,9 +479,11 @@
       </div>
     </div>
     <div id="verkauf-inhalt"></div>
+    <div id="verkauf-meldung"></div>
     <div class="werkzeuge" style="margin-top:14px">
       <button type="button" id="v-csv">Als CSV speichern</button>
       <button type="button" id="v-pdf">Als PDF speichern</button>
+      <button type="button" id="v-loeschen" class="gefahr">Alle Daten l&ouml;schen</button>
     </div>
   </div>
 
@@ -551,6 +567,20 @@
     <div id="personal-meldung"></div>
     <div id="personal-formular" class="verstecken"></div>
     <div id="personal-inhalt"></div>
+  </div>
+
+  <!-- ---------- Kunden ---------- -->
+  <div class="karte verstecken" id="bereich-kunden">
+    <p style="margin:0 0 12px;color:var(--grau);font-size:13px;line-height:1.5">
+      Kunden melden sich auf der Startseite mit E-Mail und Passwort an. &Uuml;ber die
+      H&auml;kchen legst du fest, was sie sehen: nur die Bestellung oder auch Retouren.
+    </p>
+    <div class="werkzeuge">
+      <button type="button" id="ku-neu">Kunde anlegen</button>
+    </div>
+    <div id="kunden-meldung"></div>
+    <div id="kunden-formular" class="verstecken"></div>
+    <div id="kunden-inhalt"></div>
   </div>
 
   <!-- ---------- Kosten ---------- -->
@@ -736,7 +766,7 @@
   });
 
   var ANSICHTEN = ['dashboard', 'verkauf', 'bestellungen', 'produktion', 'umsatz',
-                   'auswertung', 'personal', 'kosten'];
+                   'auswertung', 'personal', 'kunden', 'kosten'];
 
   ANSICHTEN.forEach(function (name) {
     el('reiter-' + name).addEventListener('click', function () { wechseln(name); });
@@ -753,6 +783,7 @@
     else if (neu === 'umsatz') umsatzTagLaden();
     else if (neu === 'auswertung') auswertungLaden();
     else if (neu === 'personal') personalLaden();
+    else if (neu === 'kunden') kundenLaden();
     else if (neu === 'kosten') kostenLaden();
     else zeichnen();
   }
@@ -803,6 +834,10 @@
   }
   function kachel(wert, name) {
     return '<div class="zahl"><b>' + wert + '</b><span>' + name + '</span></div>';
+  }
+  function kachelKlick(wert, name, ziel) {
+    return '<div class="zahl klickbar" data-springe="' + ziel + '">' +
+      '<b>' + wert + '</b><span>' + name + ' \u203a</span></div>';
   }
 
   function offeneFilialen(liste) {
@@ -1725,7 +1760,15 @@
     });
   }
 
+  function imZeitraum(liste, z) {
+    return liste.filter(function (b) {
+      return b.datumIso && b.datumIso >= z.von && b.datumIso <= z.bis;
+    }).sort(function (a, b) { return String(a.erstellt) < String(b.erstellt) ? 1 : -1; });
+  }
+
   function dashboardZeichnen(z) {
+    var eingegangen = imZeitraum(bestellungen, z);
+    var retourenZeitraum = imZeitraum(retourenListe, z);
     var umsatz = summieren(dashUmsatz, z.von, z.bis);
     var mengen = mengenImZeitraum(z);
     var orte = alleFilialen.slice();
@@ -1750,6 +1793,8 @@
       return s + mengen.proFiliale[o].wert; }, 0);
 
     var kacheln =
+      kachelKlick(eingegangen.length, eingegangen.length === 1 ? 'Bestellung' : 'Bestellungen', 'bestellungen') +
+      kachelKlick(retourenZeitraum.length, retourenZeitraum.length === 1 ? 'Retoure' : 'Retouren', 'bestellungen') +
       kachel(euro(gesamtUmsatz), 'Umsatz ' + z.name) +
       kachel(euro(gesamtKosten), 'Kosten') +
       kachel(euro(gesamtUmsatz - gesamtKosten), 'Bereinigt') +
@@ -1779,7 +1824,53 @@
           '</td></tr>';
       }).join('') + '</tbody></table></div>' +
       '<div class="aufteilung" style="margin-top:10px">Kosten anteilig aus dem Reiter Kosten. ' +
-      'Die Liste rechnet sich neu, sobald eine Bestellung, eine Retoure oder ein Tagesumsatz eingeht.</div>';
+      'Die Liste rechnet sich neu, sobald eine Bestellung, eine Retoure oder ein Tagesumsatz eingeht.</div>' +
+      eingangsListe(eingegangen, retourenZeitraum, z);
+
+    // Kacheln und Zeilen anklickbar machen
+    el('dashboard-inhalt').querySelectorAll('[data-springe]').forEach(function (k) {
+      k.addEventListener('click', function () { zumEingang(null, z); });
+    });
+    el('dashboard-inhalt').querySelectorAll('[data-oeffnen]').forEach(function (r) {
+      r.addEventListener('click', function () { zumEingang(r.dataset.oeffnen, z); });
+    });
+  }
+
+  // Springt in die Liste der Bestellungen, öffnet auf Wunsch einen Eintrag
+  function zumEingang(id, z) {
+    if (z && z.von > '0001-01-01' && z.bis < '9000-01-01') {
+      el('von').value = z.von;
+      el('bis').value = z.bis;
+    }
+    if (id) offenIds[id] = true;
+    wechseln('bestellungen');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function eingangsListe(eingegangen, retourenZeitraum, z) {
+    var alle = eingegangen.map(function (b) { b.istRetoure = false; return b; })
+      .concat(retourenZeitraum.map(function (r) { r.istRetoure = true; return r; }))
+      .sort(function (a, b) { return String(a.erstellt) < String(b.erstellt) ? 1 : -1; });
+
+    if (!alle.length) {
+      return '<h3 class="abschnitt">Eing\u00e4nge</h3>' +
+        '<div class="leer">In diesem Zeitraum ist noch nichts eingegangen.</div>';
+    }
+
+    return '<h3 class="abschnitt">Eing\u00e4nge \u00b7 ' + alle.length +
+      (alle.length === 1 ? ' Meldung' : ' Meldungen') + '</h3>' +
+      '<div class="rollen"><table><tbody>' +
+      alle.slice(0, 12).map(function (b) {
+        return '<tr class="eingang" data-oeffnen="' + txt(b.id) + '">' +
+          '<td><b>' + txt(b.filiale) + '</b>' +
+            (b.istRetoure ? ' <span style="color:var(--rot);font-size:11.5px;font-weight:700">RETOURE</span>' : '') +
+            '<div class="aufteilung">' + txt(b.datum) + ' \u00b7 ' + txt(b.besteller) + '</div></td>' +
+          '<td class="zahl-rechts">' + txt(b.stueck) + ' St\u00fcck<div class="aufteilung">' +
+            txt(b.warenwert) + '</div></td>' +
+          '<td class="zahl-rechts" style="width:18px;color:var(--grau)">\u203a</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      (alle.length > 12 ? '<div class="aufteilung">und ' + (alle.length - 12) +
+        ' weitere \u2013 alle im Reiter Bestellungen &amp; Retouren</div>' : '');
   }
 
   var dashZeilen = [];
@@ -1905,6 +1996,59 @@
     });
     csvSpeichern(zeilen, 'Verkaufsauswertung_' + z.von + '_bis_' + z.bis + '.csv');
   });
+
+  el('v-loeschen').addEventListener('click', function () {
+    var anzahl = bestellungen.length + retourenListe.length;
+    var erste = window.confirm(
+      'ACHTUNG: Alle erfassten Daten werden gelöscht.\n\n' +
+      'Das betrifft ' + bestellungen.length + ' Bestellungen und ' + retourenListe.length +
+      ' Retouren \u2013 im Archiv und im Formularpostfach bei Netlify.\n\n' +
+      'Damit sind auch Dashboard, Verkaufsauswertung, Produktionsliste und die ' +
+      'Auswertung leer. Der Vorgang kann nicht rückgängig gemacht werden.\n\n' +
+      'Fortfahren?');
+    if (!erste) return;
+
+    var zweite = window.confirm(
+      'Letzte Nachfrage.\n\n' +
+      'Sollen wirklich alle ' + anzahl + ' Datensätze unwiderruflich gelöscht werden?\n\n' +
+      'Mit OK ist es endgültig.');
+    if (!zweite) return;
+
+    el('v-loeschen').disabled = true;
+    meldeVerkauf('Daten werden gelöscht \u2026', 'ladend');
+
+    fetch(ENDPUNKT, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'alles-loeschen', bestaetigung: 'ALLE-DATEN-LOESCHEN',
+                             passwort: passwort })
+    })
+    .then(function (a) {
+      return a.json().then(function (d) {
+        if (!a.ok) throw new Error(d.fehler || ('Status ' + a.status));
+        return d;
+      });
+    })
+    .then(function (d) {
+      el('v-loeschen').disabled = false;
+      bestellungen = []; retourenListe = []; offenIds = {};
+      try {
+        gelesenStand = new Date().toISOString();
+        localStorage.setItem('chef-gelesen', gelesenStand);
+      } catch (e) {}
+      glockeZeichnen();
+      verkaufZeichnen();
+      meldeVerkauf('Gelöscht: ' + d.archiv + ' Einträge im Archiv, ' + d.eingaenge +
+        ' Formulareingänge.' + (d.fehler && d.fehler.length ? ' Hinweis: ' + d.fehler.join('; ') : ''), 'gut');
+    })
+    .catch(function (fehler) {
+      el('v-loeschen').disabled = false;
+      meldeVerkauf('Das Löschen hat nicht geklappt: ' + fehler.message, 'fehler');
+    });
+  });
+
+  function meldeVerkauf(text, art) {
+    el('verkauf-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
 
   el('v-pdf').addEventListener('click', function () {
     if (!window.jspdf || !verkaufZeilen.length) return;
@@ -2281,6 +2425,145 @@
     if (s) return stundenAusText(s.von + '-' + s.bis);
     if (wert === 'U' || wert === 'K') return 0;
     return stundenAusText(wert);
+  }
+
+  // ---------- Kunden ----------
+  var kunden = [];
+
+  function kundenLaden() {
+    meldeKunden('Kunden werden geladen \u2026', 'ladend');
+    ablageLesen('kunden', 'alle', { kunden: [] }).then(function (d) {
+      kunden = d.kunden || [];
+      meldeKunden('', '');
+      kundenZeichnen();
+    });
+  }
+
+  function kundenZeichnen() {
+    var ziel = el('kunden-inhalt');
+    if (!kunden.length) {
+      ziel.innerHTML = '<div class="leer">Noch kein Kunde angelegt.<br>' +
+        '&Uuml;ber &bdquo;Kunde anlegen&ldquo; oben startest du.</div>';
+      return;
+    }
+    ziel.innerHTML = '<div class="rollen"><table><thead><tr>' +
+      '<th>Kunde</th><th>E-Mail</th><th>Bestellung</th><th>Retoure</th>' +
+      '<th>Zugang</th><th></th></tr></thead><tbody>' +
+      kunden.slice().sort(function (a, b) {
+        return String(a.name).localeCompare(String(b.name), 'de');
+      }).map(function (k) {
+        return '<tr><td><b>' + txt(k.name) + '</b>' +
+            (k.notiz ? '<div class="aufteilung">' + txt(k.notiz) + '</div>' : '') + '</td>' +
+          '<td>' + txt(k.email) + '</td>' +
+          '<td>' + (k.darfBestellen !== false ? '<span class="hoch">ja</span>' : '\u2013') + '</td>' +
+          '<td>' + (k.darfRetoure === true ? '<span class="hoch">ja</span>' : '\u2013') + '</td>' +
+          '<td>' + (k.aktiv === false ? '<span style="color:var(--rot)">gesperrt</span>' : 'frei') + '</td>' +
+          '<td class="zahl-rechts">' +
+            '<button class="zeilenknopf" data-kunde="' + txt(k.id) + '">&Auml;ndern</button>' +
+            '<button class="zeilenknopf loeschen" data-kundeweg="' + txt(k.id) + '">L&ouml;schen</button>' +
+          '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+
+    ziel.querySelectorAll('[data-kunde]').forEach(function (b) {
+      b.addEventListener('click', function () { kundenFormular(b.dataset.kunde); });
+    });
+    ziel.querySelectorAll('[data-kundeweg]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = kunden.filter(function (x) { return x.id === b.dataset.kundeweg; })[0];
+        if (!k || !confirm('„' + k.name + '“ wirklich löschen?')) return;
+        kunden = kunden.filter(function (x) { return x.id !== b.dataset.kundeweg; });
+        kundenSpeichern();
+      });
+    });
+  }
+
+  el('ku-neu').addEventListener('click', function () { kundenFormular(null); });
+
+  function kundenFormular(id) {
+    var k = kunden.filter(function (x) { return x.id === id; })[0] ||
+      { id: '', name: '', email: '', passwort: '', notiz: '',
+        darfBestellen: true, darfRetoure: false, aktiv: true };
+
+    function feld(kennung, name, wert, typ) {
+      return '<div class="formularfeld"><label class="feldname" for="' + kennung + '">' + name + '</label>' +
+        '<input class="klein" type="' + (typ || 'text') + '" id="' + kennung + '" value="' + txt(wert || '') + '"></div>';
+    }
+    function haken(kennung, name, an) {
+      return '<label class="haken"><input type="checkbox" id="' + kennung + '"' + (an ? ' checked' : '') +
+        '><span>' + name + '</span></label>';
+    }
+
+    el('kunden-formular').classList.remove('verstecken');
+    el('kunden-formular').innerHTML =
+      '<div style="border:1px solid var(--linie);border-radius:11px;padding:14px;margin-bottom:16px">' +
+      '<h3 class="abschnitt" style="margin-top:0">' + (id ? 'Kunde \u00e4ndern' : 'Neuer Kunde') + '</h3>' +
+      '<div class="raster">' +
+        feld('k-name', 'Name des Kunden', k.name) +
+        feld('k-email', 'E-Mail (Anmeldung)', k.email, 'email') +
+        feld('k-passwort', 'Passwort', k.passwort) +
+        feld('k-notiz', 'Notiz (optional)', k.notiz) +
+      '</div>' +
+      '<div style="margin:10px 0 4px">' +
+        '<label class="feldname">Was der Kunde sehen darf</label>' +
+        haken('k-bestellung', 'Bestellformular', k.darfBestellen !== false) +
+        haken('k-retoure', 'Retourenformular', k.darfRetoure === true) +
+        haken('k-aktiv', 'Zugang freigeschaltet', k.aktiv !== false) +
+      '</div>' +
+      '<div class="aufteilung" style="margin-bottom:10px">Ohne Haken bei Retoure sieht der Kunde ' +
+      'davon nichts \u2013 kein Men\u00fcpunkt, kein Hinweis.</div>' +
+      '<div class="werkzeuge"><button type="button" id="k-sichern">Speichern</button>' +
+      '<button type="button" id="k-abbruch">Abbrechen</button></div></div>';
+
+    el('k-abbruch').addEventListener('click', function () {
+      el('kunden-formular').classList.add('verstecken');
+      el('kunden-formular').innerHTML = '';
+    });
+    el('k-sichern').addEventListener('click', function () {
+      var name = el('k-name').value.trim();
+      var email = el('k-email').value.trim();
+      var passwort = el('k-passwort').value;
+      if (!name)     { meldeKunden('Bitte einen Namen eintragen.', 'fehler'); return; }
+      if (!email)    { meldeKunden('Bitte eine E-Mail-Adresse eintragen.', 'fehler'); return; }
+      if (!passwort) { meldeKunden('Bitte ein Passwort vergeben.', 'fehler'); return; }
+      var doppelt = kunden.filter(function (x) {
+        return x.id !== id && String(x.email).toLowerCase() === email.toLowerCase();
+      }).length > 0;
+      if (doppelt) { meldeKunden('Diese E-Mail ist schon vergeben.', 'fehler'); return; }
+
+      var neu = {
+        id: id || 'k' + Date.now(),
+        name: name, email: email, passwort: passwort,
+        notiz: el('k-notiz').value.trim(),
+        darfBestellen: el('k-bestellung').checked,
+        darfRetoure: el('k-retoure').checked,
+        aktiv: el('k-aktiv').checked
+      };
+      if (!neu.darfBestellen && !neu.darfRetoure) {
+        meldeKunden('Mindestens eines von beiden muss angehakt sein.', 'fehler'); return;
+      }
+      if (id) kunden = kunden.map(function (x) { return x.id === id ? neu : x; });
+      else kunden.push(neu);
+      el('kunden-formular').classList.add('verstecken');
+      el('kunden-formular').innerHTML = '';
+      kundenSpeichern();
+    });
+  }
+
+  function kundenSpeichern() {
+    kundenZeichnen();
+    meldeKunden('Wird gespeichert \u2026', 'ladend');
+    ablageSchreiben('kunden', 'alle', { kunden: kunden })
+      .then(function () {
+        meldeKunden('Gespeichert.', 'gut');
+        setTimeout(function () { meldeKunden('', ''); }, 2500);
+      })
+      .catch(function (fehler) {
+        meldeKunden('Nicht gespeichert: ' + fehler.message, 'fehler');
+      });
+  }
+
+  function meldeKunden(text, art) {
+    el('kunden-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
   }
 
   // ---------- Kosten je Filiale ----------

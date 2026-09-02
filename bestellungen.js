@@ -107,6 +107,58 @@ exports.handler = async function (event) {
     }
   }
 
+  // Alle erfassten Bestellungen und Retouren unwiderruflich löschen
+  if (eingabe.aktion === 'alles-loeschen') {
+    if (eingabe.bestaetigung !== 'ALLE-DATEN-LOESCHEN') {
+      return antwort(400, { fehler: 'Bestätigung fehlt.' });
+    }
+    const chefwort = process.env.CHEF_PASSWORT;
+    if (chefwort && !gleich(String(eingabe.passwort || ''), chefwort)) {
+      return antwort(401, { fehler: 'Das Passwort stimmt nicht.' });
+    }
+
+    const bericht = { archiv: 0, eingaenge: 0, fehler: [] };
+
+    // 1. Archiv leeren
+    for (const name of ['bestellungen', 'retouren']) {
+      try {
+        const ablage = getStore(name);
+        const liste = await ablage.list();
+        const schluessel = (liste.blobs || []).map(function (x) { return x.key; });
+        for (const k of schluessel) {
+          await ablage.delete(k);
+          bericht.archiv++;
+        }
+      } catch (fehler) {
+        bericht.fehler.push(name + ': ' + fehler.message);
+      }
+    }
+
+    // 2. Formulareingänge bei Netlify löschen, sonst kämen sie zurück
+    const token = process.env.NETLIFY_API_TOKEN;
+    const siteId = process.env.SITE_ID;
+    if (token && siteId) {
+      try {
+        const kopf = { Authorization: 'Bearer ' + token };
+        const formulare = await hole(API + '/sites/' + siteId + '/forms', kopf);
+        for (const f of formulare) {
+          for (let seite = 1; seite <= 10; seite++) {
+            const teil = await hole(API + '/forms/' + f.id + '/submissions?per_page=100&page=' + seite, kopf);
+            for (const e of teil) {
+              const weg = await fetch(API + '/submissions/' + e.id, { method: 'DELETE', headers: kopf });
+              if (weg.ok) bericht.eingaenge++;
+            }
+            if (teil.length < 100) break;
+          }
+        }
+      } catch (fehler) {
+        bericht.fehler.push('Formulare: ' + fehler.message);
+      }
+    }
+
+    return antwort(200, bericht);
+  }
+
   const erwartet = process.env.CHEF_PASSWORT;
   if (erwartet) {
     if (!eingabe.passwort || !gleich(String(eingabe.passwort), erwartet)) {

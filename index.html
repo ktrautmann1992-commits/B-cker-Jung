@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bäcker Jung – Bestellung und Retoure</title>
+<title>Bäcker Jung</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Inter:wght@400;500;600&display=swap');
 
@@ -259,12 +259,12 @@
 
 <div id="schatten" class="schatten verstecken"></div>
 <nav id="seitenleiste" class="seitenleiste verstecken">
-  <div class="leiste-kopf">Filiale</div>
+  <div class="leiste-kopf" id="leiste-kopf">Filiale</div>
   <button type="button" class="leiste-punkt" data-ziel="bestellung">
     <span class="leiste-zeichen">&#128230;</span> Bestellung</button>
-  <button type="button" class="leiste-punkt" data-ziel="retoure">
+  <button type="button" class="leiste-punkt" id="leiste-retoure" data-ziel="retoure">
     <span class="leiste-zeichen">&#8630;</span> Retoure</button>
-  <button type="button" class="leiste-punkt" data-ziel="umsatz">
+  <button type="button" class="leiste-punkt" id="leiste-umsatz" data-ziel="umsatz">
     <span class="leiste-zeichen">&#128176;</span> Tagesumsatz</button>
   <div class="leiste-trenner"></div>
   <button type="button" class="leiste-punkt" id="leiste-start">
@@ -283,16 +283,31 @@
         <option value="">Bitte w&auml;hlen &hellip;</option>
         <option value="filiale">Filiale</option>
         <option value="chef">Gesch&auml;ftsf&uuml;hrung</option>
+        <option value="kunde">Kunde</option>
       </select>
 
+      <div id="start-meldung"></div>
+
       <div id="rolle-filiale" class="verstecken">
-        <div class="wahl">
-          <button type="button" id="wahl-bestellung">Bestellung</button>
-          <button type="button" id="wahl-retoure">Retoure</button>
-        </div>
-        <div class="wahl" style="margin-top:10px">
-          <button type="button" id="wahl-umsatz">Tagesumsatz melden</button>
-        </div>
+        <div style="height:14px"></div>
+        <label class="feldname" for="f-passwort">Passwort der Filiale</label>
+        <input type="password" id="f-passwort" autocomplete="current-password">
+        <button class="haupt" type="button" id="f-anmelden">Anmelden</button>
+      </div>
+
+      <div id="rolle-kunde" class="verstecken">
+        <div style="height:14px"></div>
+        <label class="feldname" for="ku-email">E-Mail</label>
+        <input type="text" id="ku-email" autocomplete="username" inputmode="email">
+        <div style="height:10px"></div>
+        <label class="feldname" for="ku-passwort">Passwort</label>
+        <input type="password" id="ku-passwort" autocomplete="current-password">
+        <button class="haupt" type="button" id="ku-anmelden">Anmelden</button>
+      </div>
+
+      <div id="bereichswahl" class="verstecken">
+        <div style="height:14px"></div>
+        <div class="wahl" id="wahl-zeile"></div>
       </div>
 
       <div id="rolle-chef" class="verstecken">
@@ -461,11 +476,105 @@
   }
 
   // ---------- Rollenwahl ----------
+  var FILIAL_PASSWORT = 'B\u00e4cker.Jung.26!';
+  var kunde = null;          // angemeldeter Kunde samt Rechten
+  var rechte = { bestellung: true, retoure: true, umsatz: true };
+
   el('rolle').addEventListener('change', function () {
     var wert = el('rolle').value;
     el('rolle-filiale').classList.toggle('verstecken', wert !== 'filiale');
+    el('rolle-kunde').classList.toggle('verstecken', wert !== 'kunde');
     el('rolle-chef').classList.toggle('verstecken', wert !== 'chef');
+    el('bereichswahl').classList.add('verstecken');
+    meldeStart('', '');
   });
+
+  function meldeStart(text, art) {
+    el('start-meldung').innerHTML = text
+      ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+
+  // ---------- Anmeldung der Filiale ----------
+  el('f-anmelden').addEventListener('click', filialeAnmelden);
+  el('f-passwort').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') filialeAnmelden();
+  });
+
+  function filialeAnmelden() {
+    if (el('f-passwort').value !== FILIAL_PASSWORT) {
+      meldeStart('Das Passwort stimmt nicht.', 'fehler');
+      return;
+    }
+    kunde = null;
+    rechte = { bestellung: true, retoure: true, umsatz: true };
+    el('rolle-filiale').classList.add('verstecken');
+    meldeStart('', '');
+    bereicheAnbieten('Filiale');
+  }
+
+  // ---------- Anmeldung eines Kunden ----------
+  el('ku-anmelden').addEventListener('click', kundeAnmelden);
+  el('ku-passwort').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') kundeAnmelden();
+  });
+
+  function kundeAnmelden() {
+    var email = el('ku-email').value.trim();
+    var passwort = el('ku-passwort').value;
+    if (!email || !passwort) { meldeStart('Bitte E-Mail und Passwort eintragen.', 'fehler'); return; }
+
+    el('ku-anmelden').disabled = true;
+    el('ku-anmelden').textContent = 'Wird gepr\u00fcft \u2026';
+    meldeStart('', '');
+
+    fetch('/.netlify/functions/daten', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'kundenlogin', email: email, passwort: passwort })
+    })
+    .then(function (a) {
+      return a.json().then(function (d) {
+        if (!a.ok) throw new Error(d.fehler || ('Status ' + a.status));
+        return d;
+      });
+    })
+    .then(function (d) {
+      kunde = d.kunde;
+      rechte = { bestellung: kunde.darfBestellen !== false,
+                 retoure: kunde.darfRetoure === true,
+                 umsatz: false };
+      el('ku-anmelden').disabled = false;
+      el('ku-anmelden').textContent = 'Anmelden';
+      el('rolle-kunde').classList.add('verstecken');
+      bereicheAnbieten(kunde.name);
+    })
+    .catch(function (fehler) {
+      el('ku-anmelden').disabled = false;
+      el('ku-anmelden').textContent = 'Anmelden';
+      meldeStart(fehler.message, 'fehler');
+    });
+  }
+
+  // Nur die Bereiche zeigen, die freigeschaltet sind
+  function bereicheAnbieten(wer) {
+    var knoepfe = [];
+    if (rechte.bestellung) knoepfe.push(['bestellung', 'Bestellung']);
+    if (rechte.retoure)    knoepfe.push(['retoure', 'Retoure']);
+    if (rechte.umsatz)     knoepfe.push(['umsatz', 'Tagesumsatz melden']);
+
+    el('leiste-kopf').textContent = wer;
+    el('leiste-retoure').classList.toggle('verstecken', !rechte.retoure);
+    el('leiste-umsatz').classList.toggle('verstecken', !rechte.umsatz);
+
+    if (knoepfe.length === 1) { starte(knoepfe[0][0]); return; }
+
+    el('wahl-zeile').innerHTML = knoepfe.map(function (k) {
+      return '<button type="button" data-bereich="' + k[0] + '">' + txt(k[1]) + '</button>';
+    }).join('');
+    el('wahl-zeile').querySelectorAll('[data-bereich]').forEach(function (b) {
+      b.addEventListener('click', function () { starte(b.dataset.bereich); });
+    });
+    el('bereichswahl').classList.remove('verstecken');
+  }
 
   // ---------- Anmeldung der Geschäftsführung ----------
   el('chef-los').addEventListener('click', chefAnmelden);
@@ -504,9 +613,6 @@
       ? '<div class="meldung ' + art + '" style="margin:12px 0 0">' + txt(text) + '</div>' : '';
   }
 
-  el('wahl-bestellung').addEventListener('click', function () { starte('bestellung'); });
-  el('wahl-retoure').addEventListener('click', function () { starte('retoure'); });
-  el('wahl-umsatz').addEventListener('click', function () { starte('umsatz'); });
 
   document.querySelectorAll('[data-zurueck]').forEach(function (b) {
     b.addEventListener('click', function () { location.reload(); });
@@ -516,7 +622,9 @@
                 umsatz: 'Tagesumsatz melden' };
 
   function starte(welcher) {
+    if (!rechte[welcher]) return;      // gesperrte Bereiche gar nicht erst öffnen
     modus = welcher;
+    if (kunde) kundenFelder();
     leisteZu();
     el('start').classList.add('verstecken');
     el('menue').classList.remove('verstecken');
@@ -529,10 +637,24 @@
     el('fuss').classList.toggle('verstecken', welcher === 'umsatz');
     el('senden').textContent = welcher === 'retoure' ? 'Retoure senden' : 'Bestellung senden';
     el('kopf-unter').textContent = TITEL[welcher] || '';
+    document.title = 'B\u00e4cker Jung \u2013 ' + (TITEL[welcher] || '');
     window.scrollTo({ top: 0 });
     if (welcher === 'bestellung') listeBestellungZeichnen();
     else if (welcher === 'retoure') summeZeichnen();
     else umsatzVergleich();
+  }
+
+  // Beim Kunden entfällt die Filialauswahl – es ist immer er selbst
+  function kundenFelder() {
+    ['b', 'r'].forEach(function (vor) {
+      var aus = el(vor + '-filiale');
+      if (!aus || aus.dataset.kunde === '1') return;
+      aus.innerHTML = '<option value="' + txt(kunde.name) + '" selected>' + txt(kunde.name) + '</option>';
+      aus.dataset.kunde = '1';
+      aus.disabled = true;
+      var beschriftung = aus.parentNode.querySelector('label');
+      if (beschriftung) beschriftung.textContent = 'Kunde';
+    });
   }
 
   // ---------- Seitenleiste ----------

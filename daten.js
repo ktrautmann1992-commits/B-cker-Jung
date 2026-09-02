@@ -26,7 +26,7 @@ function getStore(name) {
   return blobs.getStore({ name: name, siteID: siteID, token: token, consistency: 'strong' });
 }
 
-const BEREICHE = ['personal', 'kosten', 'dienstplan'];
+const BEREICHE = ['personal', 'kosten', 'dienstplan', 'kunden'];
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -41,6 +41,39 @@ exports.handler = async function (event) {
   if (erwartet) {
     if (!eingabe.passwort || !gleich(String(eingabe.passwort), erwartet)) {
       return antwort(401, { fehler: 'Das Passwort stimmt nicht.' });
+    }
+  }
+
+  // Anmeldung eines Kunden: prüft E-Mail und Passwort, gibt nur die Rechte zurück
+  if (eingabe.aktion === 'kundenlogin') {
+    const email = String(eingabe.email || '').trim().toLowerCase();
+    const passwort = String(eingabe.passwort || '');
+    if (!email || !passwort) {
+      return antwort(400, { fehler: 'E-Mail und Passwort werden benötigt.' });
+    }
+    try {
+      const ablage = getStore('chefdaten');
+      const daten = (await ablage.get('kunden/alle', { type: 'json' })) || {};
+      const treffer = (daten.kunden || []).filter(function (k) {
+        return String(k.email || '').trim().toLowerCase() === email;
+      })[0];
+      if (!treffer || !gleich(String(treffer.passwort || ''), passwort)) {
+        return antwort(401, { fehler: 'E-Mail oder Passwort stimmt nicht.' });
+      }
+      if (treffer.aktiv === false) {
+        return antwort(403, { fehler: 'Dieser Zugang ist stillgelegt.' });
+      }
+      return antwort(200, {
+        kunde: {
+          id: treffer.id,
+          name: treffer.name || '',
+          email: treffer.email || '',
+          darfBestellen: treffer.darfBestellen !== false,
+          darfRetoure: treffer.darfRetoure === true
+        }
+      });
+    } catch (fehler) {
+      return antwort(502, { fehler: 'Die Anmeldung ist gerade nicht möglich: ' + fehler.message });
     }
   }
 
@@ -91,6 +124,14 @@ exports.handler = async function (event) {
   }
 };
 
+function gleich(a, b) {
+  if (a.length !== b.length) return false;
+  let unterschied = 0;
+  for (let i = 0; i < a.length; i++) unterschied |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return unterschied === 0;
+}
+
+// Vergleich mit gleichbleibender Laufzeit
 function gleich(a, b) {
   if (a.length !== b.length) return false;
   let unterschied = 0;
