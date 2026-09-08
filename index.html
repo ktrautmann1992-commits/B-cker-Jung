@@ -387,7 +387,7 @@
           <select id="r-filiale"><option value="">Bitte w&auml;hlen &hellip;</option></select>
         </div>
         <div>
-          <label class="feldname" for="r-datum">Tag der Retoure</label>
+          <label class="feldname" for="r-datum">Liefertag der Ware</label>
           <input type="date" id="r-datum">
         </div>
       </div>
@@ -395,6 +395,10 @@
         <label class="feldname" for="r-besteller">Gemeldet von</label>
         <input type="text" id="r-besteller" placeholder="Vor- und Nachname"
                autocomplete="name" autocapitalize="words">
+      </div>
+      <div class="aufteilung" style="margin-top:9px">
+        Bitte den Tag eintragen, an dem die Ware <b>geliefert</b> wurde &ndash; nicht den Tag
+        der Meldung. Nur so passt die Retoure zur Lieferung.
       </div>
     </div>
 
@@ -962,7 +966,7 @@
 
   // ---------- PDF Retoure mit Auswertung ----------
   function pdfRetoure(f, datumText, melder, bemerkung, positionen, stueck, wert, gesamtGeliefert) {
-    var doc = kopfPdf('Retoure', f, datumText, melder, 'Retourentag:');
+    var doc = kopfPdf('Retoure', f, datumText, melder, 'Liefertag:');
 
     doc.autoTable({
       startY: 172,
@@ -1097,7 +1101,7 @@
 
     try {
       var reihen = retoure
-        ? [['Filiale', 'Retourentag', 'Artikelnummer', 'Bezeichnung', 'Geliefert', 'Retoure',
+        ? [['Filiale', 'Liefertag', 'Artikelnummer', 'Bezeichnung', 'Geliefert', 'Retoure',
             'Quote %', 'Kosten EUR', 'Gemeldet von']]
         : [['Kunde', 'Liefertag', 'Artikelnummer', 'Bezeichnung', 'Menge', 'Bestellt von']];
       positionen.forEach(function (p) {
