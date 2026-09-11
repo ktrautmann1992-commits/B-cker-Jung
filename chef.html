@@ -253,6 +253,36 @@
     padding: 8px 10px;
   }
 
+  /* ---------- Einstellungen der Gewinnbeteiligung ---------- */
+  .einstellungen {
+    background: var(--papier); border: 1px solid var(--linie);
+    border-radius: 12px; padding: 12px 13px 13px; margin-bottom: 16px;
+  }
+  .einstellungen-kopf {
+    font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--grau); margin-bottom: 10px;
+  }
+  .einstellungen-felder {
+    display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  }
+  .einstellung label {
+    display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px;
+  }
+  .einstellung small {
+    display: block; font-size: 11.5px; color: var(--grau); margin-top: 4px;
+  }
+  .mit-einheit { position: relative; }
+  .mit-einheit input {
+    width: 100%; padding-right: 34px; text-align: right;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+    background: #fff;
+  }
+  .mit-einheit span {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--grau); font-size: 14px; font-weight: 600; pointer-events: none;
+  }
+
   /* ---------- Auswertung ---------- */
   h3.abschnitt {
     font-family: 'Nunito', sans-serif; font-size: 15px;
@@ -596,18 +626,30 @@
         <select id="gw-jahr"></select>
       </div>
     </div>
-    <div class="raster" style="margin-bottom:14px">
-      <div style="flex:1 1 110px;min-width:0">
-        <label class="feldname" for="gw-quote">Beteiligung %</label>
-        <input type="text" id="gw-quote" inputmode="decimal" value="20">
-      </div>
-      <div style="flex:1 1 110px;min-width:0">
-        <label class="feldname" for="gw-mwst">MwSt %</label>
-        <input type="text" id="gw-mwst" inputmode="decimal" value="7">
-      </div>
-      <div style="flex:1 1 130px;min-width:0">
-        <label class="feldname" for="gw-mindest">Mindeststunden</label>
-        <input type="text" id="gw-mindest" inputmode="decimal" value="20">
+    <div class="einstellungen">
+      <div class="einstellungen-kopf">Regeln f&uuml;r diesen Monat</div>
+      <div class="einstellungen-felder">
+        <div class="einstellung">
+          <label for="gw-quote">Beteiligung</label>
+          <div class="mit-einheit">
+            <input type="text" id="gw-quote" inputmode="decimal" value="20"><span>%</span>
+          </div>
+          <small>vom Mehrumsatz</small>
+        </div>
+        <div class="einstellung">
+          <label for="gw-mwst">Mehrwertsteuer</label>
+          <div class="mit-einheit">
+            <input type="text" id="gw-mwst" inputmode="decimal" value="7"><span>%</span>
+          </div>
+          <small>brutto zu netto</small>
+        </div>
+        <div class="einstellung">
+          <label for="gw-mindest">Mindestens</label>
+          <div class="mit-einheit">
+            <input type="text" id="gw-mindest" inputmode="decimal" value="20"><span>h</span>
+          </div>
+          <small>um teilzunehmen</small>
+        </div>
       </div>
     </div>
     <div id="gewinn-meldung"></div>
