@@ -387,6 +387,7 @@
     <button type="button" id="reiter-auswertung">Auswertung</button>
     <button type="button" id="reiter-personal">Personal</button>
     <button type="button" id="reiter-kunden">Kunden</button>
+    <button type="button" id="reiter-gewinn">Gewinnbeteiligung</button>
     <button type="button" id="reiter-kosten">Kosten</button>
   </div>
 
@@ -583,6 +584,34 @@
     <div id="kunden-inhalt"></div>
   </div>
 
+  <!-- ---------- Gewinnbeteiligung ---------- -->
+  <div class="karte verstecken" id="bereich-gewinn">
+    <div class="raster" style="margin-bottom:12px">
+      <div style="flex:0 0 170px">
+        <label class="feldname" for="gw-monat">Monat</label>
+        <input type="date" id="gw-monat">
+      </div>
+      <div style="flex:0 0 120px">
+        <label class="feldname" for="gw-quote">Beteiligung %</label>
+        <input class="klein" type="text" id="gw-quote" inputmode="decimal" value="20">
+      </div>
+      <div style="flex:0 0 120px">
+        <label class="feldname" for="gw-mwst">MwSt %</label>
+        <input class="klein" type="text" id="gw-mwst" inputmode="decimal" value="7">
+      </div>
+      <div style="flex:0 0 150px">
+        <label class="feldname" for="gw-mindest">Mindeststunden</label>
+        <input class="klein" type="text" id="gw-mindest" inputmode="decimal" value="20">
+      </div>
+    </div>
+    <div id="gewinn-meldung"></div>
+    <div id="gewinn-inhalt"></div>
+    <div class="werkzeuge" style="margin-top:14px">
+      <button type="button" id="gw-speichern">Eingaben speichern</button>
+      <button type="button" id="gw-pdf">Als PDF speichern</button>
+    </div>
+  </div>
+
   <!-- ---------- Kosten ---------- -->
   <div class="karte verstecken" id="bereich-kosten">
     <p style="margin:0 0 14px;color:var(--grau);font-size:13px;line-height:1.5">
@@ -693,7 +722,7 @@
       return a.json();
     })
     .then(function (daten) {
-      bestellungen = (daten.bestellungen || []).map(aufbereiten);
+      bestellungen = ersetzteMarkieren((daten.bestellungen || []).map(aufbereiten));
       retourenListe = (daten.retouren || []).map(aufbereiten);
       el('stand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE',
         { hour: '2-digit', minute: '2-digit' }) + ' \u00b7 ' + bestellungen.length + ' Bestellungen';
@@ -719,6 +748,26 @@
       });
     } catch (fehler) { /* ohne Stammdaten läuft die Ansicht weiter */ }
   }
+
+  // Eine Korrektur setzt alle früheren Bestellungen derselben Filiale am selben Liefertag außer Kraft
+  function ersetzteMarkieren(liste) {
+    var gruppen = {};
+    liste.forEach(function (b) {
+      var schluessel = b.filiale + '|' + b.datumIso;
+      (gruppen[schluessel] = gruppen[schluessel] || []).push(b);
+    });
+    Object.keys(gruppen).forEach(function (k) {
+      var teil = gruppen[k].sort(function (a, b) {
+        return String(a.erstellt) < String(b.erstellt) ? -1 : 1;
+      });
+      var letzteKorrektur = -1;
+      teil.forEach(function (b, i) { if (b.bestellart === 'korrektur') letzteKorrektur = i; });
+      teil.forEach(function (b, i) { b.ersetzt = (i < letzteKorrektur); });
+    });
+    return liste;
+  }
+
+  function gueltig(b) { return !b.ersetzt; }
 
   function aufbereiten(b) {
     var teile = String(b.datum || '').split('.');
@@ -766,7 +815,7 @@
   });
 
   var ANSICHTEN = ['dashboard', 'verkauf', 'bestellungen', 'produktion', 'umsatz',
-                   'auswertung', 'personal', 'kunden', 'kosten'];
+                   'auswertung', 'personal', 'kunden', 'gewinn', 'kosten'];
 
   ANSICHTEN.forEach(function (name) {
     el('reiter-' + name).addEventListener('click', function () { wechseln(name); });
@@ -784,6 +833,7 @@
     else if (neu === 'auswertung') auswertungLaden();
     else if (neu === 'personal') personalLaden();
     else if (neu === 'kunden') kundenLaden();
+    else if (neu === 'gewinn') gewinnLaden();
     else if (neu === 'kosten') kostenLaden();
     else zeichnen();
   }
@@ -811,7 +861,7 @@
 
   function zahlenZeichnen(liste) {
     var stueck = 0, wert = 0, orte = {};
-    liste.forEach(function (b) {
+    liste.filter(gueltig).forEach(function (b) {
       stueck += parseInt(b.stueck, 10) || 0;
       wert   += b.wertZahl;
       orte[b.filiale] = true;
@@ -844,7 +894,7 @@
     var ziel = el('offen');
     if (!alleFilialen.length || el('filter-filiale').value) { ziel.innerHTML = ''; return; }
     var da = {};
-    liste.forEach(function (b) { da[b.filiale] = true; });
+    liste.filter(gueltig).forEach(function (b) { da[b.filiale] = true; });
     var fehlt = alleFilialen.filter(function (o, i, l) {
       return l.indexOf(o) === i && !da[o];
     });
@@ -857,6 +907,7 @@
   function bestellungenZeichnen(liste) {
     var ziel = el('bereich-bestellungen');
     var retouren = gefiltertRetouren().map(function (r) { r.istRetoure = true; return r; });
+    liste = liste.filter(gueltig);          // korrigierte Bestellungen sind nicht mehr da
     liste.forEach(function (b) { b.istRetoure = false; });
 
     var alle = liste.concat(retouren).sort(function (a, b) {
@@ -873,7 +924,9 @@
     ziel.innerHTML = alle.map(function (b) {
       var auf = offenIds[b.id];
       var marke = b.istRetoure
-        ? ' <span style="color:var(--rot);font-size:12px;font-weight:700">RETOURE</span>' : '';
+        ? ' <span style="color:var(--rot);font-size:12px;font-weight:700">RETOURE</span>'
+        : b.bestellart === 'korrektur'
+          ? ' <span style="color:var(--gruen);font-size:12px;font-weight:700">KORRIGIERT</span>' : '';
       return '<div class="bestellung"' + (b.istRetoure ? ' style="background:#FDF6F5"' : '') + '>' +
         '<div class="kopfzeile" data-id="' + txt(b.id) + '">' +
           '<div class="pfeil">' + (auf ? '\u25be' : '\u25b8') + '</div>' +
@@ -931,7 +984,7 @@
   function produktionsDaten(liste) {
     var suche = el('suche').value.trim().toLowerCase();
     var summe = {};
-    liste.forEach(function (b) {
+    liste.filter(gueltig).forEach(function (b) {
       b.posten.forEach(function (p) {
         if (suche && p.bez.toLowerCase().indexOf(suche) === -1 && p.nr.indexOf(suche) !== 0) return;
         if (!summe[p.nr]) summe[p.nr] = { nr: p.nr, bez: p.bez, menge: 0, orte: {} };
@@ -1057,7 +1110,7 @@
   function bestellwertProFiliale(tag) {
     var summe = {};
     bestellungen.forEach(function (b) {
-      if (b.datumIso !== tag) return;
+      if (b.ersetzt || b.datumIso !== tag) return;
       summe[b.filiale] = (summe[b.filiale] || 0) + b.wertZahl;
     });
     return summe;
@@ -1387,6 +1440,7 @@
   function warenwertImZeitraum(von, bis, ort) {
     var proFiliale = {}, gesamt = 0, anzahl = 0;
     bestellungen.forEach(function (b) {
+      if (b.ersetzt) return;
       if (!b.datumIso || b.datumIso < von || b.datumIso > bis) return;
       if (ort && b.filiale !== ort) return;
       proFiliale[b.filiale] = (proFiliale[b.filiale] || 0) + b.wertZahl;
@@ -1700,6 +1754,7 @@
 
     function verbuchen(liste, feld) {
       liste.forEach(function (b) {
+        if (b.ersetzt) return;
         if (!b.datumIso || b.datumIso < z.von || b.datumIso > z.bis) return;
         if (nurFiliale && b.filiale !== nurFiliale) return;
         proFiliale[b.filiale] = proFiliale[b.filiale] || { bestellt: 0, retour: 0, wert: 0, retourwert: 0 };
@@ -1762,7 +1817,7 @@
 
   function imZeitraum(liste, z) {
     return liste.filter(function (b) {
-      return b.datumIso && b.datumIso >= z.von && b.datumIso <= z.bis;
+      return !b.ersetzt && b.datumIso && b.datumIso >= z.von && b.datumIso <= z.bis;
     }).sort(function (a, b) { return String(a.erstellt) < String(b.erstellt) ? 1 : -1; });
   }
 
@@ -2643,6 +2698,239 @@
 
   function meldeKunden(text, art) {
     el('kunden-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+
+  // ---------- Gewinnbeteiligung ----------
+  var gwDaten = { ziele: {}, stunden: {}, einstellung: {} };
+  var gwUmsatz = {};
+  var gwMonat = '';
+
+  el('gw-monat').value = heute.toISOString().slice(0, 10);
+  el('gw-monat').addEventListener('change', gewinnLaden);
+  ['gw-quote', 'gw-mwst', 'gw-mindest'].forEach(function (id) {
+    el(id).addEventListener('input', gewinnZeichnen);
+  });
+
+  function monatsGrenzen(iso) {
+    var t = iso.split('-');
+    var letzter = new Date(+t[0], +t[1], 0).getDate();
+    return { von: t[0] + '-' + t[1] + '-01', bis: t[0] + '-' + t[1] + '-' + zwei(letzter),
+             schluessel: t[0] + '-' + t[1], name: monatsnamen[+t[1] - 1] + ' ' + t[0] };
+  }
+
+  function gewinnLaden() {
+    var m = monatsGrenzen(el('gw-monat').value || heute.toISOString().slice(0, 10));
+    gwMonat = m.schluessel;
+    meldeGewinn('Zahlen werden geladen \u2026', 'ladend');
+    Promise.all([
+      personalHolen(),
+      zeitraumLaden(m),
+      ablageLesen('gewinn', m.schluessel, { ziele: {}, stunden: {}, einstellung: {} })
+    ]).then(function (e) {
+      gwUmsatz = e[1];
+      gwDaten = e[2] || { ziele: {}, stunden: {}, einstellung: {} };
+      gwDaten.ziele = gwDaten.ziele || {};
+      gwDaten.stunden = gwDaten.stunden || {};
+      var ein = gwDaten.einstellung || {};
+      if (ein.quote !== undefined)   el('gw-quote').value = String(ein.quote).replace('.', ',');
+      if (ein.mwst !== undefined)    el('gw-mwst').value = String(ein.mwst).replace('.', ',');
+      if (ein.mindest !== undefined) el('gw-mindest').value = String(ein.mindest).replace('.', ',');
+      meldeGewinn('', '');
+      gewinnZeichnen();
+    });
+  }
+
+  // Rechnet eine Filiale durch und gibt alle Zahlen zurück
+  function gewinnRechnen(ort, m) {
+    var quote = betrag(el('gw-quote').value) || 0;
+    var mwst = betrag(el('gw-mwst').value) || 0;
+    var mindest = betrag(el('gw-mindest').value) || 0;
+
+    var brutto = 0;
+    Object.keys(gwUmsatz).forEach(function (tag) {
+      if (tag < m.von || tag > m.bis) return;
+      brutto += Number((gwUmsatz[tag] || {})[ort]) || 0;
+    });
+    var netto = brutto / (1 + mwst / 100);
+    var ziel = Number(gwDaten.ziele[ort]) || 0;
+    var ueber = Math.max(0, netto - ziel);
+    var topf = ueber * quote / 100;
+
+    var leute = personal.filter(function (p) { return p.filiale === ort && p.aktiv !== false; })
+      .map(function (p) {
+        var s = gwDaten.stunden[p.id] || {};
+        var arbeit = Number(s.arbeit) || 0;
+        var urlaub = Number(s.urlaub) || 0;
+        var krank = Number(s.krank) || 0;
+        var anrechenbar = arbeit + urlaub - krank;
+        return { person: p, arbeit: arbeit, urlaub: urlaub, krank: krank,
+                 anrechenbar: anrechenbar, dabei: anrechenbar >= mindest && anrechenbar > 0,
+                 anteil: 0, betrag: 0, agAnteil: 0 };
+      }).sort(function (a, b) { return b.anrechenbar - a.anrechenbar; });
+
+    var summeStunden = leute.reduce(function (s, l) { return s + (l.dabei ? l.anrechenbar : 0); }, 0);
+
+    if (topf > 0 && summeStunden > 0) {
+      var verteilt = 0;
+      leute.forEach(function (l) {
+        if (!l.dabei) return;
+        l.anteil = l.anrechenbar / summeStunden;
+        l.betrag = Math.round(topf * l.anteil * 100) / 100;
+        verteilt += l.betrag;
+      });
+      // Rundungsrest bekommt der Mitarbeiter mit den meisten Stunden
+      var rest = Math.round((topf - verteilt) * 100) / 100;
+      var erster = leute.filter(function (l) { return l.dabei; })[0];
+      if (erster && rest !== 0) erster.betrag = Math.round((erster.betrag + rest) * 100) / 100;
+      leute.forEach(function (l) {
+        var satz = l.person.agAnteil === undefined ? 21 : (Number(l.person.agAnteil) || 0);
+        l.agAnteil = Math.round(l.betrag * satz / 100 * 100) / 100;
+      });
+    }
+
+    var auszahlung = leute.reduce(function (s, l) { return s + l.betrag; }, 0);
+    var ag = leute.reduce(function (s, l) { return s + l.agAnteil; }, 0);
+    return { ort: ort, brutto: brutto, netto: netto, ziel: ziel, ueber: ueber, topf: topf,
+             leute: leute, summeStunden: summeStunden, auszahlung: auszahlung,
+             agAnteil: ag, gesamtkosten: auszahlung + ag, mindest: mindest };
+  }
+
+  var gwErgebnisse = [];
+
+  function gewinnZeichnen() {
+    var m = monatsGrenzen(el('gw-monat').value);
+    gwErgebnisse = alleFilialen.map(function (ort) { return gewinnRechnen(ort, m); });
+
+    var summeTopf = gwErgebnisse.reduce(function (s, e) { return s + e.auszahlung; }, 0);
+    var summeAg = gwErgebnisse.reduce(function (s, e) { return s + e.agAnteil; }, 0);
+    var summeUeber = gwErgebnisse.reduce(function (s, e) { return s + e.ueber; }, 0);
+
+    var kopf =
+      '<div class="schnell">' +
+        '<div class="schnell-teil"><span>\u00dcbererf\u00fcllung ' + txt(m.name) + '</span><b>' +
+          euro(summeUeber) + '</b></div>' +
+        '<div class="schnell-teil"><span>Auszahlung an Mitarbeiter</span><b>' + euro(summeTopf) + '</b></div>' +
+        '<div class="schnell-teil"><span>Kosten mit Arbeitgeberanteil</span><b>' +
+          euro(summeTopf + summeAg) + '</b></div>' +
+      '</div>';
+
+    var bloecke = gwErgebnisse.map(function (e) {
+      var zielFeld = '<input class="geld" type="text" inputmode="decimal" data-ziel="' + txt(e.ort) +
+        '" value="' + (e.ziel ? e.ziel.toFixed(2).replace('.', ',') : '') + '" placeholder="0,00">';
+
+      var zeilen = e.leute.map(function (l) {
+        var feld = function (art, wert) {
+          return '<td class="zahl-rechts"><input class="geld" style="width:74px" type="text" ' +
+            'inputmode="decimal" data-person="' + txt(l.person.id) + '" data-art="' + art + '" value="' +
+            (wert ? String(wert).replace('.', ',') : '') + '" placeholder="0"></td>';
+        };
+        return '<tr' + (l.dabei ? '' : ' style="opacity:.55"') + '>' +
+          '<td>' + txt(l.person.name) +
+            '<div class="aufteilung">' + txt(l.person.funktion || '') +
+            (l.dabei ? '' : ' \u00b7 unter ' + e.mindest + ' h') + '</div></td>' +
+          feld('arbeit', l.arbeit) + feld('urlaub', l.urlaub) + feld('krank', l.krank) +
+          '<td class="zahl-rechts"><b>' + l.anrechenbar.toFixed(1).replace('.', ',') + ' h</b></td>' +
+          '<td class="zahl-rechts">' + (l.dabei && l.anteil ? (l.anteil * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') + '</td>' +
+          '<td class="zahl-rechts" style="color:var(--gruen)"><b>' + euro(l.betrag) + '</b></td>' +
+          '</tr>';
+      }).join('');
+
+      return '<h3 class="abschnitt">' + txt(e.ort) + '</h3>' +
+        '<div class="rollen"><table><tbody>' +
+        '<tr><td>Umsatzziel netto</td><td class="zahl-rechts">' + zielFeld + '</td></tr>' +
+        '<tr><td>Umsatz gemeldet (brutto)</td><td class="zahl-rechts">' + euro(e.brutto) + '</td></tr>' +
+        '<tr><td>davon netto</td><td class="zahl-rechts">' + euro(e.netto) + '</td></tr>' +
+        '<tr><td><b>\u00dcbererf\u00fcllung</b></td><td class="zahl-rechts"><b style="color:' +
+          (e.ueber > 0 ? 'var(--gruen)' : 'var(--grau)') + '">' + euro(e.ueber) + '</b></td></tr>' +
+        '<tr><td>Topf f\u00fcr die Filiale</td><td class="zahl-rechts"><b>' + euro(e.topf) + '</b></td></tr>' +
+        '</tbody></table></div>' +
+        '<div class="rollen" style="margin-top:10px"><table><thead><tr>' +
+        '<th>Mitarbeiter</th><th class="zahl-rechts">Arbeit h</th><th class="zahl-rechts">Urlaub h</th>' +
+        '<th class="zahl-rechts">Krank h</th><th class="zahl-rechts">Anrechenbar</th>' +
+        '<th class="zahl-rechts">Anteil</th><th class="zahl-rechts">Auszahlung</th></tr></thead>' +
+        '<tbody>' + (zeilen || '<tr><td colspan="7">Keine Mitarbeiter in dieser Filiale.</td></tr>') +
+        '</tbody></table></div>' +
+        (e.auszahlung ? '<div style="margin-top:8px;font-weight:600">' +
+          e.summeStunden.toFixed(1).replace('.', ',') + ' anrechenbare Stunden \u00b7 Auszahlung ' +
+          euro(e.auszahlung) + ' \u00b7 mit Arbeitgeberanteil ' + euro(e.gesamtkosten) + '</div>' : '');
+    }).join('');
+
+    el('gewinn-inhalt').innerHTML = kopf + bloecke +
+      '<div class="aufteilung" style="margin-top:12px">Anrechenbar = Arbeit + Urlaub \u2212 Krank. ' +
+      'Wer unter ' + betrag(el('gw-mindest').value) + ' anrechenbaren Stunden liegt, ist nicht dabei. ' +
+      'Der Rundungsrest geht an den Mitarbeiter mit den meisten Stunden.</div>';
+
+    el('gewinn-inhalt').querySelectorAll('[data-ziel]').forEach(function (f) {
+      f.addEventListener('change', function () {
+        gwDaten.ziele[f.dataset.ziel] = betrag(f.value);
+        gewinnZeichnen();
+      });
+    });
+    el('gewinn-inhalt').querySelectorAll('[data-person]').forEach(function (f) {
+      f.addEventListener('change', function () {
+        var id = f.dataset.person;
+        gwDaten.stunden[id] = gwDaten.stunden[id] || {};
+        gwDaten.stunden[id][f.dataset.art] = betrag(f.value);
+        gewinnZeichnen();
+      });
+    });
+  }
+
+  el('gw-speichern').addEventListener('click', function () {
+    gwDaten.einstellung = { quote: betrag(el('gw-quote').value),
+                            mwst: betrag(el('gw-mwst').value),
+                            mindest: betrag(el('gw-mindest').value) };
+    meldeGewinn('Wird gespeichert \u2026', 'ladend');
+    ablageSchreiben('gewinn', gwMonat, gwDaten)
+      .then(function () {
+        meldeGewinn('Gespeichert.', 'gut');
+        setTimeout(function () { meldeGewinn('', ''); }, 2500);
+      })
+      .catch(function (fehler) { meldeGewinn('Nicht gespeichert: ' + fehler.message, 'fehler'); });
+  });
+
+  el('gw-pdf').addEventListener('click', function () {
+    if (!window.jspdf || !gwErgebnisse.length) return;
+    var m = monatsGrenzen(el('gw-monat').value);
+    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(46, 42, 121);
+    doc.text('Gewinnbeteiligung ' + entziffert(m.name), 40, 52);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+    doc.text('Beteiligung ' + betrag(el('gw-quote').value) + ' % der Uebererfuellung netto  \u00b7  ' +
+             'Mindestens ' + betrag(el('gw-mindest').value) + ' anrechenbare Stunden  \u00b7  erstellt am ' +
+             new Date().toLocaleDateString('de-DE'), 40, 68);
+    doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5); doc.line(40, 76, 555, 76);
+
+    var y = 92;
+    gwErgebnisse.forEach(function (e) {
+      if (!e.leute.length) return;
+      doc.autoTable({
+        startY: y,
+        head: [[e.ort, 'Arbeit', 'Urlaub', 'Krank', 'Anrechenbar', 'Anteil', 'Auszahlung']],
+        body: e.leute.map(function (l) {
+          return [l.person.name, l.arbeit + ' h', l.urlaub + ' h', l.krank + ' h',
+            l.anrechenbar.toFixed(1).replace('.', ',') + ' h',
+            l.dabei && l.anteil ? (l.anteil * 100).toFixed(1).replace('.', ',') + ' %' : '-',
+            euroText(l.betrag)];
+        }).concat([['Ziel ' + euroText(e.ziel) + ' | netto ' + euroText(e.netto) +
+                    ' | ueber ' + euroText(e.ueber), '', '', '', '',
+                    'Topf', euroText(e.auszahlung)]]),
+        styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 3.5 },
+        headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+        columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' },
+                        4: { halign: 'right' }, 5: { halign: 'right' },
+                        6: { halign: 'right', fontStyle: 'bold' } },
+        margin: { left: 40, right: 40 }
+      });
+      y = doc.lastAutoTable.finalY + 18;
+      if (y > 700) { doc.addPage(); y = 60; }
+    });
+
+    doc.save('Gewinnbeteiligung_' + m.schluessel + '.pdf');
+  });
+
+  function meldeGewinn(text, art) {
+    el('gewinn-meldung').innerHTML = text ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
   }
 
   // ---------- Kosten je Filiale ----------

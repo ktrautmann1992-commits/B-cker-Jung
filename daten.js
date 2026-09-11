@@ -26,7 +26,7 @@ function getStore(name) {
   return blobs.getStore({ name: name, siteID: siteID, token: token, consistency: 'strong' });
 }
 
-const BEREICHE = ['personal', 'kosten', 'dienstplan', 'kunden'];
+const BEREICHE = ['personal', 'kosten', 'dienstplan', 'kunden', 'gewinn'];
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
