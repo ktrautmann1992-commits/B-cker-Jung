@@ -587,21 +587,27 @@
   <!-- ---------- Gewinnbeteiligung ---------- -->
   <div class="karte verstecken" id="bereich-gewinn">
     <div class="raster" style="margin-bottom:12px">
-      <div style="flex:0 0 170px">
+      <div style="flex:1 1 150px;min-width:0">
         <label class="feldname" for="gw-monat">Monat</label>
-        <input type="date" id="gw-monat">
+        <select id="gw-monat"></select>
       </div>
-      <div style="flex:0 0 120px">
+      <div style="flex:1 1 110px;min-width:0">
+        <label class="feldname" for="gw-jahr">Jahr</label>
+        <select id="gw-jahr"></select>
+      </div>
+    </div>
+    <div class="raster" style="margin-bottom:14px">
+      <div style="flex:1 1 110px;min-width:0">
         <label class="feldname" for="gw-quote">Beteiligung %</label>
-        <input class="klein" type="text" id="gw-quote" inputmode="decimal" value="20">
+        <input type="text" id="gw-quote" inputmode="decimal" value="20">
       </div>
-      <div style="flex:0 0 120px">
+      <div style="flex:1 1 110px;min-width:0">
         <label class="feldname" for="gw-mwst">MwSt %</label>
-        <input class="klein" type="text" id="gw-mwst" inputmode="decimal" value="7">
+        <input type="text" id="gw-mwst" inputmode="decimal" value="7">
       </div>
-      <div style="flex:0 0 150px">
+      <div style="flex:1 1 130px;min-width:0">
         <label class="feldname" for="gw-mindest">Mindeststunden</label>
-        <input class="klein" type="text" id="gw-mindest" inputmode="decimal" value="20">
+        <input type="text" id="gw-mindest" inputmode="decimal" value="20">
       </div>
     </div>
     <div id="gewinn-meldung"></div>
@@ -706,6 +712,15 @@
   }
 
   // ---------- Daten holen ----------
+  var letzteLadung = 0;
+  var FRISCH = 90000;   // 90 Sekunden gelten die Daten als aktuell
+
+  // Lädt nur, wenn die Daten älter als 90 Sekunden sind
+  function ladenWennNoetig(fertig) {
+    if (bestellungen.length && (Date.now() - letzteLadung) < FRISCH) { fertig(null); return; }
+    laden(fertig);
+  }
+
   function laden(fertig) {
     stammdatenLaden();
     fetch(ENDPUNKT, {
@@ -727,6 +742,7 @@
       el('stand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE',
         { hour: '2-digit', minute: '2-digit' }) + ' \u00b7 ' + bestellungen.length + ' Bestellungen';
       melde('', '');
+      letzteLadung = Date.now();
       glockeZeichnen();
       fertig(null);
     })
@@ -839,6 +855,7 @@
   }
 
   el('neuladen').addEventListener('click', function () {
+    letzteLadung = 0;   // ausdrücklich angefordert: immer frisch holen
     el('neuladen').disabled = true;
     melde('Bestellungen werden geladen \u2026', 'ladend');
     laden(function (fehler) {
@@ -1061,9 +1078,13 @@
   el('umsatz-datum').value = heute.toISOString().slice(0, 10);
   el('umsatz-datum').addEventListener('change', umsatzTagLaden);
 
+  var umsatzTagGeladen = '';
+
   function umsatzTagLaden() {
     var tag = el('umsatz-datum').value;
     if (!tag) return;
+    if (tag === umsatzTagGeladen) { umsatzZeichnen(); return; }
+    umsatzTagGeladen = tag;
     meldeUmsatz('Umsätze werden geladen \u2026', 'ladend');
     fetch(ENDPUNKT_UMSATZ, {
       method: 'POST',
@@ -1216,6 +1237,8 @@
     })
     .then(function () {
       nurAufGeraet = false;
+      dashUmsatz = {};
+      umsatzSpeicher = {};   // geänderte Umsätze sollen sofort sichtbar sein
       meldeUmsatz('Umsätze für den ' + tag.split('-').reverse().join('.') + ' gespeichert.', 'gut');
       setTimeout(function () { meldeUmsatz('', ''); }, 3000);
     })
@@ -1363,14 +1386,24 @@
   }
   function zwei(n) { return (n < 10 ? '0' : '') + n; }
 
+  var umsatzSpeicher = {};   // Zeitraum -> { zeit, tage }
+
   function zeitraumLaden(z) {
+    var schluessel = z.von + '|' + z.bis;
+    var alt = umsatzSpeicher[schluessel];
+    if (alt && (Date.now() - alt.zeit) < FRISCH) return Promise.resolve(alt.tage);
+
     return fetch(ENDPUNKT_UMSATZ, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ passwort: passwort, aktion: 'zeitraum', von: z.von, bis: z.bis })
     })
     .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
-    .then(function (d) { return d.tage || {}; })
+    .then(function (d) {
+      var tage = d.tage || {};
+      umsatzSpeicher[z.von + '|' + z.bis] = { zeit: Date.now(), tage: tage };
+      return tage;
+    })
     .catch(function () { return vomGeraetZeitraum(z); });
   }
 
@@ -1808,7 +1841,9 @@
     if (!el('dash-stichtag').value) el('dash-stichtag').value = heute.toISOString().slice(0, 10);
     periodeFelder('dash');
     var z = periodeLesen('dash');
-    el('dashboard-inhalt').innerHTML = '<div class="leer">Zahlen werden geladen \u2026</div>';
+    if (!el('dashboard-inhalt').innerHTML) {
+      el('dashboard-inhalt').innerHTML = '<div class="leer">Zahlen werden geladen \u2026</div>';
+    }
     Promise.all([zeitraumLaden(z), personalHolen(), kostenHolen()]).then(function (e) {
       dashUmsatz = e[0];
       dashboardZeichnen(z);
@@ -2212,15 +2247,24 @@
     if (glockeOffen) feldZeichnen();
   });
 
-  // Alle zwei Minuten still nachsehen, ob etwas eingegangen ist
-  setInterval(function () {
+  // Alle zehn Minuten nachsehen – aber nur, wenn die Seite gerade sichtbar ist.
+  // Liegt das Handy in der Tasche, fragt die Ansicht gar nicht nach.
+  function stillNachsehen() {
+    if (document.hidden) return;
     laden(function (fehler) {
       if (fehler) return;
       glockeZeichnen();
       if (ansicht === 'dashboard') dashboardLaden();
       else if (ansicht === 'bestellungen' || ansicht === 'verkauf') zeichnen();
     });
-  }, 120000);
+  }
+
+  setInterval(stillNachsehen, 600000);
+
+  // Beim Zurückkehren auf die Seite einmal nachsehen, falls die Daten alt sind
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && (Date.now() - letzteLadung) > FRISCH) stillNachsehen();
+  });
 
   // ---------- Gemeinsame Ablage (Personal, Kosten, Dienstpläne) ----------
   var ENDPUNKT_DATEN = '/.netlify/functions/daten';
@@ -2252,17 +2296,20 @@
   var FUNKTIONEN = ['Verkauf', 'Filialleitung', 'B\u00e4cker', 'Konditor', 'Fahrer', 'Auszubildende', 'Aushilfe', 'B\u00fcro'];
   var VERTRAEGE  = ['Vollzeit', 'Teilzeit', 'Minijob', 'Ausbildung', 'Aushilfe'];
 
+  var personalGeladen = false;
+
   function personalHolen() {
-    if (personal.length) return Promise.resolve(personal);
+    if (personalGeladen) return Promise.resolve(personal);
     return ablageLesen('personal', 'alle', { mitarbeiter: [] }).then(function (d) {
       personal = d.mitarbeiter || [];
+      personalGeladen = true;
       return personal;
     });
   }
 
   function personalLaden() {
+    if (personalGeladen) { personalZeichnen(); return; }
     meldePersonal('Personal wird geladen \u2026', 'ladend');
-    personal = [];
     personalHolen().then(function () { meldePersonal('', ''); personalZeichnen(); });
   }
 
@@ -2484,11 +2531,18 @@
 
   // ---------- Kunden ----------
   var kunden = [];
+  var kundenGeladen = false;
+
+  var kundenLaeuft = false;
 
   function kundenLaden() {
+    if (kundenGeladen || kundenLaeuft) { kundenZeichnen(); return; }
+    kundenLaeuft = true;
     meldeKunden('Kunden werden geladen \u2026', 'ladend');
     ablageLesen('kunden', 'alle', { kunden: [] }).then(function (d) {
       kunden = d.kunden || [];
+      kundenGeladen = true;
+      kundenLaeuft = false;
       meldeKunden('', '');
       kundenZeichnen();
     });
@@ -2705,21 +2759,38 @@
   var gwUmsatz = {};
   var gwMonat = '';
 
-  el('gw-monat').value = heute.toISOString().slice(0, 10);
+  (function monatsAuswahlFuellen() {
+    monatsnamen.forEach(function (name, i) {
+      var o = document.createElement('option');
+      o.value = zwei(i + 1); o.textContent = name;
+      el('gw-monat').appendChild(o);
+    });
+    var jetzt = heute.getFullYear();
+    for (var j = jetzt + 1; j >= jetzt - 3; j--) {
+      var o = document.createElement('option');
+      o.value = j; o.textContent = j;
+      el('gw-jahr').appendChild(o);
+    }
+    el('gw-monat').value = zwei(heute.getMonth() + 1);
+    el('gw-jahr').value = jetzt;
+  })();
+
   el('gw-monat').addEventListener('change', gewinnLaden);
+  el('gw-jahr').addEventListener('change', gewinnLaden);
   ['gw-quote', 'gw-mwst', 'gw-mindest'].forEach(function (id) {
     el(id).addEventListener('input', gewinnZeichnen);
   });
 
-  function monatsGrenzen(iso) {
-    var t = iso.split('-');
-    var letzter = new Date(+t[0], +t[1], 0).getDate();
-    return { von: t[0] + '-' + t[1] + '-01', bis: t[0] + '-' + t[1] + '-' + zwei(letzter),
-             schluessel: t[0] + '-' + t[1], name: monatsnamen[+t[1] - 1] + ' ' + t[0] };
+  function monatsGrenzen() {
+    var jahr = el('gw-jahr').value || String(heute.getFullYear());
+    var monat = el('gw-monat').value || zwei(heute.getMonth() + 1);
+    var letzter = new Date(+jahr, +monat, 0).getDate();
+    return { von: jahr + '-' + monat + '-01', bis: jahr + '-' + monat + '-' + zwei(letzter),
+             schluessel: jahr + '-' + monat, name: monatsnamen[+monat - 1] + ' ' + jahr };
   }
 
   function gewinnLaden() {
-    var m = monatsGrenzen(el('gw-monat').value || heute.toISOString().slice(0, 10));
+    var m = monatsGrenzen();
     gwMonat = m.schluessel;
     meldeGewinn('Zahlen werden geladen \u2026', 'ladend');
     Promise.all([
@@ -2798,7 +2869,7 @@
   var gwErgebnisse = [];
 
   function gewinnZeichnen() {
-    var m = monatsGrenzen(el('gw-monat').value);
+    var m = monatsGrenzen();
     gwErgebnisse = alleFilialen.map(function (ort) { return gewinnRechnen(ort, m); });
 
     var summeTopf = gwErgebnisse.reduce(function (s, e) { return s + e.auszahlung; }, 0);
@@ -2891,7 +2962,7 @@
 
   el('gw-pdf').addEventListener('click', function () {
     if (!window.jspdf || !gwErgebnisse.length) return;
-    var m = monatsGrenzen(el('gw-monat').value);
+    var m = monatsGrenzen();
     var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
     doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(46, 42, 121);
     doc.text('Gewinnbeteiligung ' + entziffert(m.name), 40, 52);
@@ -2934,17 +3005,20 @@
   }
 
   // ---------- Kosten je Filiale ----------
+  var kostenGeladen = false;
+
   function kostenHolen() {
-    if (Object.keys(kosten).length) return Promise.resolve(kosten);
+    if (kostenGeladen) return Promise.resolve(kosten);
     return ablageLesen('kosten', 'alle', { filialen: {} }).then(function (d) {
       kosten = d.filialen || {};
+      kostenGeladen = true;
       return kosten;
     });
   }
 
   function kostenLaden() {
+    if (kostenGeladen) { kostenZeichnen(); return; }
     meldeKosten('Kosten werden geladen \u2026', 'ladend');
-    kosten = {};
     Promise.all([personalHolen(), kostenHolen()]).then(function () {
       meldeKosten('', ''); kostenZeichnen();
     });

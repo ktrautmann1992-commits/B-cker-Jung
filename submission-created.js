@@ -41,17 +41,33 @@ exports.handler = async function (event) {
     warenwert:  d.warenwert  || d.retourenwert || '',
     quote:      d.quote      || '',
     art:        istRetoure ? 'retoure' : 'bestellung',
+    bestellart: d.bestellart || 'neu',
     bemerkung:  d.bemerkung  || '',
     uebersicht: d.uebersicht || '',
     csv:        dateiUrl(d.csv),
     pdf:        dateiUrl(d.pdf)
   };
 
+  const name = istRetoure ? 'retouren' : 'bestellungen';
+
   try {
-    const ablage = getStore(istRetoure ? 'retouren' : 'bestellungen');
+    const ablage = getStore(name);
     // Schlüssel nach Datum sortierbar: Bestelldatum, Filiale, Eingangs-ID
     const tag = istDatum(bestellung.datum) ? umgedreht(bestellung.datum) : bestellung.erstellt.slice(0, 10);
     await ablage.setJSON(tag + '/' + sauber(bestellung.filiale) + '-' + bestellung.id, bestellung);
+
+    // Sammeldatei mitführen: die Chef-Ansicht liest nur noch diese eine Datei
+    try {
+      const sammlung = (await ablage.get('sammlung', { type: 'json' })) || { eintraege: [] };
+      const liste = (sammlung.eintraege || []).filter(function (b) { return b.id !== bestellung.id; });
+      liste.push(bestellung);
+      liste.sort(function (a, b) { return String(a.erstellt) < String(b.erstellt) ? 1 : -1; });
+      await ablage.setJSON('sammlung', {
+        eintraege: liste, anzahl: liste.length, geaendert: new Date().toISOString()
+      });
+    } catch (fehler) {
+      console.error('Sammeldatei nicht aktualisiert:', fehler.message);
+    }
   } catch (fehler) {
     console.error('Bestellung konnte nicht abgelegt werden:', fehler.message);
   }

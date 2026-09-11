@@ -80,8 +80,9 @@ exports.handler = async function (event) {
       const alle = await ausArchiv('bestellungen');
       const deutsch = datum.split('-').reverse().join('.');
       const positionen = [];
-      alle.filter(function (b) { return b.filiale === filiale && b.datum === deutsch; })
-        .forEach(function (b) {
+      const gueltige = ohneErsetzte(
+        alle.filter(function (b) { return b.filiale === filiale && b.datum === deutsch; }));
+      gueltige.forEach(function (b) {
           String(b.uebersicht || '').split('\n').forEach(function (zeile) {
             const s = zeile.split('\t');
             if (s.length >= 3) {
@@ -100,8 +101,11 @@ exports.handler = async function (event) {
             }
           });
         });
+      const zuletzt = gueltige.length
+        ? gueltige.map(function (x) { return x.erstellt; }).sort().slice(-1)[0] : '';
       return antwort(200, { filiale: filiale, datum: datum,
-                            positionen: positionen, retouren: retourPositionen });
+                            positionen: positionen, retouren: retourPositionen,
+                            anzahl: gueltige.length, zuletzt: zuletzt });
     } catch (fehler) {
       return antwort(502, { fehler: 'Die Lieferung konnte nicht geladen werden.' });
     }
@@ -127,8 +131,10 @@ exports.handler = async function (event) {
         const schluessel = (liste.blobs || []).map(function (x) { return x.key; });
         for (const k of schluessel) {
           await ablage.delete(k);
-          bericht.archiv++;
+          if (k !== 'sammlung') bericht.archiv++;
         }
+        await ablage.setJSON('sammlung', { eintraege: [], anzahl: 0,
+                                           geaendert: new Date().toISOString() });
       } catch (fehler) {
         bericht.fehler.push(name + ': ' + fehler.message);
       }
@@ -171,9 +177,11 @@ exports.handler = async function (event) {
   const retouren = await ausArchiv('retouren');
 
   // Zusätzlich die Formulareingänge, falls ein Token hinterlegt ist
+  // Die Formulareingänge werden nur gelesen, wenn FORMULARE_MITLESEN auf "ja" steht.
+  // Sonst genügt das Archiv – das spart bei jedem Aufruf mehrere Anfragen an Netlify.
   const token = process.env.NETLIFY_API_TOKEN;
   const siteId = process.env.SITE_ID;
-  if (token && siteId) {
+  if (token && siteId && String(process.env.FORMULARE_MITLESEN || '').toLowerCase() === 'ja') {
     try {
       const kopf = { Authorization: 'Bearer ' + token };
       const formulare = await hole(API + '/sites/' + siteId + '/forms', kopf);
@@ -192,6 +200,7 @@ exports.handler = async function (event) {
                 besteller: d.besteller || '', positionen: d.positionen || '0',
                 stueck: d.stueck || '0', warenwert: d.warenwert || '',
                 bemerkung: d.bemerkung || '', uebersicht: d.uebersicht || '',
+                bestellart: d.bestellart || 'neu',
                 csv: dateiUrl(d.csv), pdf: dateiUrl(d.pdf)
               };
             }
@@ -204,19 +213,59 @@ exports.handler = async function (event) {
     }
   }
 
-  const bestellungen = Object.keys(gefunden).map(function (k) { return gefunden[k]; })
+  const bestellungen = markiereErsetzte(
+    Object.keys(gefunden).map(function (k) { return gefunden[k]; }))
     .sort(function (a, b) { return String(a.erstellt) < String(b.erstellt) ? 1 : -1; });
 
   return antwort(200, { bestellungen: bestellungen, retouren: retouren });
 };
 
-// Alle Einträge eines Archivs lesen
+// Eine Korrektur ersetzt alle früheren Bestellungen derselben Filiale am selben Liefertag
+function markiereErsetzte(liste) {
+  const gruppen = {};
+  liste.forEach(function (b) {
+    const schluessel = (b.filiale || '') + '|' + (b.datum || '');
+    (gruppen[schluessel] = gruppen[schluessel] || []).push(b);
+  });
+  Object.keys(gruppen).forEach(function (k) {
+    const teil = gruppen[k].sort(function (a, b) {
+      return String(a.erstellt) < String(b.erstellt) ? -1 : 1;
+    });
+    let letzteKorrektur = -1;
+    teil.forEach(function (b, i) { if (b.bestellart === 'korrektur') letzteKorrektur = i; });
+    teil.forEach(function (b, i) { b.ersetzt = (i < letzteKorrektur); });
+  });
+  return liste;
+}
+
+function ohneErsetzte(liste) {
+  return markiereErsetzte(liste).filter(function (b) { return !b.ersetzt; });
+}
+
+// Alle Einträge eines Archivs lesen.
+// Zuerst die Sammeldatei – das ist ein einziger Lesevorgang statt hunderter.
 async function ausArchiv(name) {
-  const treffer = [];
   try {
     const ablage = getStore(name);
+    const sammlung = await ablage.get('sammlung', { type: 'json' });
+    if (sammlung && Array.isArray(sammlung.eintraege)) {
+      return sammlung.eintraege;
+    }
+    // Noch keine Sammeldatei: einmal alles einlesen und dabei anlegen
+    return await sammlungAufbauen(name, ablage);
+  } catch (fehler) {
+    console.error('Archiv ' + name + ' nicht lesbar:', fehler.message);
+    return [];
+  }
+}
+
+// Liest jeden Eintrag einzeln und legt daraus die Sammeldatei an
+async function sammlungAufbauen(name, ablage) {
+  const treffer = [];
+  try {
     const liste = await ablage.list();
-    const schluessel = (liste.blobs || []).map(function (b) { return b.key; }).sort();
+    const schluessel = (liste.blobs || []).map(function (b) { return b.key; })
+      .filter(function (k) { return k !== 'sammlung' && k.indexOf('probe/') !== 0; }).sort();
     for (let i = 0; i < schluessel.length; i += 25) {
       const teil = schluessel.slice(i, i + 25);
       const daten = await Promise.all(teil.map(function (k) {
@@ -224,8 +273,12 @@ async function ausArchiv(name) {
       }));
       daten.forEach(function (b) { if (b && b.id) treffer.push(b); });
     }
+    treffer.sort(function (a, b) { return String(a.erstellt) < String(b.erstellt) ? 1 : -1; });
+    await ablage.setJSON('sammlung', {
+      eintraege: treffer, anzahl: treffer.length, geaendert: new Date().toISOString()
+    });
   } catch (fehler) {
-    console.error('Archiv ' + name + ' nicht lesbar:', fehler.message);
+    console.error('Sammeldatei ' + name + ' nicht aufgebaut:', fehler.message);
   }
   return treffer;
 }
