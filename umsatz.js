@@ -94,6 +94,60 @@ exports.handler = async function (event) {
     }
   }
 
+  // Stand zum Monatsziel für eine Filiale (für das Formular der Filiale)
+  if (eingabe.aktion === 'monatsstand') {
+    const filiale = String(eingabe.filiale || '').slice(0, 80);
+    const monat = String(eingabe.monat || '');
+    if (!filiale || !/^\d{4}-\d{2}$/.test(monat)) {
+      return antwort(400, { fehler: 'Filiale und Monat im Format JJJJ-MM senden.' });
+    }
+    try {
+      const ablage = getStore('tagesumsatz');
+      const liste = await ablage.list({ prefix: monat });
+      const schluessel = (liste.blobs || []).map(function (x) { return x.key; }).sort();
+
+      let brutto = 0;
+      let tage = 0;
+      for (let i = 0; i < schluessel.length; i += 20) {
+        const teil = schluessel.slice(i, i + 20);
+        const daten = await Promise.all(teil.map(function (k) {
+          return ablage.get(k, { type: 'json' }).catch(function () { return null; });
+        }));
+        daten.forEach(function (d) {
+          const wert = Number(((d || {}).umsaetze || {})[filiale]) || 0;
+          if (wert > 0) { brutto += wert; tage++; }
+        });
+      }
+
+      // Ziel und Einstellungen aus der Gewinnbeteiligung holen
+      let ziel = 0, quote = 20, mwst = 7;
+      try {
+        const chefdaten = getStore('chefdaten');
+        const g = (await chefdaten.get('gewinn/' + monat, { type: 'json' })) || {};
+        ziel = Number((g.ziele || {})[filiale]) || 0;
+        const ein = g.einstellung || {};
+        if (ein.quote !== undefined && ein.quote !== '') quote = Number(ein.quote) || 0;
+        if (ein.mwst !== undefined && ein.mwst !== '') mwst = Number(ein.mwst) || 0;
+      } catch (fehler) { /* ohne Ziel läuft die Meldung trotzdem */ }
+
+      const netto = brutto / (1 + mwst / 100);
+      const fehlt = Math.max(0, ziel - netto);
+      const ueber = Math.max(0, netto - ziel);
+
+      return antwort(200, {
+        filiale: filiale, monat: monat, tage: tage,
+        brutto: Math.round(brutto * 100) / 100,
+        netto: Math.round(netto * 100) / 100,
+        ziel: ziel, fehlt: Math.round(fehlt * 100) / 100,
+        ueber: Math.round(ueber * 100) / 100,
+        topf: Math.round(ueber * quote / 100 * 100) / 100,
+        quote: quote, mwst: mwst
+      });
+    } catch (fehler) {
+      return antwort(502, { fehler: 'Der Monatsstand ist gerade nicht abrufbar.' });
+    }
+  }
+
   // Meldung einer einzelnen Filiale (aus dem Formular der Filiale)
   if (eingabe.aktion === 'filiale') {
     const filiale = String(eingabe.filiale || '').slice(0, 80);

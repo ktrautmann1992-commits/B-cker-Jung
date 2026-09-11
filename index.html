@@ -220,12 +220,43 @@
   .leiste-zeichen { font-size: 17px; width: 22px; text-align: center; }
   .leiste-trenner { height: 1px; background: var(--linie); margin: 10px 18px; }
 
+  .ziel-kopf {
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 16px;
+    margin: 0 0 3px;
+  }
+  .ziel-spur {
+    height: 22px; background: #F0EEF6; border-radius: 11px;
+    overflow: hidden; margin: 12px 0 8px;
+  }
+  .ziel-fuellung {
+    height: 100%; border-radius: 11px;
+    background: linear-gradient(90deg, #4A44B0, #2E2A79);
+    transition: width .4s;
+  }
+  .ziel-fuellung.geschafft { background: linear-gradient(90deg, #34A264, #1E7B45); }
+  .ziel-zahlen { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .ziel-zahl {
+    flex: 1 1 120px; background: var(--papier); border: 1px solid var(--linie);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .ziel-zahl span {
+    display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--grau); margin-bottom: 3px;
+  }
+  .ziel-zahl b { font-family: 'Nunito', sans-serif; font-size: 19px; }
+
   .vergleich {
     margin-top: 12px; padding: 11px 13px; border-radius: 10px;
     background: #F4F2FB; font-size: 13.5px; line-height: 1.5;
   }
   .vergleich.abweichung { background: #FFFBEA; }
   .vergleich b { display: block; }
+
+  label.haken {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 9px 2px; font-size: 14px; line-height: 1.4; cursor: pointer;
+  }
+  label.haken input { width: 21px; height: 21px; margin-top: 1px; flex: 0 0 auto; accent-color: var(--blau); }
 
   .verstecken { display: none !important; }
 </style>
@@ -245,7 +276,8 @@
   <input type="text" name="filiale"><input type="text" name="datum">
   <input type="text" name="besteller"><input type="text" name="positionen">
   <input type="text" name="stueck"><input type="text" name="warenwert">
-  <input type="text" name="bemerkung"><textarea name="uebersicht"></textarea>
+  <input type="text" name="bemerkung"><input type="text" name="bestellart">
+  <textarea name="uebersicht"></textarea>
   <input type="file" name="csv"><input type="file" name="pdf">
 </form>
 <form name="retoure" data-netlify="true" enctype="multipart/form-data" hidden>
@@ -359,6 +391,12 @@
         <input type="text" id="b-besteller" placeholder="Vor- und Nachname"
                autocomplete="name" autocapitalize="words">
       </div>
+      <div id="b-vorhanden" class="verstecken"></div>
+      <div id="b-art" class="verstecken">
+        <label class="haken"><input type="checkbox" id="b-korrektur">
+          <span><b>Bestellung korrigieren</b> &ndash; die bisherigen Mengen werden geladen und
+          k&ouml;nnen ge&auml;ndert werden. Die alte Bestellung wird dadurch ersetzt.</span></label>
+      </div>
     </div>
 
     <div class="karte">
@@ -443,6 +481,10 @@
       </div>
       <div id="u-vergleich" class="vergleich verstecken"></div>
       <button class="haupt" type="button" id="u-senden">Tagesumsatz senden</button>
+    </div>
+
+    <div class="karte verstecken" id="u-ziel">
+      <div id="u-ziel-inhalt"></div>
     </div>
   </div>
 </main>
@@ -836,6 +878,68 @@
     if (art === 'b') listeBestellungZeichnen(); else listeRetoureZeichnen();
   }
 
+  // ---------- Schon eine Bestellung für diesen Liefertag? ----------
+  var schonBestellt = 0;
+  var vorherigeMengen = {};
+
+  el('b-filiale').addEventListener('change', vorherigePruefen);
+  el('b-datum').addEventListener('change', vorherigePruefen);
+
+  el('b-korrektur').addEventListener('change', function () {
+    if (el('b-korrektur').checked) {
+      mengen = {};
+      Object.keys(vorherigeMengen).forEach(function (nr) { mengen[nr] = vorherigeMengen[nr]; });
+      nurGefuelltB = true;
+      el('b-nur-gefuellt').classList.add('an');
+      melde('b', 'Die bisherige Bestellung ist eingetragen. Jetzt die Mengen \u00e4ndern, ' +
+        'die anders sein sollen \u2013 auf 0 setzen entfernt einen Artikel.', 'hinweis');
+    } else {
+      mengen = {};
+      nurGefuelltB = false;
+      el('b-nur-gefuellt').classList.remove('an');
+      melde('b', '', '');
+    }
+    summeZeichnen();
+    listeBestellungZeichnen();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  function vorherigePruefen() {
+    var ort = el('b-filiale').value, tag = el('b-datum').value;
+    schonBestellt = 0;
+    vorherigeMengen = {};
+    el('b-vorhanden').classList.add('verstecken');
+    el('b-art').classList.add('verstecken');
+    el('b-korrektur').checked = false;
+    if (!ort || !tag) return;
+
+    fetch('/.netlify/functions/bestellungen', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'tagesbestellung', filiale: ort, datum: tag })
+    })
+    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
+    .then(function (d) {
+      schonBestellt = d.anzahl || 0;
+      if (!schonBestellt) return;
+      (d.positionen || []).forEach(function (p) {
+        vorherigeMengen[p.nr] = (vorherigeMengen[p.nr] || 0) + (parseInt(p.menge, 10) || 0);
+      });
+      var stueck = (d.positionen || []).reduce(function (s, p) {
+        return s + (parseInt(p.menge, 10) || 0); }, 0);
+      var zeit = d.zuletzt ? new Date(d.zuletzt).toLocaleString('de-DE',
+        { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+      el('b-vorhanden').innerHTML =
+        '<div class="meldung hinweis" style="margin:12px 0 0">' +
+        'F\u00fcr diesen Liefertag liegt bereits eine Bestellung vor: ' +
+        (d.positionen || []).length + ' Positionen, ' + stueck + ' St\u00fcck' +
+        (zeit ? ', zuletzt ' + zeit : '') + '.<br>Zum \u00c4ndern bitte unten ' +
+        '&bdquo;Bestellung korrigieren&ldquo; ankreuzen.</div>';
+      el('b-vorhanden').classList.remove('verstecken');
+      el('b-art').classList.remove('verstecken');
+    })
+    .catch(function () { /* ohne Verbindung läuft die Bestellung wie bisher */ });
+  }
+
   el('b-suche').addEventListener('input', listeBestellungZeichnen);
   el('b-nur-gefuellt').addEventListener('click', function () {
     nurGefuelltB = !nurGefuelltB;
@@ -1074,6 +1178,18 @@
     if (!datum)  { melde(vor, 'Bitte ein Datum eintragen.', 'fehler'); return; }
     if (!person) { melde(vor, 'Bitte eintragen, wer die Meldung abgibt.', 'fehler'); return; }
 
+    var bestellart = 'neu';
+    if (!retoure && schonBestellt) {
+      if (el('b-korrektur').checked) bestellart = 'korrektur';
+      else {
+        melde(vor, 'F\u00fcr diesen Liefertag gibt es schon eine Bestellung. Bitte unten ' +
+          '\u201eBestellung korrigieren\u201c ankreuzen \u2013 dann werden die bisherigen ' +
+          'Mengen geladen und k\u00f6nnen ge\u00e4ndert werden.', 'fehler');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+
     var f = filialen.filter(function (x) { return x.ort === ort; })[0] || { ort: ort, strasse: '' };
     var t = datum.split('-');
     var datumText = t[2] + '.' + t[1] + '.' + t[0];
@@ -1143,6 +1259,7 @@
     } else {
       paket.append('warenwert', wert.toFixed(2).replace('.', ',') + ' EUR');
     }
+    if (!retoure) paket.append('bestellart', bestellart);
     paket.append('bemerkung', bemerkung);
     paket.append('uebersicht', uebersicht);
     paket.append('csv', csvDatei);
@@ -1151,7 +1268,7 @@
     fetch('/', { method: 'POST', body: paket })
       .then(function (a) {
         if (!a.ok) throw new Error('Status ' + a.status);
-        fertigZeigen(retoure, f.ort, datumText, person, positionen.length, stueck, wert);
+        fertigZeigen(retoure, f.ort, datumText, person, positionen.length, stueck, wert, bestellart);
       })
       .catch(function (fehler) {
         herunterladen(csvDatei); herunterladen(pdfDatei);
@@ -1176,14 +1293,17 @@
     el('senden').textContent = modus === 'retoure' ? 'Retoure senden' : 'Bestellung senden';
   }
 
-  function fertigZeigen(retoure, ort, datumText, person, anzahl, stueck, wert) {
+  function fertigZeigen(retoure, ort, datumText, person, anzahl, stueck, wert, bestellart) {
+    var zusatz = bestellart === 'korrektur'
+      ? '<br><b>Korrektur:</b> Die vorherige Bestellung f\u00fcr diesen Liefertag wurde ersetzt.' : '';
     el('fuss').classList.add('verstecken');
     el('haupt').innerHTML =
       '<div class="fertig">' +
         '<div class="haken">\u2713</div>' +
         '<h2>' + (retoure ? 'Retoure gesendet' : 'Bestellung gesendet') + '</h2>' +
         '<p><b>' + txt(ort) + '</b> \u00b7 ' + txt(datumText) + ' \u00b7 ' + txt(person) + '<br>' +
-          anzahl + ' Positionen, ' + stueck + ' St\u00fcck \u00b7 ' + euro(wert) + '<br>' +
+          anzahl + ' Positionen, ' + stueck + ' St\u00fcck \u00b7 ' + euro(wert) +
+          (zusatz || '') + '<br>' +
           'Die B\u00e4ckerei hat CSV und PDF erhalten.</p>' +
         '<button type="button" onclick="location.reload()">Neue Eingabe</button>' +
       '</div>';
@@ -1202,6 +1322,7 @@
   }
 
   function umsatzVergleich() {
+    monatsstandLaden();
     var ort = el('u-filiale').value, tag = el('u-datum').value;
     errechnet = null;
     vergleichZeichnen();
@@ -1242,6 +1363,74 @@
         : 'Zum Vergleich, falls kein Bargeld fehlt.');
   }
 
+  // ---------- Stand zum Monatsziel ----------
+  function monatsstandLaden() {
+    var ort = el('u-filiale').value, tag = el('u-datum').value;
+    el('u-ziel').classList.add('verstecken');
+    if (!ort || !tag) return;
+
+    fetch('/.netlify/functions/umsatz', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktion: 'monatsstand', filiale: ort, monat: tag.slice(0, 7) })
+    })
+    .then(function (a) { if (!a.ok) throw new Error('Status ' + a.status); return a.json(); })
+    .then(zielZeichnen)
+    .catch(function () { /* ohne Ziel bleibt der Kasten aus */ });
+  }
+
+  var MONATSNAMEN = ['Januar', 'Februar', 'M\u00e4rz', 'April', 'Mai', 'Juni', 'Juli',
+                     'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+  function zielZeichnen(d) {
+    if (!d || !d.ziel) {
+      // Kein Ziel hinterlegt: nur den bisherigen Monatsumsatz zeigen
+      if (!d || !d.brutto) return;
+      el('u-ziel').classList.remove('verstecken');
+      el('u-ziel-inhalt').innerHTML =
+        '<div class="ziel-kopf">Bisher in diesem Monat</div>' +
+        '<div class="ziel-zahlen">' +
+          '<div class="ziel-zahl"><span>Umsatz gemeldet</span><b>' + euro(d.brutto) + '</b></div>' +
+          '<div class="ziel-zahl"><span>Tage erfasst</span><b>' + d.tage + '</b></div>' +
+        '</div>';
+      return;
+    }
+
+    var monat = MONATSNAMEN[parseInt(d.monat.slice(5, 7), 10) - 1] + ' ' + d.monat.slice(0, 4);
+    var anteil = Math.min(100, d.ziel ? d.netto / d.ziel * 100 : 0);
+    var geschafft = d.fehlt <= 0;
+
+    el('u-ziel').classList.remove('verstecken');
+    el('u-ziel-inhalt').innerHTML =
+      '<div class="ziel-kopf">' + (geschafft
+        ? '\u2713 Ziel erreicht \u2013 ' + monat
+        : 'Unser Monatsziel \u2013 ' + monat) + '</div>' +
+      '<div style="color:var(--grau);font-size:13px">' + txt(d.filiale) +
+        ' \u00b7 ' + d.tage + (d.tage === 1 ? ' Tag' : ' Tage') + ' gemeldet</div>' +
+      '<div class="ziel-spur"><div class="ziel-fuellung' + (geschafft ? ' geschafft' : '') +
+        '" style="width:' + anteil.toFixed(1) + '%"></div></div>' +
+      '<div style="font-size:14px;font-weight:600">' + anteil.toFixed(1).replace('.', ',') +
+        ' % des Ziels erreicht</div>' +
+      '<div class="ziel-zahlen">' +
+        '<div class="ziel-zahl"><span>Erreicht (netto)</span><b>' + euro(d.netto) + '</b></div>' +
+        '<div class="ziel-zahl"><span>Monatsziel</span><b>' + euro(d.ziel) + '</b></div>' +
+        (geschafft
+          ? '<div class="ziel-zahl"><span>Dar\u00fcber</span><b style="color:var(--gruen)">' +
+              euro(d.ueber) + '</b></div>' +
+            '<div class="ziel-zahl"><span>Beteiligung bisher</span><b style="color:var(--gruen)">' +
+              euro(d.topf) + '</b></div>'
+          : '<div class="ziel-zahl"><span>Noch n\u00f6tig</span><b style="color:var(--blau)">' +
+              euro(d.fehlt) + '</b></div>') +
+      '</div>' +
+      '<div style="margin-top:10px;font-size:13px;line-height:1.5;color:var(--grau)">' +
+        (geschafft
+          ? 'Jeder weitere Euro Umsatz erh\u00f6ht die Beteiligung um ' +
+            (d.quote / 100).toFixed(2).replace('.', ',') + ' \u20ac. Verteilt wird nach den ' +
+            'geleisteten Stunden.'
+          : 'Ab dem Monatsziel werden ' + d.quote + ' % des dar\u00fcber liegenden Umsatzes ' +
+            'an das Team dieser Filiale ausgezahlt \u2013 verteilt nach geleisteten Stunden.') +
+      '</div>';
+  }
+
   el('u-senden').addEventListener('click', function () {
     var ort = el('u-filiale').value;
     var tag = el('u-datum').value;
@@ -1269,14 +1458,29 @@
       });
     })
     .then(function () {
-      el('fuss').classList.add('verstecken');
-      el('haupt').innerHTML =
-        '<div class="fertig"><div class="haken">\u2713</div>' +
-        '<h2>Tagesumsatz gesendet</h2>' +
-        '<p><b>' + txt(ort) + '</b> \u00b7 ' + txt(tag.split('-').reverse().join('.')) +
-          '<br>' + euro(betrag) + ' \u00b7 gemeldet von ' + txt(melder) +
-          '<br>Der Wert steht sofort in der Chef-Ansicht.</p>' +
-        '<button type="button" onclick="location.reload()">Neue Eingabe</button></div>';
+      return fetch('/.netlify/functions/umsatz', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aktion: 'monatsstand', filiale: ort, monat: tag.slice(0, 7) })
+      })
+      .then(function (a) { return a.ok ? a.json() : null; })
+      .catch(function () { return null; })
+      .then(function (stand) {
+        var zusatz = '';
+        if (stand && stand.ziel) {
+          zusatz = stand.fehlt > 0
+            ? '<br><br><b>Bis zum Monatsziel fehlen noch ' + euro(stand.fehlt) + '.</b>'
+            : '<br><br><b style="color:var(--gruen)">Ziel geschafft! Beteiligung bisher ' +
+              euro(stand.topf) + '.</b>';
+        }
+        el('fuss').classList.add('verstecken');
+        el('haupt').innerHTML =
+          '<div class="fertig"><div class="haken">\u2713</div>' +
+          '<h2>Tagesumsatz gesendet</h2>' +
+          '<p><b>' + txt(ort) + '</b> \u00b7 ' + txt(tag.split('-').reverse().join('.')) +
+            '<br>' + euro(betrag) + ' \u00b7 gemeldet von ' + txt(melder) +
+            '<br>Der Wert steht sofort in der Chef-Ansicht.' + zusatz + '</p>' +
+          '<button type="button" onclick="location.reload()">Neue Eingabe</button></div>';
+      });
     })
     .catch(function (fehler) {
       melde('u', 'Das Senden hat nicht geklappt: ' + fehler.message, 'fehler');
