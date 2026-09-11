@@ -258,6 +258,29 @@
   }
   label.haken input { width: 21px; height: 21px; margin-top: 1px; flex: 0 0 auto; accent-color: var(--blau); }
 
+  /* ---------- Impressum ---------- */
+  .seitenfuss {
+    max-width: 720px; margin: 26px auto 0;
+    padding: 16px 14px calc(110px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--linie);
+    text-align: center;
+  }
+  .seitenfuss button {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    background: none; border: none; color: var(--grau);
+    text-decoration: underline; cursor: pointer; padding: 6px 10px;
+  }
+  .seitenfuss .angaben {
+    text-align: left; background: #fff; border: 1px solid var(--linie);
+    border-radius: 11px; padding: 14px 16px; margin-top: 10px;
+    font-size: 13px; line-height: 1.7; color: #17162B;
+  }
+  .seitenfuss .angaben h3 {
+    font-family: 'Nunito', sans-serif; font-size: 15px; margin: 0 0 8px;
+  }
+  .seitenfuss .angaben b { display: block; margin-top: 10px; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--grau); }
+
   .verstecken { display: none !important; }
 </style>
 </head>
@@ -489,6 +512,11 @@
   </div>
 </main>
 
+<footer class="seitenfuss" id="seitenfuss">
+  <button type="button" id="impressum-auf">Impressum</button>
+  <div id="impressum" class="verstecken"></div>
+</footer>
+
 <div class="fuss verstecken" id="fuss">
   <div class="summe">
     <b id="summe-zahl">0 Positionen</b>
@@ -501,6 +529,22 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
+  // ---------- Firmenangaben ----------
+  // Hier eintragen, was noch fehlt. Leere Felder werden einfach nicht angezeigt.
+  var FIRMA = {
+    name: 'B\u00e4ckerei Jung',
+    rechtsform: '',                       // z. B. "B\u00e4ckerei Jung GmbH"
+    strasse: 'Walter-Eucken-Stra\u00dfe 11',
+    ort: '66877 Ramstein-Miesenbach',
+    geschaeftsfuehrer: 'Matthias Jung',
+    telefon: '',                          // z. B. "06371 123456"
+    email: '',                            // z. B. "info@baecker-jung.com"
+    register: '',                         // z. B. "Amtsgericht Kaiserslautern, HRB 12345"
+    ustId: '',                            // z. B. "DE123456789"
+    kammer: '',                           // z. B. "Handwerkskammer der Pfalz"
+    aufsicht: ''                          // falls erforderlich
+  };
+
   var artikel = [], filialen = [], artikelNach = {};
   var mengen = {};        // Bestellung: nr -> Menge
   var retouren = {};      // Retoure:    nr -> Menge
@@ -1146,23 +1190,66 @@
 
   function kopfPdf(titel, f, datumText, person, datumsName) {
     var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+
+    // Logo oben links
+    try {
+      var bild = document.querySelector('header img');
+      if (bild && String(bild.src).indexOf('data:image') === 0) {
+        doc.addImage(bild.src, 'PNG', 40, 34, 55, 35);
+      }
+    } catch (e) { /* ohne Logo geht es auch */ }
+
+    // Absender rechtsbündig
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+    doc.setTextColor(110, 110, 110);
+    [FIRMA.name, FIRMA.strasse, FIRMA.ort,
+     FIRMA.telefon ? 'Tel. ' + FIRMA.telefon : '', FIRMA.email].forEach(function (zeile, i) {
+      if (zeile) doc.text(zeile, 555, 40 + i * 11, { align: 'right' });
+    });
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
     doc.setTextColor(46, 42, 121);
-    doc.text(titel, 40, 52);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-    doc.setTextColor(90, 90, 90);
-    doc.text('Baeckerei Jung, Walter Eucken Str. 11, 66877 Ramstein-Miesenbach', 40, 68);
+    doc.text(titel, 110, 60);
+
     doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5);
-    doc.line(40, 76, 555, 76);
+    doc.line(40, 88, 555, 88);
+
     doc.setTextColor(20, 20, 20); doc.setFontSize(11);
-    var y = 98;
-    [['Filiale:', f.ort], ['Anschrift:', f.strasse || '-'],
+    var y = 112;
+    [[istKunde() ? 'Kunde:' : 'Filiale:', f.ort], ['Anschrift:', f.strasse || '-'],
      [datumsName, datumText], ['Gemeldet von:', person]].forEach(function (p) {
       doc.setFont('helvetica', 'bold'); doc.text(p[0], 40, y);
       doc.setFont('helvetica', 'normal'); doc.text(String(p[1]), 130, y);
       y += 16;
     });
+
+    fussPdf(doc);
     return doc;
+  }
+
+  function istKunde() { return !!kunde; }
+
+  // Fußzeile mit den Pflichtangaben
+  function fussPdf(doc) {
+    doc.setDrawColor(221, 218, 232); doc.setLineWidth(0.6);
+    doc.line(40, 792, 555, 792);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+    doc.setTextColor(130, 130, 130);
+    var teile = [FIRMA.name, FIRMA.strasse, FIRMA.ort];
+    if (FIRMA.geschaeftsfuehrer) teile.push('Gesch\u00e4ftsf\u00fchrer: ' + FIRMA.geschaeftsfuehrer);
+    doc.text(teile.join('  \u00b7  '), 40, 806);
+    var zweite = [];
+    if (FIRMA.telefon) zweite.push('Tel. ' + FIRMA.telefon);
+    if (FIRMA.email) zweite.push(FIRMA.email);
+    if (FIRMA.ustId) zweite.push('USt-IdNr. ' + FIRMA.ustId);
+    if (zweite.length) doc.text(zweite.join('  \u00b7  '), 40, 817);
+    doc.setTextColor(20, 20, 20);
+  }
+
+  function ohneUmlaute(s) {
+    return String(s).replace(/\u00e4/g, 'ae').replace(/\u00f6/g, 'oe').replace(/\u00fc/g, 'ue')
+      .replace(/\u00c4/g, 'Ae').replace(/\u00d6/g, 'Oe').replace(/\u00dc/g, 'Ue')
+      .replace(/\u00df/g, 'ss');
   }
 
   // ---------- Senden ----------
@@ -1488,6 +1575,52 @@
       el('u-senden').textContent = 'Tagesumsatz senden';
     });
   });
+
+  // ---------- Impressum ----------
+  el('impressum-auf').addEventListener('click', function () {
+    var kasten = el('impressum');
+    var offen = !kasten.classList.contains('verstecken');
+    if (offen) {
+      kasten.classList.add('verstecken');
+      el('impressum-auf').textContent = 'Impressum';
+      return;
+    }
+    kasten.innerHTML = impressumHtml();
+    kasten.classList.remove('verstecken');
+    el('impressum-auf').textContent = 'Impressum schlie\u00dfen';
+    kasten.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  function impressumHtml() {
+    var zeilen = '<h3>Impressum</h3>' +
+      '<b>Angaben gem\u00e4\u00df \u00a7 5 DDG</b>' +
+      txt(FIRMA.rechtsform || FIRMA.name) + '<br>' +
+      txt(FIRMA.strasse) + '<br>' + txt(FIRMA.ort);
+
+    if (FIRMA.geschaeftsfuehrer) {
+      zeilen += '<b>Vertreten durch</b>' + txt(FIRMA.geschaeftsfuehrer);
+    }
+    var kontakt = [];
+    if (FIRMA.telefon) kontakt.push('Telefon: ' + txt(FIRMA.telefon));
+    if (FIRMA.email) kontakt.push('E-Mail: <a href="mailto:' + txt(FIRMA.email) + '">' +
+      txt(FIRMA.email) + '</a>');
+    if (kontakt.length) zeilen += '<b>Kontakt</b>' + kontakt.join('<br>');
+
+    if (FIRMA.register) zeilen += '<b>Registereintrag</b>' + txt(FIRMA.register);
+    if (FIRMA.ustId) zeilen += '<b>Umsatzsteuer-Identifikationsnummer</b>' + txt(FIRMA.ustId);
+    if (FIRMA.kammer) {
+      zeilen += '<b>Zust\u00e4ndige Kammer</b>' + txt(FIRMA.kammer) +
+        '<br>Berufsbezeichnung: B\u00e4ckermeister, verliehen in Deutschland' +
+        '<br>Es gelten die Handwerksordnung (HwO) und die B\u00e4ckerhandwerks-Verordnung.';
+    }
+    if (FIRMA.aufsicht) zeilen += '<b>Aufsichtsbeh\u00f6rde</b>' + txt(FIRMA.aufsicht);
+
+    zeilen += '<b>Verbraucherstreitbeilegung</b>' +
+      'Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer ' +
+      'Verbraucherschlichtungsstelle teilzunehmen.';
+
+    return '<div class="angaben">' + zeilen + '</div>';
+  }
 
   function melde(vor, text, art) {
     el('meldung-' + vor).innerHTML = text
