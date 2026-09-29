@@ -44,6 +44,7 @@ exports.handler = async function (event) {
     bestellart: d.bestellart || 'neu',
     bemerkung:  d.bemerkung  || '',
     uebersicht: d.uebersicht || '',
+    artikelbemerkungen: d.artikelbemerkungen || '',
     csv:        dateiUrl(d.csv),
     pdf:        dateiUrl(d.pdf)
   };

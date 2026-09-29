@@ -148,8 +148,37 @@
   .raster > div { flex: 1 1 150px; min-width: 0; max-width: 100%; }
 
   /* ---------- Reiter ---------- */
+  .reiter-huelle { position: relative; margin-bottom: 14px; }
+
+  /* Weicher Auslauf an den Seiten: zeigt, dass es weitergeht */
+  .reiter-huelle::before, .reiter-huelle::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 46px;
+    pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 1;
+  }
+  .reiter-huelle::before {
+    left: 0; background: linear-gradient(90deg, var(--papier) 30%, rgba(251,250,246,0));
+  }
+  .reiter-huelle::after {
+    right: 0; background: linear-gradient(270deg, var(--papier) 30%, rgba(251,250,246,0));
+  }
+  .reiter-huelle.mehr-links::before, .reiter-huelle.mehr-rechts::after { opacity: 1; }
+
+  .reiter-pfeil {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 30px; height: 30px; z-index: 2;
+    border: 1px solid var(--linie); border-radius: 15px;
+    background: #fff; color: var(--blau);
+    font-family: inherit; font-size: 19px; line-height: 1;
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(23,22,43,.12);
+  }
+  .reiter-pfeil.links { left: 0; }
+  .reiter-pfeil.rechts { right: 0; }
+  .reiter-huelle.mehr-links .reiter-pfeil.links,
+  .reiter-huelle.mehr-rechts .reiter-pfeil.rechts { display: flex; }
+
   .reiter {
-    display: flex; gap: 8px; margin-bottom: 14px;
+    display: flex; gap: 8px;
     overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
     -webkit-overflow-scrolling: touch;
   }
@@ -171,6 +200,25 @@
   }
   .werkzeuge button.gefahr { color: var(--rot); border-color: #E7C4C3; }
   .werkzeuge button.gefahr:active { background: #FBF0EF; }
+
+  .notiz-marke {
+    display: inline-block; background: var(--gelb); color: #17162B;
+    font-size: 11.5px; font-weight: 700; padding: 2px 7px; border-radius: 9px;
+    margin-left: 4px; vertical-align: middle;
+  }
+  .notiz-zelle { color: var(--blau); font-size: 12.5px; max-width: 220px; }
+  .notiz-block {
+    background: #FFFBEA; border: 1px solid #F2E3A8; border-left: 3px solid var(--gelb);
+    border-radius: 10px; padding: 12px 14px; margin-top: 14px;
+  }
+  .notiz-kopf {
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 14px; margin-bottom: 8px;
+  }
+  .notiz-zeile {
+    font-size: 13.5px; line-height: 1.5; padding: 7px 0;
+    border-top: 1px solid #F2E3A8;
+  }
+  .notiz-zeile:first-of-type { border-top: none; }
 
   tr.eingang { cursor: pointer; }
   tr.eingang:active td { background: #F4F2FB; }
@@ -408,7 +456,8 @@
   <div class="zahlen" id="zahlen"></div>
   <div id="offen"></div>
 
-  <div class="reiter">
+  <div class="reiter-huelle" id="reiter-huelle">
+  <div class="reiter" id="reiter-leiste">
     <button type="button" id="reiter-dashboard" class="an">Dashboard</button>
     <button type="button" id="reiter-verkauf">Verkaufsauswertung</button>
     <button type="button" id="reiter-bestellungen">Bestellungen &amp; Retouren</button>
@@ -419,6 +468,11 @@
     <button type="button" id="reiter-kunden">Kunden</button>
     <button type="button" id="reiter-gewinn">Gewinnbeteiligung</button>
     <button type="button" id="reiter-kosten">Kosten</button>
+  </div>
+    <button type="button" class="reiter-pfeil links" id="reiter-links"
+            aria-label="Weitere Reiter links">&#8249;</button>
+    <button type="button" class="reiter-pfeil rechts" id="reiter-rechts"
+            aria-label="Weitere Reiter rechts">&#8250;</button>
   </div>
 
   <div class="karte" id="bereich-dashboard">
@@ -679,7 +733,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-<script type="application/json" id="stammdaten">{"filialen": [{"blatt": "Rammelsbach", "ort": "Rammelsbach", "strasse": "Haschbacherstraße 14"}, {"blatt": "Rodenbach", "ort": "Rodenbach", "strasse": "Hauptstraße 60"}, {"blatt": "Bruchmühlbach-Miesau", "ort": "Bruchmühlbach-Miesau", "strasse": "St. Wendelerstraße 13"}, {"blatt": "Ramstein-Miesenbach", "ort": "Ramstein-Miesenbach", "strasse": "Ramsteinerstraße 42"}, {"blatt": "Landstuhl", "ort": "Landstuhl", "strasse": "Gartenstraße 11"}, {"blatt": "Vogelbach", "ort": "Vogelbach", "strasse": "Kaiserstraße 338"}, {"blatt": "Schönenberg-Kübelberg", "ort": "Schönenberg-Kübelberg", "strasse": "Glanstraße 16"}, {"blatt": "Waldmohr", "ort": "Waldmohr", "strasse": "Saarpfalzstraße 50"}, {"blatt": "Konken", "ort": "Konken", "strasse": "Hauptstraße 52"}, {"blatt": "Kusel", "ort": "Kusel", "strasse": "Triererstraße 38"}, {"blatt": "Ramstein-Miesenbach Walther-Euc", "ort": "Ramstein-Miesenbach", "strasse": "Walther-Eucken Straße"}], "artikel": [{"nr": "1", "bez": "Doppelbrötchen", "einheit": "Stück", "vk": 1.1}, {"nr": "2", "bez": "Tafelbrötchen", "einheit": "Stück", "vk": 0.55}, {"nr": "3", "bez": "Knopfsemmel", "einheit": "Stück", "vk": 0.55}, {"nr": "5", "bez": "Milchbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "6", "bez": "Krusties", "einheit": "Stück", "vk": 1.1}, {"nr": "7", "bez": "Sesambrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "8", "bez": "Mohnbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "9", "bez": "Kümmelbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "10", "bez": "Käsebrötchen", "einheit": "Stück", "vk": 1.0}, {"nr": "11", "bez": "Mohnhörnchen", "einheit": "Stück", "vk": 0.95}, {"nr": "13", "bez": "Miesauer Landweck", "einheit": "Stück", "vk": 1.2}, {"nr": "16", "bez": "Dinkel Honig Krusties", "einheit": "Stück", "vk": 1.1}, {"nr": "22", "bez": "Knopfsemmel Teiglinge", "einheit": "Stück", "vk": 0.45}, {"nr": "50", "bez": "Römer", "einheit": "Stück", "vk": 0.95}, {"nr": "51", "bez": "Kornspitz", "einheit": "Stück", "vk": 0.95}, {"nr": "54", "bez": "Kürbisknacker", "einheit": "Stück", "vk": 0.95}, {"nr": "55", "bez": "Vesperstange", "einheit": "Stück", "vk": 2.1}, {"nr": "57", "bez": "Dinkelkörnle", "einheit": "Stück", "vk": 0.95}, {"nr": "62", "bez": "Kürbisbrezel", "einheit": "Stück", "vk": 1.8}, {"nr": "64", "bez": "Schinkenkäsebrezel", "einheit": "Stück", "vk": 2.35}, {"nr": "65", "bez": "Schlemmerstange", "einheit": "Stück", "vk": 2.0}, {"nr": "66", "bez": "Pfefferbrezel", "einheit": "Stück", "vk": 1.3}, {"nr": "67", "bez": "Laugestange mit Kürbis", "einheit": "Stück", "vk": 0.95}, {"nr": "79", "bez": "Partybrötchen mit Belag MKS Käse Körner", "einheit": "Stück", "vk": 0.65}, {"nr": "80", "bez": "Partyrad 15 er", "einheit": "Stück", "vk": 7.95}, {"nr": "81", "bez": "Partyrad 25 er", "einheit": "Stück", "vk": 13.25}, {"nr": "82", "bez": "Partyrad 30 er", "einheit": "Stück", "vk": 15.9}, {"nr": "83", "bez": "Partysonne 35 er", "einheit": "Stück", "vk": 18.55}, {"nr": "84", "bez": "Partybrötchen einzeln", "einheit": "Stück", "vk": 0.55}, {"nr": "85", "bez": "Partylaugenkonfekt", "einheit": "Stück", "vk": 0.65}, {"nr": "86", "bez": "Partystange groß 100 g", "einheit": "Stück", "vk": 1.15}, {"nr": "87", "bez": "Fußballbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "88", "bez": "Blätterteiggebäck", "einheit": "Stück", "vk": 0.75}, {"nr": "91", "bez": "Laugenstangen", "einheit": "Stück", "vk": 1.05}, {"nr": "92", "bez": "Käselaugestange", "einheit": "Stück", "vk": 1.8}, {"nr": "93", "bez": "Brezeln", "einheit": "Stück", "vk": 1.1}, {"nr": "94", "bez": "Laugeecke", "einheit": "Stück", "vk": 1.65}, {"nr": "95", "bez": "Brezel groß", "einheit": "Stück", "vk": 18.0}, {"nr": "96", "bez": "Käsebrezel", "einheit": "Stück", "vk": 2.2}, {"nr": "97", "bez": "Partylaugebrezel", "einheit": "Stück", "vk": 0.95}, {"nr": "98", "bez": "Partykäsestange", "einheit": "Stück", "vk": 1.2}, {"nr": "99", "bez": "Partylaugestange", "einheit": "Stück", "vk": 0.95}, {"nr": "100", "bez": "Roggenmischbrot 500 g", "einheit": "Stück", "vk": 2.7}, {"nr": "101", "bez": "Roggenmischbrot 1000 g", "einheit": "Stück", "vk": 4.3}, {"nr": "102", "bez": "Roggenmischbrot 500g gestäubt", "einheit": "Stück", "vk": 2.7}, {"nr": "104", "bez": "Roggenmischkümmelbrot Kümmelbrot 500 g", "einheit": "Stück", "vk": 3.1}, {"nr": "105", "bez": "Roggenmischbrot 1500 g", "einheit": "Stück", "vk": 5.85}, {"nr": "107", "bez": "Gründerbrot 500 g", "einheit": "Stück", "vk": 4.1}, {"nr": "109", "bez": "Roggenmischbrot 3000 g", "einheit": "Stück", "vk": 10.85}, {"nr": "111", "bez": "Roggenmischbrot 750 g", "einheit": "Stück", "vk": 3.95}, {"nr": "113", "bez": "Jung's Bauernkruste 750g", "einheit": "Stück", "vk": 3.9}, {"nr": "116", "bez": "Roggenback Kastenbrot 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "120", "bez": "Weizenmischbrot 500 g", "einheit": "Stück", "vk": 2.7}, {"nr": "121", "bez": "Weizenmischbrot 1000 g", "einheit": "Stück", "vk": 4.2}, {"nr": "122", "bez": "Weizenmischbrot 1500 g", "einheit": "Stück", "vk": 5.85}, {"nr": "123", "bez": "Weizenmischbrot im Kasten 1000g", "einheit": "Stück", "vk": 4.3}, {"nr": "124", "bez": "Sickinger Landbrot 500 g", "einheit": "Stück", "vk": 3.0}, {"nr": "125", "bez": "Sickinger Landbrot 1000g rund", "einheit": "Stück", "vk": 5.3}, {"nr": "126", "bez": "Sickingerlandbrot Lang 1000 g Lang", "einheit": "Stück", "vk": 5.3}, {"nr": "127", "bez": "Sickinger 1500g Lang", "einheit": "Stück", "vk": 7.75}, {"nr": "128", "bez": "Sickingerlandbrot 750g", "einheit": "Stück", "vk": 4.2}, {"nr": "132", "bez": "Weizenmischbrot 1000g im Kasten Lang", "einheit": "Stück", "vk": 4.3}, {"nr": "133", "bez": "Gutsherrenbrot 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "134", "bez": "Gutsherrenbrot 1000g im Kasten", "einheit": "Stück", "vk": 5.4}, {"nr": "135", "bez": "Gutsherrenbrot 500g Rund", "einheit": "Stück", "vk": 2.8}, {"nr": "137", "bez": "Mühlenbrot im Kasten 750g", "einheit": "Stück", "vk": 4.1}, {"nr": "138", "bez": "Jungs Saftschnitte SA", "einheit": "Stück", "vk": 4.1}, {"nr": "143", "bez": "Dinkelkornlaib 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "146", "bez": "Dinkelvollkornbrot 500 g", "einheit": "Stück", "vk": 4.4}, {"nr": "147", "bez": "Feel Happy Brot", "einheit": "Stück", "vk": 3.85}, {"nr": "181", "bez": "Korn König 500g", "einheit": "Stück", "vk": 2.85}, {"nr": "182", "bez": "Korn König 750g", "einheit": "Stück", "vk": 4.1}, {"nr": "200", "bez": "Weißbrot 500 g Frei gebacken", "einheit": "Stück", "vk": 2.75}, {"nr": "201", "bez": "Kastenweißbrot 500 g Im Kasten gebacken", "einheit": "Stück", "vk": 2.95}, {"nr": "203", "bez": "Flitt 250 g", "einheit": "Stück", "vk": 2.35}, {"nr": "205", "bez": "Zwiebelflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "207", "bez": "Roggenflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "209", "bez": "Kornbaguette 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "210", "bez": "Partybaguette 250g", "einheit": "Stück", "vk": 2.75}, {"nr": "214", "bez": "Grillfluit 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "217", "bez": "Schinkenflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "218", "bez": "Pane Luciane", "einheit": "Stück", "vk": 1.2}, {"nr": "222", "bez": "Käsekräuterbaguette 300g", "einheit": "Stück", "vk": 3.0}, {"nr": "301", "bez": "Nußschnecke", "einheit": "Stück", "vk": 2.1}, {"nr": "302", "bez": "Quarkstückchen", "einheit": "Stück", "vk": 2.1}, {"nr": "304", "bez": "Kirschpuddingplunder", "einheit": "Stück", "vk": 2.1}, {"nr": "305", "bez": "Apfeltasche", "einheit": "Stück", "vk": 2.1}, {"nr": "306", "bez": "Streuselnuss- Schleife", "einheit": "Stück", "vk": 2.1}, {"nr": "307", "bez": "Schokocroissants", "einheit": "Stück", "vk": 2.1}, {"nr": "308", "bez": "Croissants ungefüllt", "einheit": "Stück", "vk": 1.85}, {"nr": "309", "bez": "Berliner", "einheit": "Stück", "vk": 1.35}, {"nr": "310", "bez": "Berliner gefüllt", "einheit": "Stück", "vk": 1.7}, {"nr": "312", "bez": "Nußpuddingbrezel", "einheit": "Stück", "vk": 2.1}, {"nr": "313", "bez": "Streuselstückchen gefüllt", "einheit": "Stück", "vk": 2.95}, {"nr": "314", "bez": "Butterhörnchen", "einheit": "Stück", "vk": 1.5}, {"nr": "317", "bez": "Quark-Mohn Fladen", "einheit": "Stück", "vk": 2.1}, {"nr": "319", "bez": "Schoki - Vanillehörnchen", "einheit": "Stück", "vk": 2.1}, {"nr": "322", "bez": "Apfelberliner", "einheit": "Stück", "vk": 2.65}, {"nr": "323", "bez": "Pfälzer Kartoffel", "einheit": "Stück", "vk": 2.85}, {"nr": "328", "bez": "Zwetschgenteilchen", "einheit": "Stück", "vk": 1.95}, {"nr": "329", "bez": "Mini Schokocroissant", "einheit": "Stück", "vk": 0.95}, {"nr": "330", "bez": "Mini Buttercroissant", "einheit": "Stück", "vk": 0.95}, {"nr": "331", "bez": "Mini Nusspuddingtasche", "einheit": "Stück", "vk": 0.95}, {"nr": "332", "bez": "Marzipan Plunder", "einheit": "Stück", "vk": 1.95}, {"nr": "333", "bez": "Mini Apfeltasche", "einheit": "Stück", "vk": 0.95}, {"nr": "334", "bez": "Mini Kirschtasche", "einheit": "Stück", "vk": 0.95}, {"nr": "336", "bez": "Nougathörnchen", "einheit": "Stück", "vk": 2.1}, {"nr": "337", "bez": "Puddingschiffchen", "einheit": "Stück", "vk": 2.1}, {"nr": "350", "bez": "Amerikaner", "einheit": "Stück", "vk": 2.2}, {"nr": "351", "bez": "Muffins", "einheit": "Stück", "vk": 2.2}, {"nr": "354", "bez": "Belgische Waffeln", "einheit": "Stück", "vk": 1.49}, {"nr": "360", "bez": "Donats", "einheit": "Stück", "vk": 1.49}, {"nr": "361", "bez": "Donut mit Weisserschokolade", "einheit": "Stück", "vk": 1.8}, {"nr": "364", "bez": "Donut mit Smartis", "einheit": "Stück", "vk": 1.8}, {"nr": "365", "bez": "Oreodonut", "einheit": "Stück", "vk": 1.8}, {"nr": "366", "bez": "Dount mit Buntzucker", "einheit": "Stück", "vk": 1.8}, {"nr": "367", "bez": "Krümmelmonster Donuts", "einheit": "Stück", "vk": 2.65}, {"nr": "368", "bez": "Smily Donuts", "einheit": "Stück", "vk": 2.65}, {"nr": "390", "bez": "Schokoweck", "einheit": "Stück", "vk": 1.6}, {"nr": "391", "bez": "Rosinenweck", "einheit": "Stück", "vk": 1.6}, {"nr": "395", "bez": "Vanilleberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "396", "bez": "Eierlikörkirschberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "397", "bez": "Nougatberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "400", "bez": "Zuckerringe Zuckerringe mit Hagelzucker", "einheit": "Stück", "vk": 1.6}, {"nr": "401", "bez": "Nougatringe", "einheit": "Stück", "vk": 2.8}, {"nr": "402", "bez": "Flammende Herzen", "einheit": "Stück", "vk": 2.8}, {"nr": "405", "bez": "Granatsplitter", "einheit": "Stück", "vk": 2.8}, {"nr": "406", "bez": "Bananensplitt", "einheit": "Stück", "vk": 2.8}, {"nr": "408", "bez": "Blätterteigbrezel", "einheit": "Stück", "vk": 2.8}, {"nr": "409", "bez": "Blätterteigstange", "einheit": "Stück", "vk": 2.8}, {"nr": "416", "bez": "Nussecken", "einheit": "Stück", "vk": 2.8}, {"nr": "424", "bez": "Cookies", "einheit": "Stück", "vk": 1.8}, {"nr": "425", "bez": "Cookies mit Smarties", "einheit": "Stück", "vk": 1.8}, {"nr": "450", "bez": "Fruchtschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "451", "bez": "Käsemandarinenschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "453", "bez": "Donauwelleschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "454", "bez": "Sahneschnitten alle Sorten", "einheit": "Stück", "vk": 2.65}, {"nr": "456", "bez": "Himbeerjoghurtschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "466", "bez": "Bienenstichschnitte Sahne+Kirs", "einheit": "Stück", "vk": 2.65}, {"nr": "469", "bez": "Altdeutscher Pflaumenstreusel", "einheit": "Stück", "vk": 7.5}, {"nr": "470", "bez": "Freche Früchtchen", "einheit": "Stück", "vk": 2.85}, {"nr": "491", "bez": "Schweineohren", "einheit": "Stück", "vk": 2.8}, {"nr": "492", "bez": "Nougatti", "einheit": "Stück", "vk": 2.8}, {"nr": "500", "bez": "Streuselkuchen", "einheit": "Stück", "vk": 11.0}, {"nr": "501", "bez": "Zuckerkuchen", "einheit": "Stück", "vk": 11.0}, {"nr": "503", "bez": "Hefekranz groß", "einheit": "Stück", "vk": 18.0}, {"nr": "506", "bez": "Kranz gefüllt", "einheit": "Stück", "vk": 24.0}, {"nr": "507", "bez": "Schokostreuselkranz", "einheit": "Stück", "vk": 26.5}, {"nr": "508", "bez": "Wiener Gupf", "einheit": "Stück", "vk": 15.9}, {"nr": "510", "bez": "Rosinenbrot", "einheit": "Stück", "vk": 5.3}, {"nr": "511", "bez": "Bummerang", "einheit": "Stück", "vk": 9.1}, {"nr": "512", "bez": "Schlemmerkranz", "einheit": "Stück", "vk": 26.5}, {"nr": "513", "bez": "Gefüllterkranz mit Schokoglasur", "einheit": "Stück", "vk": 26.5}, {"nr": "514", "bez": "Butterobstkuchen", "einheit": "Stück", "vk": 8.45}, {"nr": "515", "bez": "Butterhefezopf groß", "einheit": "Stück", "vk": 9.0}, {"nr": "518", "bez": "Streuselkuchen 26 cm", "einheit": "Stück", "vk": 5.3}, {"nr": "519", "bez": "Nougatstreusel", "einheit": "Stück", "vk": 7.5}, {"nr": "520", "bez": "Butterkuchen", "einheit": "Stück", "vk": 7.5}, {"nr": "521", "bez": "Dänischer Streusel", "einheit": "Stück", "vk": 7.5}, {"nr": "526", "bez": "Unser Käsezwerg 16 cm", "einheit": "Stück", "vk": 9.0}, {"nr": "527", "bez": "Butterschokozopf", "einheit": "Stück", "vk": 6.5}, {"nr": "528", "bez": "Haselnusszopf im Holzkorb", "einheit": "Stück", "vk": 6.5}, {"nr": "529", "bez": "Butterhefezopf im Holzkorb", "einheit": "Stück", "vk": 4.8}, {"nr": "530", "bez": "Quarkzopf im Holzkorb", "einheit": "Stück", "vk": 6.5}, {"nr": "545", "bez": "Gedeckter Kirschkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "546", "bez": "Gedeckter Apfelkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "548", "bez": "Rhabarberkuchen Klein", "einheit": "Stück", "vk": 11.75}, {"nr": "549", "bez": "Rhabarberkuchen 12er Einteilung Stück 2,50", "einheit": "Stück", "vk": 28.0}, {"nr": "550", "bez": "Käsekuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "551", "bez": "Apfelstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "552", "bez": "Zwetschgenkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "553", "bez": "Bienenstich", "einheit": "Stück", "vk": 37.0}, {"nr": "554", "bez": "Aprikosen-puddingstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "557", "bez": "Kirschstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "560", "bez": "Nußkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "561", "bez": "Marmorkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "562", "bez": "Eierlikörkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "565", "bez": "Marmorstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "566", "bez": "Zitronenstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "567", "bez": "Eierlikörstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "568", "bez": "Schwäbische Apfeltorte", "einheit": "Stück", "vk": 28.0}, {"nr": "569", "bez": "Rahmkuchen mit Obst", "einheit": "Stück", "vk": 28.0}, {"nr": "570", "bez": "Rahmkuchen Groß ohne obst", "einheit": "Stück", "vk": 28.0}, {"nr": "571", "bez": "Rahmkuchen klein", "einheit": "Stück", "vk": 10.5}, {"nr": "572", "bez": "Käsenussmandarinekuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "575", "bez": "Zwetschgensandkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "576", "bez": "Süss Kirschkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "577", "bez": "Zwetschgenkuchen klein 26cm", "einheit": "Stück", "vk": 10.65}, {"nr": "578", "bez": "Zupfkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "580", "bez": "Biskuitboden", "einheit": "Stück", "vk": 3.75}, {"nr": "581", "bez": "Tortenböden , Dick Biskuit", "einheit": "Stück", "vk": 8.0}, {"nr": "582", "bez": "Tortenboden,Dick-Schoko", "einheit": "Stück", "vk": 8.0}, {"nr": "583", "bez": "Tortenboden,Dick-Nuß", "einheit": "Stück", "vk": 8.0}, {"nr": "584", "bez": "Möhrentorte 26 cm.", "einheit": "Stück", "vk": 28.0}, {"nr": "588", "bez": "Sizilianischer Zitronenkuchen", "einheit": "Stück", "vk": 10.0}, {"nr": "590", "bez": "Himbeerobsttorte", "einheit": "Stück", "vk": 32.0}, {"nr": "591", "bez": "Gemischteobsttorte", "einheit": "Stück", "vk": 32.0}, {"nr": "595", "bez": "Puddingkirschstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "597", "bez": "Zwiebelkuchen groß", "einheit": "Stück", "vk": 25.5}, {"nr": "599", "bez": "Obsttorte Erdbeere", "einheit": "Stück", "vk": 32.0}, {"nr": "600", "bez": "Erdbeersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "601", "bez": "Schokosahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "602", "bez": "Nußsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "603", "bez": "Schwarzwäldersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "604", "bez": "Käsesahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "606", "bez": "Passionsfruchtsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "608", "bez": "Himbeersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "610", "bez": "Mokkacremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "611", "bez": "Erdbeerjoghurtsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "614", "bez": "Glasierte Nusstorte", "einheit": "Stück", "vk": 48.0}, {"nr": "615", "bez": "Ananassahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "616", "bez": "Schokoananassahne", "einheit": "Stück", "vk": 48.0}, {"nr": "617", "bez": "Tiramisusahne Torte", "einheit": "Stück", "vk": 45.0}, {"nr": "618", "bez": "Schokobirnensahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "619", "bez": "Eierlikörsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "622", "bez": "Mandarinensahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "623", "bez": "Nougatsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "626", "bez": "Cappuccinosahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "647", "bez": "Sahneomlett", "einheit": "Stück", "vk": 48.0}, {"nr": "648", "bez": "Eclairs", "einheit": "Stück", "vk": 3.2}, {"nr": "649", "bez": "Erdbeer- Röllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "650", "bez": "Windbeutel", "einheit": "Stück", "vk": 3.2}, {"nr": "651", "bez": "Kirschröllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "652", "bez": "Zitronenröllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "653", "bez": "Erdbeersahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "654", "bez": "Schokosahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "655", "bez": "Schwarzwälderkirschcremrolle", "einheit": "Stück", "vk": 3.2}, {"nr": "656", "bez": "Bananensahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "657", "bez": "Moccacremrolle", "einheit": "Stück", "vk": 3.2}, {"nr": "658", "bez": "Himbeersahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "659", "bez": "Pyramiden Schnitte", "einheit": "Stück", "vk": 3.2}, {"nr": "660", "bez": "Cappuccinosahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "662", "bez": "Prinzregentenschnitte", "einheit": "Stück", "vk": 3.2}, {"nr": "666", "bez": "Birkenstamm", "einheit": "Stück", "vk": 3.2}, {"nr": "680", "bez": "Kuchenplatte Variante 1", "einheit": "Stück", "vk": 28.0}, {"nr": "697", "bez": "Früchtebecher", "einheit": "Stück", "vk": 3.75}, {"nr": "703", "bez": "Käsezwirbel", "einheit": "Stück", "vk": 2.1}, {"nr": "704", "bez": "Pizzazwirbel", "einheit": "Stück", "vk": 2.1}, {"nr": "707", "bez": "Zwiebelzunge", "einheit": "Stück", "vk": 2.5}, {"nr": "720", "bez": "Belegtes Brötchen mit Garnitur", "einheit": "Stück", "vk": 2.95}, {"nr": "721", "bez": "Belegtes mit Spezialbrötchen", "einheit": "Stück", "vk": 3.2}, {"nr": "800", "bez": "Punschcremtorte Vanille oder Schoko", "einheit": "Stück", "vk": 48.0}, {"nr": "801", "bez": "Schokocremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "803", "bez": "Vanillecremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "806", "bez": "Vanillecremtorte mit Mandarinen", "einheit": "Stück", "vk": 48.0}, {"nr": "807", "bez": "Nusscremfächertorte", "einheit": "Stück", "vk": 48.0}, {"nr": "808", "bez": "Erdbeercremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "809", "bez": "Prinzregententorte", "einheit": "Stück", "vk": 48.0}, {"nr": "810", "bez": "Frankfurterkranz nach art des Hauses", "einheit": "Stück", "vk": 48.0}, {"nr": "811", "bez": "Donauwelle Torte", "einheit": "Stück", "vk": 48.0}, {"nr": "812", "bez": "Glasierte Nusstorte", "einheit": "Stück", "vk": 48.0}, {"nr": "813", "bez": "Moccacremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "916", "bez": "Lebkuchennikolaus", "einheit": "Stück", "vk": 6.5}, {"nr": "920", "bez": "Blaubeermuffins", "einheit": "Stück", "vk": 2.2}, {"nr": "922", "bez": "Tripleschokomuffin", "einheit": "Stück", "vk": 2.2}, {"nr": "923", "bez": "Marmor Muffin", "einheit": "Stück", "vk": 2.2}, {"nr": "924", "bez": "Möhrennuss Muffins", "einheit": "Stück", "vk": 2.2}, {"nr": "1200", "bez": "Laugenherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 1.5}, {"nr": "1201", "bez": "Hefeteigherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 2.8}, {"nr": "1202", "bez": "Rührkuchenherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 3.65}, {"nr": "1203", "bez": "Mürbteigherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 3.4}, {"nr": "1508", "bez": "Schokospritzgebäck", "einheit": "Stück", "vk": 4.95}, {"nr": "2000", "bez": "Salamisandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2001", "bez": "Schinkensandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2002", "bez": "Fleischkäsesandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2006", "bez": "Schnitzelbrötchen", "einheit": "Stück", "vk": 3.8}, {"nr": "10114", "bez": "Schokostreuselkranz klein", "einheit": "Stück", "vk": 12.0}, {"nr": "10120", "bez": "Rahmkuchen klein mit Obst", "einheit": "Stück", "vk": 11.0}, {"nr": "10121", "bez": "Sahnerolle klein", "einheit": "Stück", "vk": 7.95}, {"nr": "10135", "bez": "Chickenburger", "einheit": "Stück", "vk": 3.8}, {"nr": "20000", "bez": "Lieferpauschale", "einheit": "Stück", "vk": 4.1}]}</script>
+<script type="application/json" id="stammdaten">{"filialen": [{"blatt": "Rammelsbach", "ort": "Rammelsbach", "strasse": "Haschbacherstraße 14"}, {"blatt": "Rodenbach", "ort": "Rodenbach", "strasse": "Hauptstraße 60"}, {"blatt": "Bruchmühlbach-Miesau", "ort": "Bruchmühlbach-Miesau", "strasse": "St. Wendelerstraße 13"}, {"blatt": "Ramstein-Miesenbach", "ort": "Ramstein-Miesenbach", "strasse": "Ramsteinerstraße 42"}, {"blatt": "Landstuhl", "ort": "Landstuhl", "strasse": "Gartenstraße 11"}, {"blatt": "Vogelbach", "ort": "Vogelbach", "strasse": "Kaiserstraße 338"}, {"blatt": "Schönenberg-Kübelberg", "ort": "Schönenberg-Kübelberg", "strasse": "Glanstraße 16"}, {"blatt": "Waldmohr", "ort": "Waldmohr", "strasse": "Saarpfalzstraße 50"}, {"blatt": "Konken", "ort": "Konken", "strasse": "Hauptstraße 52"}, {"blatt": "Kusel", "ort": "Kusel", "strasse": "Triererstraße 38"}, {"blatt": "Ramstein-Miesenbach Walther-Euc", "ort": "Ramstein-Miesenbach", "strasse": "Walther-Eucken Straße"}], "artikel": [{"nr": "1", "bez": "Doppelbrötchen", "einheit": "Stück", "vk": 1.1}, {"nr": "2", "bez": "Tafelbrötchen", "einheit": "Stück", "vk": 0.55}, {"nr": "3", "bez": "Knopfsemmel", "einheit": "Stück", "vk": 0.55}, {"nr": "5", "bez": "Milchbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "6", "bez": "Krusties", "einheit": "Stück", "vk": 1.1}, {"nr": "7", "bez": "Sesambrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "8", "bez": "Mohnbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "9", "bez": "Kümmelbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "10", "bez": "Käsebrötchen", "einheit": "Stück", "vk": 1.0}, {"nr": "11", "bez": "Mohnhörnchen", "einheit": "Stück", "vk": 0.95}, {"nr": "13", "bez": "Miesauer Landweck", "einheit": "Stück", "vk": 1.2}, {"nr": "16", "bez": "Dinkel Honig Krusties", "einheit": "Stück", "vk": 1.1}, {"nr": "22", "bez": "Knopfsemmel Teiglinge", "einheit": "Stück", "vk": 0.45}, {"nr": "50", "bez": "Römer", "einheit": "Stück", "vk": 0.95}, {"nr": "51", "bez": "Kornspitz", "einheit": "Stück", "vk": 0.95}, {"nr": "54", "bez": "Kürbisknacker", "einheit": "Stück", "vk": 0.95}, {"nr": "55", "bez": "Vesperstange", "einheit": "Stück", "vk": 2.1}, {"nr": "57", "bez": "Dinkelkörnle", "einheit": "Stück", "vk": 0.95}, {"nr": "62", "bez": "Kürbisbrezel", "einheit": "Stück", "vk": 1.8}, {"nr": "64", "bez": "Schinkenkäsebrezel", "einheit": "Stück", "vk": 2.35}, {"nr": "65", "bez": "Schlemmerstange", "einheit": "Stück", "vk": 2.0}, {"nr": "66", "bez": "Pfefferbrezel", "einheit": "Stück", "vk": 1.3}, {"nr": "67", "bez": "Laugestange mit Kürbis", "einheit": "Stück", "vk": 0.95}, {"nr": "79", "bez": "Partybrötchen mit Belag MKS Käse Körner", "einheit": "Stück", "vk": 0.65}, {"nr": "80", "bez": "Partyrad 15 er", "einheit": "Stück", "vk": 7.95}, {"nr": "81", "bez": "Partyrad 25 er", "einheit": "Stück", "vk": 13.25}, {"nr": "82", "bez": "Partyrad 30 er", "einheit": "Stück", "vk": 15.9}, {"nr": "83", "bez": "Partysonne 35 er", "einheit": "Stück", "vk": 18.55}, {"nr": "84", "bez": "Partybrötchen einzeln", "einheit": "Stück", "vk": 0.55}, {"nr": "85", "bez": "Partylaugenkonfekt", "einheit": "Stück", "vk": 0.65}, {"nr": "86", "bez": "Partystange groß 100 g", "einheit": "Stück", "vk": 1.15}, {"nr": "87", "bez": "Fußballbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "88", "bez": "Blätterteiggebäck", "einheit": "Stück", "vk": 0.75}, {"nr": "91", "bez": "Laugenstangen", "einheit": "Stück", "vk": 1.05}, {"nr": "92", "bez": "Käselaugestange", "einheit": "Stück", "vk": 1.8}, {"nr": "93", "bez": "Brezeln", "einheit": "Stück", "vk": 1.1}, {"nr": "94", "bez": "Laugeecke", "einheit": "Stück", "vk": 1.65}, {"nr": "95", "bez": "Brezel groß", "einheit": "Stück", "vk": 18.0}, {"nr": "96", "bez": "Käsebrezel", "einheit": "Stück", "vk": 2.2}, {"nr": "97", "bez": "Partylaugebrezel", "einheit": "Stück", "vk": 0.95}, {"nr": "98", "bez": "Partykäsestange", "einheit": "Stück", "vk": 1.2}, {"nr": "99", "bez": "Partylaugestange", "einheit": "Stück", "vk": 0.95}, {"nr": "100", "bez": "Roggenmischbrot 500 g", "einheit": "Stück", "vk": 2.7}, {"nr": "101", "bez": "Roggenmischbrot 1000 g", "einheit": "Stück", "vk": 4.3}, {"nr": "102", "bez": "Roggenmischbrot 500g gestäubt", "einheit": "Stück", "vk": 2.7}, {"nr": "104", "bez": "Roggenmischkümmelbrot Kümmelbrot 500 g", "einheit": "Stück", "vk": 3.1}, {"nr": "105", "bez": "Roggenmischbrot 1500 g", "einheit": "Stück", "vk": 5.85}, {"nr": "107", "bez": "Gründerbrot 500 g", "einheit": "Stück", "vk": 4.1}, {"nr": "109", "bez": "Roggenmischbrot 3000 g", "einheit": "Stück", "vk": 10.85}, {"nr": "111", "bez": "Roggenmischbrot 750 g", "einheit": "Stück", "vk": 3.95}, {"nr": "113", "bez": "Jung's Bauernkruste 750g", "einheit": "Stück", "vk": 3.9}, {"nr": "116", "bez": "Roggenback Kastenbrot 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "120", "bez": "Weizenmischbrot 500 g", "einheit": "Stück", "vk": 2.7}, {"nr": "121", "bez": "Weizenmischbrot 1000 g", "einheit": "Stück", "vk": 4.2}, {"nr": "122", "bez": "Weizenmischbrot 1500 g", "einheit": "Stück", "vk": 5.85}, {"nr": "123", "bez": "Weizenmischbrot im Kasten 1000g", "einheit": "Stück", "vk": 4.3}, {"nr": "124", "bez": "Sickinger Landbrot 500 g", "einheit": "Stück", "vk": 3.0}, {"nr": "125", "bez": "Sickinger Landbrot 1000g rund", "einheit": "Stück", "vk": 5.3}, {"nr": "126", "bez": "Sickingerlandbrot Lang 1000 g Lang", "einheit": "Stück", "vk": 5.3}, {"nr": "127", "bez": "Sickinger 1500g Lang", "einheit": "Stück", "vk": 7.75}, {"nr": "128", "bez": "Sickingerlandbrot 750g", "einheit": "Stück", "vk": 4.2}, {"nr": "132", "bez": "Weizenmischbrot 1000g im Kasten Lang", "einheit": "Stück", "vk": 4.3}, {"nr": "133", "bez": "Gutsherrenbrot 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "134", "bez": "Gutsherrenbrot 1000g im Kasten", "einheit": "Stück", "vk": 5.4}, {"nr": "135", "bez": "Gutsherrenbrot 500g Rund", "einheit": "Stück", "vk": 2.8}, {"nr": "137", "bez": "Mühlenbrot im Kasten 750g", "einheit": "Stück", "vk": 4.1}, {"nr": "138", "bez": "Jungs Saftschnitte SA", "einheit": "Stück", "vk": 4.1}, {"nr": "143", "bez": "Dinkelkornlaib 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "146", "bez": "Dinkelvollkornbrot 500 g", "einheit": "Stück", "vk": 4.4}, {"nr": "147", "bez": "Feel Happy Brot", "einheit": "Stück", "vk": 3.85}, {"nr": "181", "bez": "Korn König 500g", "einheit": "Stück", "vk": 2.85}, {"nr": "182", "bez": "Korn König 750g", "einheit": "Stück", "vk": 4.1}, {"nr": "200", "bez": "Weißbrot 500 g Frei gebacken", "einheit": "Stück", "vk": 2.75}, {"nr": "201", "bez": "Kastenweißbrot 500 g Im Kasten gebacken", "einheit": "Stück", "vk": 2.95}, {"nr": "202", "bez": "Flitt 500 g", "einheit": "Stück", "vk": 2.9}, {"nr": "203", "bez": "Flitt 250 g", "einheit": "Stück", "vk": 2.35}, {"nr": "205", "bez": "Zwiebelflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "207", "bez": "Roggenflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "209", "bez": "Kornbaguette 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "210", "bez": "Partybaguette 250g", "einheit": "Stück", "vk": 2.75}, {"nr": "214", "bez": "Grillfluit 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "217", "bez": "Schinkenflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "218", "bez": "Pane Luciane", "einheit": "Stück", "vk": 1.2}, {"nr": "222", "bez": "Käsekräuterbaguette 300g", "einheit": "Stück", "vk": 3.0}, {"nr": "301", "bez": "Nußschnecke", "einheit": "Stück", "vk": 2.1}, {"nr": "302", "bez": "Quarkstückchen", "einheit": "Stück", "vk": 2.1}, {"nr": "304", "bez": "Kirschpuddingplunder", "einheit": "Stück", "vk": 2.1}, {"nr": "305", "bez": "Apfeltasche", "einheit": "Stück", "vk": 2.1}, {"nr": "306", "bez": "Streuselnuss- Schleife", "einheit": "Stück", "vk": 2.1}, {"nr": "307", "bez": "Schokocroissants", "einheit": "Stück", "vk": 2.1}, {"nr": "308", "bez": "Croissants ungefüllt", "einheit": "Stück", "vk": 1.85}, {"nr": "309", "bez": "Berliner", "einheit": "Stück", "vk": 1.35}, {"nr": "310", "bez": "Berliner gefüllt", "einheit": "Stück", "vk": 1.7}, {"nr": "312", "bez": "Nußpuddingbrezel", "einheit": "Stück", "vk": 2.1}, {"nr": "313", "bez": "Streuselstückchen gefüllt", "einheit": "Stück", "vk": 2.95}, {"nr": "314", "bez": "Butterhörnchen", "einheit": "Stück", "vk": 1.5}, {"nr": "316", "bez": "Franz. Brötchen", "einheit": "Stück", "vk": 1.95}, {"nr": "317", "bez": "Quark-Mohn Fladen", "einheit": "Stück", "vk": 2.1}, {"nr": "319", "bez": "Schoki - Vanillehörnchen", "einheit": "Stück", "vk": 2.1}, {"nr": "322", "bez": "Apfelberliner", "einheit": "Stück", "vk": 2.65}, {"nr": "323", "bez": "Pfälzer Kartoffel", "einheit": "Stück", "vk": 2.85}, {"nr": "328", "bez": "Zwetschgenteilchen", "einheit": "Stück", "vk": 1.95}, {"nr": "329", "bez": "Mini Schokocroissant", "einheit": "Stück", "vk": 0.95}, {"nr": "330", "bez": "Mini Buttercroissant", "einheit": "Stück", "vk": 0.95}, {"nr": "331", "bez": "Mini Nusspuddingtasche", "einheit": "Stück", "vk": 0.95}, {"nr": "332", "bez": "Marzipan Plunder", "einheit": "Stück", "vk": 1.95}, {"nr": "333", "bez": "Mini Apfeltasche", "einheit": "Stück", "vk": 0.95}, {"nr": "334", "bez": "Mini Kirschtasche", "einheit": "Stück", "vk": 0.95}, {"nr": "336", "bez": "Nougathörnchen", "einheit": "Stück", "vk": 2.1}, {"nr": "337", "bez": "Puddingschiffchen", "einheit": "Stück", "vk": 2.1}, {"nr": "350", "bez": "Amerikaner", "einheit": "Stück", "vk": 2.2}, {"nr": "351", "bez": "Muffins", "einheit": "Stück", "vk": 2.2}, {"nr": "354", "bez": "Belgische Waffeln", "einheit": "Stück", "vk": 1.49}, {"nr": "360", "bez": "Donats", "einheit": "Stück", "vk": 1.49}, {"nr": "361", "bez": "Donut mit Weisserschokolade", "einheit": "Stück", "vk": 1.8}, {"nr": "364", "bez": "Donut mit Smartis", "einheit": "Stück", "vk": 1.8}, {"nr": "365", "bez": "Oreodonut", "einheit": "Stück", "vk": 1.8}, {"nr": "366", "bez": "Dount mit Buntzucker", "einheit": "Stück", "vk": 1.8}, {"nr": "367", "bez": "Krümmelmonster Donuts", "einheit": "Stück", "vk": 2.65}, {"nr": "368", "bez": "Smily Donuts", "einheit": "Stück", "vk": 2.65}, {"nr": "390", "bez": "Schokoweck", "einheit": "Stück", "vk": 1.6}, {"nr": "391", "bez": "Rosinenweck", "einheit": "Stück", "vk": 1.6}, {"nr": "395", "bez": "Vanilleberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "396", "bez": "Eierlikörkirschberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "397", "bez": "Nougatberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "400", "bez": "Zuckerringe Zuckerringe mit Hagelzucker", "einheit": "Stück", "vk": 1.6}, {"nr": "401", "bez": "Nougatringe", "einheit": "Stück", "vk": 2.8}, {"nr": "402", "bez": "Flammende Herzen", "einheit": "Stück", "vk": 2.8}, {"nr": "405", "bez": "Granatsplitter", "einheit": "Stück", "vk": 2.8}, {"nr": "406", "bez": "Bananensplitt", "einheit": "Stück", "vk": 2.8}, {"nr": "408", "bez": "Blätterteigbrezel", "einheit": "Stück", "vk": 2.8}, {"nr": "409", "bez": "Blätterteigstange", "einheit": "Stück", "vk": 2.8}, {"nr": "416", "bez": "Nussecken", "einheit": "Stück", "vk": 2.8}, {"nr": "424", "bez": "Cookies", "einheit": "Stück", "vk": 1.8}, {"nr": "425", "bez": "Cookies mit Smarties", "einheit": "Stück", "vk": 1.8}, {"nr": "450", "bez": "Fruchtschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "451", "bez": "Käsemandarinenschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "453", "bez": "Donauwelleschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "454", "bez": "Sahneschnitten alle Sorten", "einheit": "Stück", "vk": 2.65}, {"nr": "456", "bez": "Himbeerjoghurtschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "466", "bez": "Bienenstichschnitte Sahne+Kirs", "einheit": "Stück", "vk": 2.65}, {"nr": "469", "bez": "Altdeutscher Pflaumenstreusel", "einheit": "Stück", "vk": 7.5}, {"nr": "470", "bez": "Freche Früchtchen", "einheit": "Stück", "vk": 2.85}, {"nr": "491", "bez": "Schweineohren", "einheit": "Stück", "vk": 2.8}, {"nr": "492", "bez": "Nougatti", "einheit": "Stück", "vk": 2.8}, {"nr": "500", "bez": "Streuselkuchen", "einheit": "Stück", "vk": 11.0}, {"nr": "501", "bez": "Zuckerkuchen", "einheit": "Stück", "vk": 11.0}, {"nr": "503", "bez": "Hefekranz groß", "einheit": "Stück", "vk": 18.0}, {"nr": "506", "bez": "Kranz gefüllt", "einheit": "Stück", "vk": 24.0}, {"nr": "507", "bez": "Schokostreuselkranz", "einheit": "Stück", "vk": 26.5}, {"nr": "508", "bez": "Wiener Gupf", "einheit": "Stück", "vk": 15.9}, {"nr": "510", "bez": "Rosinenbrot", "einheit": "Stück", "vk": 5.3}, {"nr": "511", "bez": "Bummerang", "einheit": "Stück", "vk": 9.1}, {"nr": "512", "bez": "Schlemmerkranz", "einheit": "Stück", "vk": 26.5}, {"nr": "513", "bez": "Gefüllterkranz mit Schokoglasur", "einheit": "Stück", "vk": 26.5}, {"nr": "514", "bez": "Butterobstkuchen", "einheit": "Stück", "vk": 8.45}, {"nr": "515", "bez": "Butterhefezopf groß", "einheit": "Stück", "vk": 9.0}, {"nr": "518", "bez": "Streuselkuchen 26 cm", "einheit": "Stück", "vk": 5.3}, {"nr": "519", "bez": "Nougatstreusel", "einheit": "Stück", "vk": 7.5}, {"nr": "520", "bez": "Butterkuchen", "einheit": "Stück", "vk": 7.5}, {"nr": "521", "bez": "Dänischer Streusel", "einheit": "Stück", "vk": 7.5}, {"nr": "526", "bez": "Unser Käsezwerg 16 cm", "einheit": "Stück", "vk": 9.0}, {"nr": "527", "bez": "Butterschokozopf", "einheit": "Stück", "vk": 6.5}, {"nr": "528", "bez": "Haselnusszopf im Holzkorb", "einheit": "Stück", "vk": 6.5}, {"nr": "529", "bez": "Butterhefezopf im Holzkorb", "einheit": "Stück", "vk": 4.8}, {"nr": "530", "bez": "Quarkzopf im Holzkorb", "einheit": "Stück", "vk": 6.5}, {"nr": "545", "bez": "Gedeckter Kirschkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "546", "bez": "Gedeckter Apfelkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "548", "bez": "Rhabarberkuchen Klein", "einheit": "Stück", "vk": 11.75}, {"nr": "549", "bez": "Rhabarberkuchen 12er Einteilung Stück 2,50", "einheit": "Stück", "vk": 28.0}, {"nr": "550", "bez": "Käsekuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "551", "bez": "Apfelstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "552", "bez": "Zwetschgenkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "553", "bez": "Bienenstich", "einheit": "Stück", "vk": 37.0}, {"nr": "554", "bez": "Aprikosen-puddingstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "557", "bez": "Kirschstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "560", "bez": "Nußkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "561", "bez": "Marmorkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "562", "bez": "Eierlikörkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "565", "bez": "Marmorstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "566", "bez": "Zitronenstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "567", "bez": "Eierlikörstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "568", "bez": "Schwäbische Apfeltorte", "einheit": "Stück", "vk": 28.0}, {"nr": "569", "bez": "Rahmkuchen mit Obst", "einheit": "Stück", "vk": 28.0}, {"nr": "570", "bez": "Rahmkuchen Groß ohne obst", "einheit": "Stück", "vk": 28.0}, {"nr": "571", "bez": "Rahmkuchen klein", "einheit": "Stück", "vk": 10.5}, {"nr": "572", "bez": "Käsenussmandarinekuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "575", "bez": "Zwetschgensandkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "576", "bez": "Süss Kirschkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "577", "bez": "Zwetschgenkuchen klein 26cm", "einheit": "Stück", "vk": 10.65}, {"nr": "578", "bez": "Zupfkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "580", "bez": "Biskuitboden", "einheit": "Stück", "vk": 3.75}, {"nr": "581", "bez": "Tortenböden , Dick Biskuit", "einheit": "Stück", "vk": 8.0}, {"nr": "582", "bez": "Tortenboden,Dick-Schoko", "einheit": "Stück", "vk": 8.0}, {"nr": "583", "bez": "Tortenboden,Dick-Nuß", "einheit": "Stück", "vk": 8.0}, {"nr": "584", "bez": "Möhrentorte 26 cm.", "einheit": "Stück", "vk": 28.0}, {"nr": "588", "bez": "Sizilianischer Zitronenkuchen", "einheit": "Stück", "vk": 10.0}, {"nr": "590", "bez": "Himbeerobsttorte", "einheit": "Stück", "vk": 32.0}, {"nr": "591", "bez": "Gemischteobsttorte", "einheit": "Stück", "vk": 32.0}, {"nr": "595", "bez": "Puddingkirschstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "597", "bez": "Zwiebelkuchen groß", "einheit": "Stück", "vk": 25.5}, {"nr": "599", "bez": "Obsttorte Erdbeere", "einheit": "Stück", "vk": 32.0}, {"nr": "600", "bez": "Erdbeersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "601", "bez": "Schokosahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "602", "bez": "Nußsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "603", "bez": "Schwarzwäldersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "604", "bez": "Käsesahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "606", "bez": "Passionsfruchtsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "608", "bez": "Himbeersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "610", "bez": "Mokkacremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "611", "bez": "Erdbeerjoghurtsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "614", "bez": "Glasierte Nusstorte", "einheit": "Stück", "vk": 48.0}, {"nr": "615", "bez": "Ananassahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "616", "bez": "Schokoananassahne", "einheit": "Stück", "vk": 48.0}, {"nr": "617", "bez": "Tiramisusahne Torte", "einheit": "Stück", "vk": 45.0}, {"nr": "618", "bez": "Schokobirnensahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "619", "bez": "Eierlikörsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "622", "bez": "Mandarinensahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "623", "bez": "Nougatsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "626", "bez": "Cappuccinosahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "647", "bez": "Sahneomlett", "einheit": "Stück", "vk": 48.0}, {"nr": "648", "bez": "Eclairs", "einheit": "Stück", "vk": 3.2}, {"nr": "649", "bez": "Erdbeer- Röllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "650", "bez": "Windbeutel", "einheit": "Stück", "vk": 3.2}, {"nr": "651", "bez": "Kirschröllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "652", "bez": "Zitronenröllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "653", "bez": "Erdbeersahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "654", "bez": "Schokosahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "655", "bez": "Schwarzwälderkirschcremrolle", "einheit": "Stück", "vk": 3.2}, {"nr": "656", "bez": "Bananensahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "657", "bez": "Moccacremrolle", "einheit": "Stück", "vk": 3.2}, {"nr": "658", "bez": "Himbeersahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "659", "bez": "Pyramiden Schnitte", "einheit": "Stück", "vk": 3.2}, {"nr": "660", "bez": "Cappuccinosahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "662", "bez": "Prinzregentenschnitte", "einheit": "Stück", "vk": 3.2}, {"nr": "666", "bez": "Birkenstamm", "einheit": "Stück", "vk": 3.2}, {"nr": "680", "bez": "Kuchenplatte Variante 1", "einheit": "Stück", "vk": 28.0}, {"nr": "697", "bez": "Früchtebecher", "einheit": "Stück", "vk": 3.75}, {"nr": "703", "bez": "Käsezwirbel", "einheit": "Stück", "vk": 2.1}, {"nr": "704", "bez": "Pizzazwirbel", "einheit": "Stück", "vk": 2.1}, {"nr": "707", "bez": "Zwiebelzunge", "einheit": "Stück", "vk": 2.5}, {"nr": "720", "bez": "Belegtes Brötchen mit Garnitur", "einheit": "Stück", "vk": 2.95}, {"nr": "721", "bez": "Belegtes mit Spezialbrötchen", "einheit": "Stück", "vk": 3.2}, {"nr": "800", "bez": "Punschcremtorte Vanille oder Schoko", "einheit": "Stück", "vk": 48.0}, {"nr": "801", "bez": "Schokocremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "803", "bez": "Vanillecremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "806", "bez": "Vanillecremtorte mit Mandarinen", "einheit": "Stück", "vk": 48.0}, {"nr": "807", "bez": "Nusscremfächertorte", "einheit": "Stück", "vk": 48.0}, {"nr": "808", "bez": "Erdbeercremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "809", "bez": "Prinzregententorte", "einheit": "Stück", "vk": 48.0}, {"nr": "810", "bez": "Frankfurterkranz nach art des Hauses", "einheit": "Stück", "vk": 48.0}, {"nr": "811", "bez": "Donauwelle Torte", "einheit": "Stück", "vk": 48.0}, {"nr": "812", "bez": "Glasierte Nusstorte", "einheit": "Stück", "vk": 48.0}, {"nr": "813", "bez": "Moccacremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "916", "bez": "Lebkuchennikolaus", "einheit": "Stück", "vk": 6.5}, {"nr": "920", "bez": "Blaubeermuffins", "einheit": "Stück", "vk": 2.2}, {"nr": "922", "bez": "Tripleschokomuffin", "einheit": "Stück", "vk": 2.2}, {"nr": "923", "bez": "Marmor Muffin", "einheit": "Stück", "vk": 2.2}, {"nr": "924", "bez": "Möhrennuss Muffins", "einheit": "Stück", "vk": 2.2}, {"nr": "1200", "bez": "Laugenherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 1.5}, {"nr": "1201", "bez": "Hefeteigherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 2.8}, {"nr": "1202", "bez": "Rührkuchenherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 3.65}, {"nr": "1203", "bez": "Mürbteigherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 3.4}, {"nr": "1508", "bez": "Schokospritzgebäck", "einheit": "Stück", "vk": 4.95}, {"nr": "2000", "bez": "Salamisandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2001", "bez": "Schinkensandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2002", "bez": "Fleischkäsesandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2006", "bez": "Schnitzelbrötchen", "einheit": "Stück", "vk": 3.8}, {"nr": "10114", "bez": "Schokostreuselkranz klein", "einheit": "Stück", "vk": 12.0}, {"nr": "10120", "bez": "Rahmkuchen klein mit Obst", "einheit": "Stück", "vk": 11.0}, {"nr": "10121", "bez": "Sahnerolle klein", "einheit": "Stück", "vk": 7.95}, {"nr": "10135", "bez": "Chickenburger", "einheit": "Stück", "vk": 3.8}, {"nr": "20000", "bez": "Lieferpauschale", "einheit": "Stück", "vk": 4.1}]}</script>
 
 <script>
   var ENDPUNKT       = '/.netlify/functions/bestellungen';
@@ -836,6 +890,13 @@
       return { nr: s[0].trim(), bez: s[1].trim(), menge: parseInt(s[2], 10) || 0,
                geliefert: s.length > 3 ? (parseInt(s[3], 10) || 0) : 0 };
     }).filter(Boolean);
+    b.notizen = {};
+    String(b.artikelbemerkungen || '').split('\n').forEach(function (zeile) {
+      var s = zeile.split('\t');
+      if (s.length >= 3 && s[2].trim()) b.notizen[s[0].trim()] = s[2].trim();
+    });
+    b.posten.forEach(function (p) { p.notiz = b.notizen[p.nr] || ''; });
+    b.anzahlNotizen = Object.keys(b.notizen).length;
     b.wertZahl = parseFloat(String(b.warenwert || '0').replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
     return b;
   }
@@ -990,6 +1051,9 @@
         '<div class="kopfzeile" data-id="' + txt(b.id) + '">' +
           '<div class="pfeil">' + (auf ? '\u25be' : '\u25b8') + '</div>' +
           '<div class="ort">' + txt(b.filiale) + marke +
+            (b.anzahlNotizen
+              ? ' <span class="notiz-marke">\u270e ' + b.anzahlNotizen +
+                (b.anzahlNotizen === 1 ? ' Bemerkung' : ' Bemerkungen') + '</span>' : '') +
             '<small>' + txt(b.datum) + ' \u00b7 ' + txt(b.besteller) +
             (b.quote ? ' \u00b7 Quote ' + txt(b.quote) : '') +
             (b.bemerkung ? ' \u00b7 mit Bemerkung' : '') + '</small></div>' +
@@ -1001,6 +1065,12 @@
       '</div>';
     }).join('');
 
+    ziel.querySelectorAll('[data-notizpdf]').forEach(function (k) {
+      k.addEventListener('click', function (e) {
+        e.stopPropagation();
+        notizenPdf(k.dataset.notizpdf);
+      });
+    });
     ziel.querySelectorAll('.kopfzeile').forEach(function (k) {
       k.addEventListener('click', function () {
         var id = k.dataset.id;
@@ -1011,6 +1081,7 @@
   }
 
   function detailsHtml(b) {
+    var mitNotiz = b.anzahlNotizen > 0;
     var zeilen = b.posten.map(function (p) {
       var info = artikelInfo[p.nr] || {};
       return '<tr><td>' + txt(p.nr) + '</td><td>' + txt(p.bez) + '</td>' +
@@ -1020,8 +1091,27 @@
               ? (p.menge / p.geliefert * 100).toFixed(1).replace('.', ',') + '&nbsp;%' : '\u2013') + '</td>'
           : '') +
         '<td class="zahl-rechts"><b>' + p.menge + '</b></td>' +
-        '<td class="zahl-rechts">' + (info.vk ? euro(info.vk * p.menge) : '&ndash;') + '</td></tr>';
+        '<td class="zahl-rechts">' + (info.vk ? euro(info.vk * p.menge) : '&ndash;') + '</td>' +
+        (mitNotiz ? '<td class="notiz-zelle">' + (p.notiz ? txt(p.notiz) : '') + '</td>' : '') +
+        '</tr>';
     }).join('');
+
+    var vorschau = '';
+    if (mitNotiz) {
+      vorschau = '<div class="notiz-block">' +
+        '<div class="notiz-kopf">\u270e Bemerkungen der ' +
+          (b.istRetoure ? 'Retoure' : 'Bestellung') + '</div>' +
+        b.posten.filter(function (p) { return p.notiz; }).map(function (p) {
+          return '<div class="notiz-zeile"><b>' + txt(p.nr) + ' ' + txt(p.bez) + '</b> \u00b7 ' +
+            p.menge + ' St\u00fcck<br>' + txt(p.notiz) + '</div>';
+        }).join('') +
+        (b.bemerkung ? '<div class="notiz-zeile"><b>Zur gesamten Meldung</b><br>' +
+          txt(b.bemerkung) + '</div>' : '') +
+        '<div class="werkzeuge" style="margin-top:10px">' +
+          '<button type="button" class="zeilenknopf" style="padding:9px 13px;font-size:13.5px" ' +
+            'data-notizpdf="' + txt(b.id) + '">Bemerkungen als PDF</button></div>' +
+      '</div>';
+    }
 
     var dateien = '';
     if (b.pdf) dateien += '<a href="' + txt(b.pdf) + '" target="_blank" rel="noopener">PDF &ouml;ffnen</a>';
@@ -1032,9 +1122,11 @@
       '<div class="rollen"><table><thead><tr><th>Nr.</th><th>Bezeichnung</th>' +
       (b.istRetoure ? '<th class="zahl-rechts">Geliefert</th><th class="zahl-rechts">Quote</th>' : '') +
       '<th class="zahl-rechts">' + (b.istRetoure ? 'Retoure' : 'Menge') + '</th>' +
-      '<th class="zahl-rechts">Wert</th></tr></thead>' +
+      '<th class="zahl-rechts">Wert</th>' +
+      (mitNotiz ? '<th>Bemerkung</th>' : '') + '</tr></thead>' +
       '<tbody>' + (zeilen || '<tr><td colspan="6">Keine Einzelpositionen \u00fcbermittelt.</td></tr>') +
       '</tbody></table></div>' +
+      vorschau +
       (dateien ? '<div class="dateien">' + dateien + '</div>' : '') +
     '</div>';
   }
@@ -3272,6 +3364,105 @@
       '<div class="aufteilung">Kosten anteilig aus dem Reiter Kosten f\u00fcr ' +
       tageImZeitraum(aZeitraum) + ' Tage. Personalkosten aus: ' + lohn.quelle + '.</div>'
     };
+  }
+
+  // ---------- Hinweis auf weitere Reiter ----------
+  (function reiterHinweis() {
+    var leiste = el('reiter-leiste');
+    var huelle = el('reiter-huelle');
+    if (!leiste || !huelle) return;
+
+    function pruefen() {
+      var links = leiste.scrollLeft > 4;
+      var rechts = (leiste.scrollWidth - leiste.clientWidth - leiste.scrollLeft) > 4;
+      huelle.classList.toggle('mehr-links', links);
+      huelle.classList.toggle('mehr-rechts', rechts);
+    }
+
+    function schieben(richtung) {
+      leiste.scrollBy({ left: richtung * Math.round(leiste.clientWidth * 0.7), behavior: 'smooth' });
+    }
+
+    el('reiter-links').addEventListener('click', function () { schieben(-1); });
+    el('reiter-rechts').addEventListener('click', function () { schieben(1); });
+    leiste.addEventListener('scroll', pruefen);
+    window.addEventListener('resize', pruefen);
+
+    // Beim Wechsel den aktiven Reiter in den sichtbaren Bereich holen
+    leiste.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        setTimeout(function () {
+          if (b.scrollIntoView) b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+          setTimeout(pruefen, 350);
+        }, 0);
+      });
+    });
+
+    pruefen();
+    setTimeout(pruefen, 300);   // wenn die Schrift fertig geladen ist
+  })();
+
+  // ---------- Bemerkungen als PDF ----------
+  function notizenPdf(id) {
+    var b = bestellungen.concat(retourenListe).filter(function (x) { return x.id === id; })[0];
+    if (!b || !window.jspdf) return;
+
+    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+
+    try {
+      var bild = document.querySelector('header img');
+      if (bild && String(bild.src).indexOf('data:image') === 0) {
+        doc.addImage(bild.src, 'PNG', 40, 34, 40, 40);
+      }
+    } catch (e) { /* ohne Logo geht es auch */ }
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+    doc.setTextColor(46, 42, 121);
+    doc.text('Bemerkungen zur ' + (b.istRetoure ? 'Retoure' : 'Bestellung'), 96, 58);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text(entziffert(b.filiale) + '  \u00b7  ' + b.datum + '  \u00b7  ' + entziffert(b.besteller),
+             96, 72);
+    doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5);
+    doc.line(40, 88, 555, 88);
+
+    var zeilen = b.posten.filter(function (p) { return p.notiz; }).map(function (p) {
+      return [p.nr, p.bez, String(p.menge), p.notiz];
+    });
+
+    doc.autoTable({
+      startY: 106,
+      head: [['Nr.', 'Artikel', 'Menge', 'Bemerkung']],
+      body: zeilen.length ? zeilen : [['', 'Keine Bemerkungen zu einzelnen Artikeln', '', '']],
+      styles: { font: 'helvetica', fontSize: 9.5, cellPadding: 5 },
+      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+      columnStyles: { 0: { cellWidth: 45, halign: 'center' },
+                      1: { cellWidth: 150 },
+                      2: { cellWidth: 48, halign: 'right', fontStyle: 'bold' },
+                      3: { textColor: [46, 42, 121] } },
+      margin: { left: 40, right: 40 }
+    });
+
+    if (b.bemerkung) {
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 18,
+        head: [['Bemerkung zur gesamten Meldung']],
+        body: [[b.bemerkung]],
+        styles: { font: 'helvetica', fontSize: 9.5, cellPadding: 5 },
+        headStyles: { fillColor: [107, 104, 128], textColor: 255 },
+        margin: { left: 40, right: 40 }
+      });
+    }
+
+    doc.setDrawColor(221, 218, 232); doc.setLineWidth(0.6);
+    doc.line(40, 792, 555, 792);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+    doc.setTextColor(130, 130, 130);
+    doc.text('B\u00e4ckerei Jung  \u00b7  Walter-Eucken-Stra\u00dfe 11  \u00b7  ' +
+             '66877 Ramstein-Miesenbach  \u00b7  Gesch\u00e4ftsf\u00fchrer: Matthias Jung', 40, 806);
+
+    doc.save('Bemerkungen_' + String(b.filiale).replace(/[^\w]+/g, '_') + '_' +
+             String(b.datum).replace(/\./g, '-') + '.pdf');
   }
 
   // ---------- Meldungen ----------

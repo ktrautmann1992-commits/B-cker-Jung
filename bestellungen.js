@@ -200,6 +200,7 @@ exports.handler = async function (event) {
                 besteller: d.besteller || '', positionen: d.positionen || '0',
                 stueck: d.stueck || '0', warenwert: d.warenwert || '',
                 bemerkung: d.bemerkung || '', uebersicht: d.uebersicht || '',
+                artikelbemerkungen: d.artikelbemerkungen || '',
                 bestellart: d.bestellart || 'neu',
                 csv: dateiUrl(d.csv), pdf: dateiUrl(d.pdf)
               };
