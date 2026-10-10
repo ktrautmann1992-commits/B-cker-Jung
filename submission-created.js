@@ -46,7 +46,8 @@ exports.handler = async function (event) {
     uebersicht: d.uebersicht || '',
     artikelbemerkungen: d.artikelbemerkungen || '',
     csv:        dateiUrl(d.csv),
-    pdf:        dateiUrl(d.pdf)
+    pdf:        dateiUrl(d.pdf),
+    notizenPdf: dateiUrl(d.notizen)
   };
 
   const name = istRetoure ? 'retouren' : 'bestellungen';

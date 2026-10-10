@@ -202,7 +202,8 @@ exports.handler = async function (event) {
                 bemerkung: d.bemerkung || '', uebersicht: d.uebersicht || '',
                 artikelbemerkungen: d.artikelbemerkungen || '',
                 bestellart: d.bestellart || 'neu',
-                csv: dateiUrl(d.csv), pdf: dateiUrl(d.pdf)
+                csv: dateiUrl(d.csv), pdf: dateiUrl(d.pdf),
+                notizenPdf: dateiUrl(d.notizen)
               };
             }
           });

@@ -338,6 +338,70 @@
     color: var(--grau); font-size: 14px; font-weight: 600; pointer-events: none;
   }
 
+  /* ---------- Tourenplaner ---------- */
+  .werkzeuge button.haupt {
+    background: var(--blau); border-color: var(--blau); color: #fff;
+  }
+  #bereich-touren input[type=text], #bereich-touren input[type=time] {
+    width: 100%; box-sizing: border-box;
+    font-family: inherit; font-size: 15px; padding: 9px 10px;
+    border: 1px solid var(--linie); border-radius: 9px;
+    background: #fff; color: inherit;
+  }
+  #bereich-touren .mit-einheit input {
+    padding-right: 36px; text-align: right; font-weight: 600;
+  }
+  .tp-gruppe {
+    font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--grau); margin: 18px 0 7px;
+  }
+  .tp-stopp {
+    border: 1px solid var(--linie); border-radius: 11px;
+    margin-bottom: 8px; background: #fff;
+  }
+  .tp-stopp.gewaehlt { border-color: var(--blau); background: #FCFCFF; }
+  .tp-stopp > label.haken { padding: 10px 12px; font-weight: 600; }
+  .tp-detail { padding: 0 12px 12px; display: none; }
+  .tp-stopp.gewaehlt .tp-detail { display: block; }
+  .tp-zeiten {
+    display: grid; gap: 8px; margin-top: 8px; align-items: end;
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  }
+  .tp-detail label {
+    display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--grau); margin-bottom: 4px;
+  }
+  .tp-tour {
+    border: 1px solid var(--linie); border-radius: 12px;
+    margin-bottom: 14px; overflow: hidden;
+  }
+  .tp-tour-kopf { background: var(--blau); color: #fff; padding: 11px 13px; }
+  .tp-tour-kopf b { font-family: 'Nunito', sans-serif; font-size: 16px; }
+  .tp-tour-kopf span { display: block; font-size: 12.5px; opacity: .88; margin-top: 2px; }
+  .tp-halt {
+    display: flex; gap: 10px; padding: 10px 13px;
+    border-top: 1px solid #F0EEF6; font-size: 14px;
+  }
+  .tp-halt .zeit {
+    flex: 0 0 50px; font-weight: 700; color: var(--blau);
+    font-variant-numeric: tabular-nums;
+  }
+  .tp-halt .wohin { flex: 1; min-width: 0; }
+  .tp-halt .wohin small { display: block; color: var(--grau); font-size: 12px; margin-top: 2px; }
+  .tp-halt.heim { background: var(--papier); }
+  .tp-halt.spaet .zeit { color: var(--rot); }
+  .tp-knopfe { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 13px; border-top: 1px solid #F0EEF6; }
+  .tp-knopfe a {
+    font-size: 13px; font-weight: 600; text-decoration: none; padding: 9px 12px;
+    border: 1px solid var(--linie); border-radius: 9px; background: #fff; color: var(--blau);
+  }
+  .tp-qr { display: flex; gap: 14px; flex-wrap: wrap; padding: 0 13px 13px; }
+  .tp-qr figure { margin: 0; text-align: center; font-size: 11.5px; color: var(--grau); }
+  .tp-qr img {
+    display: block; width: 118px; height: 118px;
+    border: 1px solid var(--linie); border-radius: 8px;
+  }
+
   /* ---------- Auswertung ---------- */
   h3.abschnitt {
     font-family: 'Nunito', sans-serif; font-size: 15px;
@@ -469,6 +533,7 @@
     <button type="button" id="reiter-verkauf">Verkaufsauswertung</button>
     <button type="button" id="reiter-bestellungen">Bestellungen &amp; Retouren</button>
     <button type="button" id="reiter-produktion">Produktionsliste</button>
+    <button type="button" id="reiter-touren">Tourenplaner</button>
     <button type="button" id="reiter-umsatz">Tagesumsatz</button>
     <button type="button" id="reiter-auswertung">Auswertung</button>
     <button type="button" id="reiter-personal">Personal</button>
@@ -591,6 +656,82 @@
       <button type="button" id="produktion-druck">Drucken</button>
     </div>
     <div id="produktion-inhalt"></div>
+  </div>
+
+  <!-- ---------- Tourenplaner ---------- -->
+  <div class="karte verstecken" id="bereich-touren">
+    <div class="hinweis" id="t-lage">
+      Start und Ziel ist immer die Produktion in der Walther-Eucken-Stra&szlig;e 11 in
+      Ramstein-Miesenbach. R&uuml;stzeit ab 2:00 Uhr, verladen bis 2:30 Uhr.
+    </div>
+
+    <div class="raster" style="margin-bottom:12px">
+      <div style="flex:1 1 170px">
+        <label class="feldname" for="t-tag">Wochentag</label>
+        <select id="t-tag"></select>
+      </div>
+      <div style="flex:1 1 140px">
+        <label class="feldname" for="t-anzahl">H&ouml;chstens</label>
+        <select id="t-anzahl">
+          <option value="1">1 Tour</option>
+          <option value="2">2 Touren</option>
+          <option value="3" selected>3 Touren</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="einstellungen">
+      <div class="einstellungen-kopf">Zeiten f&uuml;r diesen Wochentag</div>
+      <div class="einstellungen-felder">
+        <div class="einstellung">
+          <label for="t-ab1">Abfahrt Tour 1</label>
+          <input type="time" id="t-ab1" value="02:30">
+        </div>
+        <div class="einstellung">
+          <label for="t-ab2">Abfahrt Tour 2</label>
+          <input type="time" id="t-ab2" value="02:30">
+        </div>
+        <div class="einstellung">
+          <label for="t-ab3">Abfahrt Tour 3</label>
+          <input type="time" id="t-ab3" value="02:30">
+        </div>
+        <div class="einstellung">
+          <label for="t-zurueck">Zur&uuml;ck bis</label>
+          <input type="time" id="t-zurueck" value="07:00">
+          <small>in der Produktion</small>
+        </div>
+        <div class="einstellung">
+          <label for="t-entladen">Entladen</label>
+          <div class="mit-einheit">
+            <input type="text" id="t-entladen" inputmode="numeric" value="6"><span>min</span>
+          </div>
+          <small>Standard je Stopp</small>
+        </div>
+        <div class="einstellung">
+          <label for="t-filialzeit">Filialen bis</label>
+          <input type="time" id="t-filialzeit" value="05:30">
+          <small>sp&auml;teste Ankunft</small>
+        </div>
+        <div class="einstellung">
+          <label for="t-maxstopps">Je Tour</label>
+          <div class="mit-einheit">
+            <input type="text" id="t-maxstopps" inputmode="numeric" placeholder="frei"><span>St.</span>
+          </div>
+          <small>h&ouml;chstens so viele Stopps</small>
+        </div>
+      </div>
+    </div>
+
+    <div id="t-auswahl"></div>
+
+    <div class="werkzeuge" style="margin-top:14px">
+      <button type="button" class="haupt" id="t-rechnen">Touren berechnen</button>
+      <button type="button" id="t-kunde">Lieferkunde anlegen</button>
+      <button type="button" id="t-speichern">Vorlage speichern</button>
+      <button type="button" id="t-pdf">Als PDF speichern</button>
+    </div>
+    <div id="touren-meldung"></div>
+    <div id="t-plan"></div>
   </div>
 
   <div class="karte verstecken" id="bereich-umsatz">
@@ -739,6 +880,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script type="application/json" id="stammdaten">{"filialen": [{"blatt": "Rammelsbach", "ort": "Rammelsbach", "strasse": "Haschbacherstraße 14"}, {"blatt": "Rodenbach", "ort": "Rodenbach", "strasse": "Hauptstraße 60"}, {"blatt": "Bruchmühlbach-Miesau", "ort": "Bruchmühlbach-Miesau", "strasse": "St. Wendelerstraße 13"}, {"blatt": "Ramstein-Miesenbach", "ort": "Ramstein-Miesenbach", "strasse": "Ramsteinerstraße 42"}, {"blatt": "Landstuhl", "ort": "Landstuhl", "strasse": "Gartenstraße 11"}, {"blatt": "Vogelbach", "ort": "Vogelbach", "strasse": "Kaiserstraße 338"}, {"blatt": "Schönenberg-Kübelberg", "ort": "Schönenberg-Kübelberg", "strasse": "Glanstraße 16"}, {"blatt": "Waldmohr", "ort": "Waldmohr", "strasse": "Saarpfalzstraße 50"}, {"blatt": "Konken", "ort": "Konken", "strasse": "Hauptstraße 52"}, {"blatt": "Kusel", "ort": "Kusel", "strasse": "Triererstraße 38"}, {"blatt": "Ramstein-Miesenbach Walther-Euc", "ort": "Ramstein-Miesenbach", "strasse": "Walther-Eucken Straße"}], "artikel": [{"nr": "1", "bez": "Doppelbrötchen", "einheit": "Stück", "vk": 1.1}, {"nr": "2", "bez": "Tafelbrötchen", "einheit": "Stück", "vk": 0.55}, {"nr": "3", "bez": "Knopfsemmel", "einheit": "Stück", "vk": 0.55}, {"nr": "5", "bez": "Milchbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "6", "bez": "Krusties", "einheit": "Stück", "vk": 1.1}, {"nr": "7", "bez": "Sesambrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "8", "bez": "Mohnbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "9", "bez": "Kümmelbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "10", "bez": "Käsebrötchen", "einheit": "Stück", "vk": 1.0}, {"nr": "11", "bez": "Mohnhörnchen", "einheit": "Stück", "vk": 0.95}, {"nr": "13", "bez": "Miesauer Landweck", "einheit": "Stück", "vk": 1.2}, {"nr": "16", "bez": "Dinkel Honig Krusties", "einheit": "Stück", "vk": 1.1}, {"nr": "22", "bez": "Knopfsemmel Teiglinge", "einheit": "Stück", "vk": 0.45}, {"nr": "50", "bez": "Römer", "einheit": "Stück", "vk": 0.95}, {"nr": "51", "bez": "Kornspitz", "einheit": "Stück", "vk": 0.95}, {"nr": "54", "bez": "Kürbisknacker", "einheit": "Stück", "vk": 0.95}, {"nr": "55", "bez": "Vesperstange", "einheit": "Stück", "vk": 2.1}, {"nr": "57", "bez": "Dinkelkörnle", "einheit": "Stück", "vk": 0.95}, {"nr": "62", "bez": "Kürbisbrezel", "einheit": "Stück", "vk": 1.8}, {"nr": "64", "bez": "Schinkenkäsebrezel", "einheit": "Stück", "vk": 2.35}, {"nr": "65", "bez": "Schlemmerstange", "einheit": "Stück", "vk": 2.0}, {"nr": "66", "bez": "Pfefferbrezel", "einheit": "Stück", "vk": 1.3}, {"nr": "67", "bez": "Laugestange mit Kürbis", "einheit": "Stück", "vk": 0.95}, {"nr": "79", "bez": "Partybrötchen mit Belag MKS Käse Körner", "einheit": "Stück", "vk": 0.65}, {"nr": "80", "bez": "Partyrad 15 er", "einheit": "Stück", "vk": 7.95}, {"nr": "81", "bez": "Partyrad 25 er", "einheit": "Stück", "vk": 13.25}, {"nr": "82", "bez": "Partyrad 30 er", "einheit": "Stück", "vk": 15.9}, {"nr": "83", "bez": "Partysonne 35 er", "einheit": "Stück", "vk": 18.55}, {"nr": "84", "bez": "Partybrötchen einzeln", "einheit": "Stück", "vk": 0.55}, {"nr": "85", "bez": "Partylaugenkonfekt", "einheit": "Stück", "vk": 0.65}, {"nr": "86", "bez": "Partystange groß 100 g", "einheit": "Stück", "vk": 1.15}, {"nr": "87", "bez": "Fußballbrötchen", "einheit": "Stück", "vk": 0.95}, {"nr": "88", "bez": "Blätterteiggebäck", "einheit": "Stück", "vk": 0.75}, {"nr": "91", "bez": "Laugenstangen", "einheit": "Stück", "vk": 1.05}, {"nr": "92", "bez": "Käselaugestange", "einheit": "Stück", "vk": 1.8}, {"nr": "93", "bez": "Brezeln", "einheit": "Stück", "vk": 1.1}, {"nr": "94", "bez": "Laugeecke", "einheit": "Stück", "vk": 1.65}, {"nr": "95", "bez": "Brezel groß", "einheit": "Stück", "vk": 18.0}, {"nr": "96", "bez": "Käsebrezel", "einheit": "Stück", "vk": 2.2}, {"nr": "97", "bez": "Partylaugebrezel", "einheit": "Stück", "vk": 0.95}, {"nr": "98", "bez": "Partykäsestange", "einheit": "Stück", "vk": 1.2}, {"nr": "99", "bez": "Partylaugestange", "einheit": "Stück", "vk": 0.95}, {"nr": "100", "bez": "Roggenmischbrot 500 g", "einheit": "Stück", "vk": 2.7}, {"nr": "101", "bez": "Roggenmischbrot 1000 g", "einheit": "Stück", "vk": 4.3}, {"nr": "102", "bez": "Roggenmischbrot 500g gestäubt", "einheit": "Stück", "vk": 2.7}, {"nr": "104", "bez": "Roggenmischkümmelbrot Kümmelbrot 500 g", "einheit": "Stück", "vk": 3.1}, {"nr": "105", "bez": "Roggenmischbrot 1500 g", "einheit": "Stück", "vk": 5.85}, {"nr": "106", "bez": "Sommerlaib 500 g", "einheit": "Stück", "vk": 3.7}, {"nr": "107", "bez": "Gründerbrot 500 g", "einheit": "Stück", "vk": 4.1}, {"nr": "109", "bez": "Roggenmischbrot 3000 g", "einheit": "Stück", "vk": 10.85}, {"nr": "111", "bez": "Roggenmischbrot 750 g", "einheit": "Stück", "vk": 3.95}, {"nr": "113", "bez": "Jung's Bauernkruste 750g", "einheit": "Stück", "vk": 3.9}, {"nr": "116", "bez": "Roggenback Kastenbrot 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "120", "bez": "Weizenmischbrot 500 g", "einheit": "Stück", "vk": 2.7}, {"nr": "121", "bez": "Weizenmischbrot 1000 g", "einheit": "Stück", "vk": 4.2}, {"nr": "122", "bez": "Weizenmischbrot 1500 g", "einheit": "Stück", "vk": 5.85}, {"nr": "123", "bez": "Weizenmischbrot im Kasten 1000g", "einheit": "Stück", "vk": 4.3}, {"nr": "124", "bez": "Sickinger Landbrot 500 g", "einheit": "Stück", "vk": 3.0}, {"nr": "125", "bez": "Sickinger Landbrot 1000g rund", "einheit": "Stück", "vk": 5.3}, {"nr": "126", "bez": "Sickingerlandbrot Lang 1000 g Lang", "einheit": "Stück", "vk": 5.3}, {"nr": "127", "bez": "Sickinger 1500g Lang", "einheit": "Stück", "vk": 7.75}, {"nr": "128", "bez": "Sickingerlandbrot 750g", "einheit": "Stück", "vk": 4.2}, {"nr": "132", "bez": "Weizenmischbrot 1000g im Kasten Lang", "einheit": "Stück", "vk": 4.3}, {"nr": "133", "bez": "Gutsherrenbrot 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "134", "bez": "Gutsherrenbrot 1000g im Kasten", "einheit": "Stück", "vk": 5.4}, {"nr": "135", "bez": "Gutsherrenbrot 500g Rund", "einheit": "Stück", "vk": 2.8}, {"nr": "137", "bez": "Mühlenbrot im Kasten 750g", "einheit": "Stück", "vk": 4.1}, {"nr": "138", "bez": "Jungs Saftschnitte SA", "einheit": "Stück", "vk": 4.1}, {"nr": "143", "bez": "Dinkelkornlaib 750 g", "einheit": "Stück", "vk": 4.3}, {"nr": "146", "bez": "Dinkelvollkornbrot 500 g", "einheit": "Stück", "vk": 4.4}, {"nr": "147", "bez": "Feel Happy Brot", "einheit": "Stück", "vk": 3.85}, {"nr": "181", "bez": "Korn König 500g", "einheit": "Stück", "vk": 2.85}, {"nr": "182", "bez": "Korn König 750g", "einheit": "Stück", "vk": 4.1}, {"nr": "200", "bez": "Weißbrot 500 g Frei gebacken", "einheit": "Stück", "vk": 2.75}, {"nr": "201", "bez": "Kastenweißbrot 500 g Im Kasten gebacken", "einheit": "Stück", "vk": 2.95}, {"nr": "202", "bez": "Flitt 500 g", "einheit": "Stück", "vk": 2.9}, {"nr": "203", "bez": "Flitt 250 g", "einheit": "Stück", "vk": 2.35}, {"nr": "205", "bez": "Zwiebelflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "207", "bez": "Roggenflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "209", "bez": "Kornbaguette 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "210", "bez": "Partybaguette 250g", "einheit": "Stück", "vk": 2.75}, {"nr": "214", "bez": "Grillfluit 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "217", "bez": "Schinkenflitt 250 g", "einheit": "Stück", "vk": 2.95}, {"nr": "218", "bez": "Pane Luciane", "einheit": "Stück", "vk": 1.2}, {"nr": "222", "bez": "Käsekräuterbaguette 300g", "einheit": "Stück", "vk": 3.0}, {"nr": "301", "bez": "Nußschnecke", "einheit": "Stück", "vk": 2.1}, {"nr": "302", "bez": "Quarkstückchen", "einheit": "Stück", "vk": 2.1}, {"nr": "304", "bez": "Kirschpuddingplunder", "einheit": "Stück", "vk": 2.1}, {"nr": "305", "bez": "Apfeltasche", "einheit": "Stück", "vk": 2.1}, {"nr": "306", "bez": "Streuselnuss- Schleife", "einheit": "Stück", "vk": 2.1}, {"nr": "307", "bez": "Schokocroissants", "einheit": "Stück", "vk": 2.1}, {"nr": "308", "bez": "Croissants ungefüllt", "einheit": "Stück", "vk": 1.85}, {"nr": "309", "bez": "Berliner", "einheit": "Stück", "vk": 1.35}, {"nr": "310", "bez": "Berliner gefüllt", "einheit": "Stück", "vk": 1.7}, {"nr": "312", "bez": "Nußpuddingbrezel", "einheit": "Stück", "vk": 2.1}, {"nr": "313", "bez": "Streuselstückchen gefüllt", "einheit": "Stück", "vk": 2.95}, {"nr": "314", "bez": "Butterhörnchen", "einheit": "Stück", "vk": 1.5}, {"nr": "316", "bez": "Franz. Brötchen", "einheit": "Stück", "vk": 1.95}, {"nr": "317", "bez": "Quark-Mohn Fladen", "einheit": "Stück", "vk": 2.1}, {"nr": "319", "bez": "Schoki - Vanillehörnchen", "einheit": "Stück", "vk": 2.1}, {"nr": "322", "bez": "Apfelberliner", "einheit": "Stück", "vk": 2.65}, {"nr": "323", "bez": "Pfälzer Kartoffel", "einheit": "Stück", "vk": 2.85}, {"nr": "328", "bez": "Zwetschgenteilchen", "einheit": "Stück", "vk": 1.95}, {"nr": "329", "bez": "Mini Schokocroissant", "einheit": "Stück", "vk": 0.95}, {"nr": "330", "bez": "Mini Buttercroissant", "einheit": "Stück", "vk": 0.95}, {"nr": "331", "bez": "Mini Nusspuddingtasche", "einheit": "Stück", "vk": 0.95}, {"nr": "332", "bez": "Marzipan Plunder", "einheit": "Stück", "vk": 1.95}, {"nr": "333", "bez": "Mini Apfeltasche", "einheit": "Stück", "vk": 0.95}, {"nr": "334", "bez": "Mini Kirschtasche", "einheit": "Stück", "vk": 0.95}, {"nr": "336", "bez": "Nougathörnchen", "einheit": "Stück", "vk": 2.1}, {"nr": "337", "bez": "Puddingschiffchen", "einheit": "Stück", "vk": 2.1}, {"nr": "350", "bez": "Amerikaner", "einheit": "Stück", "vk": 2.2}, {"nr": "351", "bez": "Muffins", "einheit": "Stück", "vk": 2.2}, {"nr": "354", "bez": "Belgische Waffeln", "einheit": "Stück", "vk": 1.49}, {"nr": "360", "bez": "Donats", "einheit": "Stück", "vk": 1.49}, {"nr": "361", "bez": "Donut mit Weisserschokolade", "einheit": "Stück", "vk": 1.8}, {"nr": "364", "bez": "Donut mit Smartis", "einheit": "Stück", "vk": 1.8}, {"nr": "365", "bez": "Oreodonut", "einheit": "Stück", "vk": 1.8}, {"nr": "366", "bez": "Dount mit Buntzucker", "einheit": "Stück", "vk": 1.8}, {"nr": "367", "bez": "Krümmelmonster Donuts", "einheit": "Stück", "vk": 2.65}, {"nr": "368", "bez": "Smily Donuts", "einheit": "Stück", "vk": 2.65}, {"nr": "390", "bez": "Schokoweck", "einheit": "Stück", "vk": 1.6}, {"nr": "391", "bez": "Rosinenweck", "einheit": "Stück", "vk": 1.6}, {"nr": "395", "bez": "Vanilleberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "396", "bez": "Eierlikörkirschberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "397", "bez": "Nougatberliner", "einheit": "Stück", "vk": 2.85}, {"nr": "400", "bez": "Zuckerringe Zuckerringe mit Hagelzucker", "einheit": "Stück", "vk": 1.6}, {"nr": "401", "bez": "Nougatringe", "einheit": "Stück", "vk": 2.8}, {"nr": "402", "bez": "Flammende Herzen", "einheit": "Stück", "vk": 2.8}, {"nr": "403", "bez": "Powerriegel", "einheit": "Stück", "vk": 2.2}, {"nr": "405", "bez": "Granatsplitter", "einheit": "Stück", "vk": 2.8}, {"nr": "406", "bez": "Bananensplitt", "einheit": "Stück", "vk": 2.8}, {"nr": "408", "bez": "Blätterteigbrezel", "einheit": "Stück", "vk": 2.8}, {"nr": "409", "bez": "Blätterteigstange", "einheit": "Stück", "vk": 2.8}, {"nr": "416", "bez": "Nussecken", "einheit": "Stück", "vk": 2.8}, {"nr": "424", "bez": "Cookies", "einheit": "Stück", "vk": 1.8}, {"nr": "425", "bez": "Cookies mit Smarties", "einheit": "Stück", "vk": 1.8}, {"nr": "450", "bez": "Fruchtschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "451", "bez": "Käsemandarinenschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "453", "bez": "Donauwelleschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "454", "bez": "Sahneschnitten alle Sorten", "einheit": "Stück", "vk": 2.65}, {"nr": "456", "bez": "Himbeerjoghurtschnitte", "einheit": "Stück", "vk": 2.65}, {"nr": "466", "bez": "Bienenstichschnitte Sahne+Kirs", "einheit": "Stück", "vk": 2.65}, {"nr": "469", "bez": "Altdeutscher Pflaumenstreusel", "einheit": "Stück", "vk": 7.5}, {"nr": "470", "bez": "Freche Früchtchen", "einheit": "Stück", "vk": 2.85}, {"nr": "491", "bez": "Schweineohren", "einheit": "Stück", "vk": 2.8}, {"nr": "492", "bez": "Nougatti", "einheit": "Stück", "vk": 2.8}, {"nr": "500", "bez": "Streuselkuchen", "einheit": "Stück", "vk": 11.0}, {"nr": "501", "bez": "Zuckerkuchen", "einheit": "Stück", "vk": 11.0}, {"nr": "503", "bez": "Hefekranz groß", "einheit": "Stück", "vk": 18.0}, {"nr": "506", "bez": "Kranz gefüllt", "einheit": "Stück", "vk": 24.0}, {"nr": "507", "bez": "Schokostreuselkranz", "einheit": "Stück", "vk": 26.5}, {"nr": "508", "bez": "Wiener Gupf", "einheit": "Stück", "vk": 15.9}, {"nr": "510", "bez": "Rosinenbrot", "einheit": "Stück", "vk": 5.3}, {"nr": "511", "bez": "Bummerang", "einheit": "Stück", "vk": 9.1}, {"nr": "512", "bez": "Schlemmerkranz", "einheit": "Stück", "vk": 26.5}, {"nr": "513", "bez": "Gefüllterkranz mit Schokoglasur", "einheit": "Stück", "vk": 26.5}, {"nr": "514", "bez": "Butterobstkuchen", "einheit": "Stück", "vk": 8.45}, {"nr": "515", "bez": "Butterhefezopf groß", "einheit": "Stück", "vk": 9.0}, {"nr": "518", "bez": "Streuselkuchen 26 cm", "einheit": "Stück", "vk": 5.3}, {"nr": "519", "bez": "Nougatstreusel", "einheit": "Stück", "vk": 7.5}, {"nr": "520", "bez": "Butterkuchen", "einheit": "Stück", "vk": 7.5}, {"nr": "521", "bez": "Dänischer Streusel", "einheit": "Stück", "vk": 7.5}, {"nr": "526", "bez": "Unser Käsezwerg 16 cm", "einheit": "Stück", "vk": 9.0}, {"nr": "527", "bez": "Butterschokozopf", "einheit": "Stück", "vk": 6.5}, {"nr": "528", "bez": "Haselnusszopf im Holzkorb", "einheit": "Stück", "vk": 6.5}, {"nr": "529", "bez": "Butterhefezopf im Holzkorb", "einheit": "Stück", "vk": 4.8}, {"nr": "530", "bez": "Quarkzopf im Holzkorb", "einheit": "Stück", "vk": 6.5}, {"nr": "545", "bez": "Gedeckter Kirschkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "546", "bez": "Gedeckter Apfelkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "548", "bez": "Rhabarberkuchen Klein", "einheit": "Stück", "vk": 11.75}, {"nr": "549", "bez": "Rhabarberkuchen 12er Einteilung Stück 2,50", "einheit": "Stück", "vk": 28.0}, {"nr": "550", "bez": "Käsekuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "551", "bez": "Apfelstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "552", "bez": "Zwetschgenkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "553", "bez": "Bienenstich", "einheit": "Stück", "vk": 37.0}, {"nr": "554", "bez": "Aprikosen-puddingstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "557", "bez": "Kirschstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "560", "bez": "Nußkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "561", "bez": "Marmorkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "562", "bez": "Eierlikörkuchen", "einheit": "Stück", "vk": 26.0}, {"nr": "565", "bez": "Marmorstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "566", "bez": "Zitronenstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "567", "bez": "Eierlikörstollen", "einheit": "Stück", "vk": 5.3}, {"nr": "568", "bez": "Schwäbische Apfeltorte", "einheit": "Stück", "vk": 28.0}, {"nr": "569", "bez": "Rahmkuchen mit Obst", "einheit": "Stück", "vk": 28.0}, {"nr": "570", "bez": "Rahmkuchen Groß ohne obst", "einheit": "Stück", "vk": 28.0}, {"nr": "571", "bez": "Rahmkuchen klein", "einheit": "Stück", "vk": 10.5}, {"nr": "572", "bez": "Käsenussmandarinekuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "575", "bez": "Zwetschgensandkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "576", "bez": "Süss Kirschkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "577", "bez": "Zwetschgenkuchen klein 26cm", "einheit": "Stück", "vk": 10.65}, {"nr": "578", "bez": "Zupfkuchen", "einheit": "Stück", "vk": 28.0}, {"nr": "580", "bez": "Biskuitboden", "einheit": "Stück", "vk": 3.75}, {"nr": "581", "bez": "Tortenböden , Dick Biskuit", "einheit": "Stück", "vk": 8.0}, {"nr": "582", "bez": "Tortenboden,Dick-Schoko", "einheit": "Stück", "vk": 8.0}, {"nr": "583", "bez": "Tortenboden,Dick-Nuß", "einheit": "Stück", "vk": 8.0}, {"nr": "584", "bez": "Möhrentorte 26 cm.", "einheit": "Stück", "vk": 28.0}, {"nr": "588", "bez": "Sizilianischer Zitronenkuchen", "einheit": "Stück", "vk": 10.0}, {"nr": "590", "bez": "Himbeerobsttorte", "einheit": "Stück", "vk": 32.0}, {"nr": "591", "bez": "Gemischteobsttorte", "einheit": "Stück", "vk": 32.0}, {"nr": "595", "bez": "Puddingkirschstreusel", "einheit": "Stück", "vk": 28.0}, {"nr": "597", "bez": "Zwiebelkuchen groß", "einheit": "Stück", "vk": 25.5}, {"nr": "599", "bez": "Obsttorte Erdbeere", "einheit": "Stück", "vk": 32.0}, {"nr": "600", "bez": "Erdbeersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "601", "bez": "Schokosahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "602", "bez": "Nußsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "603", "bez": "Schwarzwäldersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "604", "bez": "Käsesahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "606", "bez": "Passionsfruchtsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "608", "bez": "Himbeersahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "610", "bez": "Mokkacremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "611", "bez": "Erdbeerjoghurtsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "614", "bez": "Glasierte Nusstorte", "einheit": "Stück", "vk": 48.0}, {"nr": "615", "bez": "Ananassahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "616", "bez": "Schokoananassahne", "einheit": "Stück", "vk": 48.0}, {"nr": "617", "bez": "Tiramisusahne Torte", "einheit": "Stück", "vk": 45.0}, {"nr": "618", "bez": "Schokobirnensahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "619", "bez": "Eierlikörsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "622", "bez": "Mandarinensahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "623", "bez": "Nougatsahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "626", "bez": "Cappuccinosahnetorte", "einheit": "Stück", "vk": 48.0}, {"nr": "647", "bez": "Sahneomlett", "einheit": "Stück", "vk": 48.0}, {"nr": "648", "bez": "Eclairs", "einheit": "Stück", "vk": 3.2}, {"nr": "649", "bez": "Erdbeer- Röllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "650", "bez": "Windbeutel", "einheit": "Stück", "vk": 3.2}, {"nr": "651", "bez": "Kirschröllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "652", "bez": "Zitronenröllchen", "einheit": "Stück", "vk": 3.2}, {"nr": "653", "bez": "Erdbeersahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "654", "bez": "Schokosahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "655", "bez": "Schwarzwälderkirschcremrolle", "einheit": "Stück", "vk": 3.2}, {"nr": "656", "bez": "Bananensahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "657", "bez": "Moccacremrolle", "einheit": "Stück", "vk": 3.2}, {"nr": "658", "bez": "Himbeersahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "659", "bez": "Pyramiden Schnitte", "einheit": "Stück", "vk": 3.2}, {"nr": "660", "bez": "Cappuccinosahnerolle", "einheit": "Stück", "vk": 3.2}, {"nr": "662", "bez": "Prinzregentenschnitte", "einheit": "Stück", "vk": 3.2}, {"nr": "666", "bez": "Birkenstamm", "einheit": "Stück", "vk": 3.2}, {"nr": "680", "bez": "Kuchenplatte Variante 1", "einheit": "Stück", "vk": 28.0}, {"nr": "697", "bez": "Früchtebecher", "einheit": "Stück", "vk": 3.75}, {"nr": "703", "bez": "Käsezwirbel", "einheit": "Stück", "vk": 2.1}, {"nr": "704", "bez": "Pizzazwirbel", "einheit": "Stück", "vk": 2.1}, {"nr": "707", "bez": "Zwiebelzunge", "einheit": "Stück", "vk": 2.5}, {"nr": "714", "bez": "Maisspeckzwiebelstange", "einheit": "Stück", "vk": 2.5}, {"nr": "720", "bez": "Belegtes Brötchen mit Garnitur", "einheit": "Stück", "vk": 2.95}, {"nr": "721", "bez": "Belegtes mit Spezialbrötchen", "einheit": "Stück", "vk": 3.2}, {"nr": "800", "bez": "Punschcremtorte Vanille oder Schoko", "einheit": "Stück", "vk": 48.0}, {"nr": "801", "bez": "Schokocremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "803", "bez": "Vanillecremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "806", "bez": "Vanillecremtorte mit Mandarinen", "einheit": "Stück", "vk": 48.0}, {"nr": "807", "bez": "Nusscremfächertorte", "einheit": "Stück", "vk": 48.0}, {"nr": "808", "bez": "Erdbeercremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "809", "bez": "Prinzregententorte", "einheit": "Stück", "vk": 48.0}, {"nr": "810", "bez": "Frankfurterkranz nach art des Hauses", "einheit": "Stück", "vk": 48.0}, {"nr": "811", "bez": "Donauwelle Torte", "einheit": "Stück", "vk": 48.0}, {"nr": "812", "bez": "Glasierte Nusstorte", "einheit": "Stück", "vk": 48.0}, {"nr": "813", "bez": "Moccacremtorte", "einheit": "Stück", "vk": 48.0}, {"nr": "916", "bez": "Lebkuchennikolaus", "einheit": "Stück", "vk": 6.5}, {"nr": "920", "bez": "Blaubeermuffins", "einheit": "Stück", "vk": 2.2}, {"nr": "922", "bez": "Tripleschokomuffin", "einheit": "Stück", "vk": 2.2}, {"nr": "923", "bez": "Marmor Muffin", "einheit": "Stück", "vk": 2.2}, {"nr": "924", "bez": "Möhrennuss Muffins", "einheit": "Stück", "vk": 2.2}, {"nr": "1200", "bez": "Laugenherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 1.5}, {"nr": "1201", "bez": "Hefeteigherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 2.8}, {"nr": "1202", "bez": "Rührkuchenherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 3.65}, {"nr": "1203", "bez": "Mürbteigherz (Lieferbar: 11.2. - 14.2.)", "einheit": "Stück", "vk": 3.4}, {"nr": "1508", "bez": "Schokospritzgebäck", "einheit": "Stück", "vk": 4.95}, {"nr": "2000", "bez": "Salamisandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2001", "bez": "Schinkensandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2002", "bez": "Fleischkäsesandwich", "einheit": "Stück", "vk": 3.8}, {"nr": "2006", "bez": "Schnitzelbrötchen", "einheit": "Stück", "vk": 3.8}, {"nr": "10114", "bez": "Schokostreuselkranz klein", "einheit": "Stück", "vk": 12.0}, {"nr": "10120", "bez": "Rahmkuchen klein mit Obst", "einheit": "Stück", "vk": 11.0}, {"nr": "10121", "bez": "Sahnerolle klein", "einheit": "Stück", "vk": 7.95}, {"nr": "10135", "bez": "Chickenburger", "einheit": "Stück", "vk": 3.8}, {"nr": "20000", "bez": "Lieferpauschale", "einheit": "Stück", "vk": 4.1}]}</script>
 
@@ -751,6 +893,7 @@
   var bestellungen = [];
   var artikelInfo = {};   // nr -> {bez, einheit, vk}
   var alleFilialen = [];  // Ortsnamen aus der Bestell-Seite
+  var filialStamm = [];   // Filialen mit Anschrift, für den Tourenplaner
   var offenIds = {};
   var ansicht = 'dashboard';
   var retourenListe = [];
@@ -858,6 +1001,10 @@
     try {
       var daten = JSON.parse(el('stammdaten').textContent);
       (daten.artikel || []).forEach(function (a) { artikelInfo[a.nr] = a; });
+      // Für den Tourenplaner: die Filialen mit ihren Anschriften, ohne die Produktion
+      filialStamm = (daten.filialen || []).filter(function (f) {
+        return !/walther/i.test(String(f.strasse || ''));
+      });
       alleFilialen = (daten.filialen || []).map(function (f) { return f.ort; })
         .filter(function (o, i, l) { return l.indexOf(o) === i; });
       var aus = el('filter-filiale');
@@ -940,7 +1087,7 @@
     el(id).addEventListener('change', zeichnen);
   });
 
-  var ANSICHTEN = ['dashboard', 'verkauf', 'bestellungen', 'produktion', 'umsatz',
+  var ANSICHTEN = ['dashboard', 'verkauf', 'bestellungen', 'produktion', 'touren', 'umsatz',
                    'auswertung', 'personal', 'kunden', 'gewinn', 'kosten'];
 
   ANSICHTEN.forEach(function (name) {
@@ -961,6 +1108,7 @@
     else if (neu === 'kunden') kundenLaden();
     else if (neu === 'gewinn') gewinnLaden();
     else if (neu === 'kosten') kostenLaden();
+    else if (neu === 'touren') tourenLaden();
     else zeichnen();
   }
 
@@ -3372,6 +3520,585 @@
       '<div class="aufteilung">Kosten anteilig aus dem Reiter Kosten f\u00fcr ' +
       tageImZeitraum(aZeitraum) + ' Tage. Personalkosten aus: ' + lohn.quelle + '.</div>'
     };
+  }
+
+  // ---------- Tourenplaner ----------
+  var ENDPUNKT_TOUREN = '/.netlify/functions/touren';
+  var PRODUKTION = 'Walther-Eucken-Straße 11, 66877 Ramstein-Miesenbach';
+  var WOCHENTAGE = [['mo', 'Montag'], ['di', 'Dienstag'], ['mi', 'Mittwoch'], ['do', 'Donnerstag'],
+                    ['fr', 'Freitag'], ['sa', 'Samstag'], ['so', 'Sonntag']];
+
+  var lieferkunden = [];     // Kunden, die angefahren werden – nur für die Tour
+  var tourAdressen = {};     // Anschrift je Filiale, einmal gepflegt, überall gültig
+  var tourVorlage = null;    // die Vorlage des gewählten Wochentags
+  var tourTag = '';
+  var tourenGeladen = false;
+  var tourPlan = null;
+
+  function meldeTouren(text, art) {
+    el('touren-meldung').innerHTML = text
+      ? '<div class="meldung ' + art + '">' + txt(text) + '</div>' : '';
+  }
+
+  function tagName(k) {
+    var t = WOCHENTAGE.filter(function (x) { return x[0] === k; })[0];
+    return t ? t[1] : k;
+  }
+  function stunden(min) {
+    var m = Math.round(min || 0);
+    var h = Math.floor(m / 60);
+    return h ? h + ' h ' + ((m % 60) < 10 ? '0' : '') + (m % 60) + ' min' : m + ' min';
+  }
+  function filialAdresse(f) {
+    return tourAdressen[f.blatt] ||
+      ((f.strasse || '') + (f.strasse && f.ort ? ', ' : '') + (f.ort || ''));
+  }
+
+  function leereVorlage() {
+    return {
+      filialen: filialStamm.map(function (f) { return f.blatt; }),
+      kunden: [], entladen: {}, spaetestens: {},
+      abfahrten: ['02:30', '02:30', '02:30'],
+      zurueckBis: '07:00', standardEntladen: 6, filialZeit: '05:30',
+      maxTouren: 3, maxStopps: '', plan: null
+    };
+  }
+
+  function tourenLaden() {
+    if (!el('t-tag').options.length) tourenEinrichten();
+    if (tourenGeladen) { tourenZeichnen(); return; }
+
+    meldeTouren('Tourenplan wird geladen …', 'ladend');
+    Promise.all([
+      ablageLesen('lieferkunden', 'alle', { kunden: [] }),
+      ablageLesen('touren', 'adressen', { adressen: {} }),
+      ablageLesen('touren', tourTag, null)
+    ]).then(function (d) {
+      lieferkunden = (d[0] && d[0].kunden) || [];
+      tourAdressen = (d[1] && d[1].adressen) || {};
+      tourVorlage = d[2] || leereVorlage();
+      tourenGeladen = true;
+      meldeTouren('');
+      tourenZeichnen();
+    }).catch(function (f) {
+      tourVorlage = leereVorlage();
+      tourenGeladen = true;
+      meldeTouren('Die Vorlage konnte nicht geladen werden: ' + f.message, 'fehler');
+      tourenZeichnen();
+    });
+  }
+
+  function tourenEinrichten() {
+    el('t-tag').innerHTML = WOCHENTAGE.map(function (t) {
+      return '<option value="' + t[0] + '">' + t[1] + '</option>';
+    }).join('');
+    tourTag = WOCHENTAGE[(new Date().getDay() + 6) % 7][0];
+    el('t-tag').value = tourTag;
+
+    el('t-tag').addEventListener('change', function () {
+      tourSammeln();
+      tourTagLaden(el('t-tag').value);
+    });
+    el('t-rechnen').addEventListener('click', tourRechnen);
+    el('t-kunde').addEventListener('click', tourKundeAnlegen);
+    el('t-speichern').addEventListener('click', tourSpeichern);
+    el('t-pdf').addEventListener('click', tourPdf);
+
+    el('t-auswahl').addEventListener('change', function (e) {
+      if (!e.target.hasAttribute || !e.target.hasAttribute('data-tp-an')) return;
+      var k = e.target.parentNode.parentNode;
+      k.classList.toggle('gewaehlt', e.target.checked);
+    });
+    el('t-auswahl').addEventListener('click', function (e) {
+      if (!e.target.hasAttribute || !e.target.hasAttribute('data-tp-weg')) return;
+      var k = e.target.closest ? e.target.closest('.tp-stopp') : null;
+      if (!k) {
+        k = e.target;
+        while (k && String(k.className || '').indexOf('tp-stopp') !== 0) k = k.parentNode;
+      }
+      if (!k || !k.getAttribute) return;
+      if (!window.confirm('Diesen Lieferkunden wirklich löschen?')) return;
+      var id = k.getAttribute('data-stopp').slice(2);
+      tourSammeln();
+      lieferkunden = lieferkunden.filter(function (x) { return x.id !== id; });
+      tourVorlage.kunden = (tourVorlage.kunden || []).filter(function (x) { return x !== id; });
+      tourenZeichnen();
+      meldeTouren('Gelöscht. Zum Sichern auf „Vorlage speichern“ tippen.', 'ladend');
+    });
+
+    // Steht ein Routen-Schlüssel bereit?
+    fetch(ENDPUNKT_TOUREN, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passwort: passwort, aktion: 'lage' })
+    })
+    .then(function (a) { return a.json(); })
+    .then(function (d) {
+      if (!d || d.routenschluessel) return;
+      el('t-lage').innerHTML += '<br><b>Noch ohne Routen-Schlüssel:</b> die Fahrzeiten ' +
+        'sind bis dahin geschätzt.';
+    })
+    .catch(function () { /* der Hinweis ist nicht wichtig */ });
+  }
+
+  function tourTagLaden(tag) {
+    tourTag = tag;
+    tourPlan = null;
+    meldeTouren('Vorlage wird geladen …', 'ladend');
+    ablageLesen('touren', tag, null).then(function (d) {
+      tourVorlage = d || leereVorlage();
+      meldeTouren('');
+      tourenZeichnen();
+    });
+  }
+
+  function tourenZeichnen() {
+    var v = tourVorlage || (tourVorlage = leereVorlage());
+    v.entladen = v.entladen || {};
+    v.spaetestens = v.spaetestens || {};
+
+    el('t-anzahl').value = String(v.maxTouren || 3);
+    el('t-ab1').value = (v.abfahrten || [])[0] || '02:30';
+    el('t-ab2').value = (v.abfahrten || [])[1] || '02:30';
+    el('t-ab3').value = (v.abfahrten || [])[2] || '02:30';
+    el('t-zurueck').value = v.zurueckBis || '';
+    el('t-entladen').value = v.standardEntladen == null ? 6 : v.standardEntladen;
+    el('t-filialzeit').value = v.filialZeit || '';
+    el('t-maxstopps').value = v.maxStopps || '';
+
+    var html = '<div class="tp-gruppe">Filialen – wer wird ' + txt(tagName(tourTag)) +
+               's beliefert?</div>';
+    if (!filialStamm.length) html += '<div class="leer">Es sind keine Filialen hinterlegt.</div>';
+    filialStamm.forEach(function (f) {
+      var s = 'f:' + f.blatt;
+      html += stoppFeld(s, f.blatt, f.ort, filialAdresse(f),
+        (v.filialen || []).indexOf(f.blatt) >= 0,
+        v.entladen[s], v.spaetestens[s] || '', false);
+    });
+
+    html += '<div class="tp-gruppe">Lieferkunden</div>';
+    if (!lieferkunden.length) {
+      html += '<div class="leer">Noch kein Lieferkunde angelegt.<br>' +
+              'Unten auf &bdquo;Lieferkunde anlegen&ldquo; tippen.</div>';
+    }
+    lieferkunden.forEach(function (k) {
+      var s = 'k:' + k.id;
+      html += stoppFeld(s, k.name, '', k.adresse || '',
+        (v.kunden || []).indexOf(k.id) >= 0,
+        v.entladen[s] == null ? k.entladen : v.entladen[s],
+        v.spaetestens[s] || k.spaetestens || '', true);
+    });
+
+    el('t-auswahl').innerHTML = html;
+    el('t-plan').innerHTML = '';
+    if (v.plan && v.plan.touren) { tourPlan = v.plan; tourPlanZeichnen(); }
+  }
+
+  function stoppFeld(schluessel, name, zusatz, adresse, gewaehlt, entladen, spaet, istKunde) {
+    var zeitHinweis = istKunde ? 'Wann muss die Ware da sein?' : 'leer = Vorgabe oben';
+    return '<div class="tp-stopp' + (gewaehlt ? ' gewaehlt' : '') +
+             '" data-stopp="' + txt(schluessel) + '">' +
+      '<label class="haken"><input type="checkbox" data-tp-an' + (gewaehlt ? ' checked' : '') + '>' +
+        '<span>' + txt(name) +
+        (zusatz && zusatz !== name
+          ? ' <small style="color:var(--grau);font-weight:400">' + txt(zusatz) + '</small>' : '') +
+        '</span></label>' +
+      '<div class="tp-detail">' +
+        (istKunde
+          ? '<label>Name</label><input type="text" data-tp-name value="' + txt(name) + '">' +
+            '<div style="height:9px"></div>'
+          : '') +
+        '<label>Anschrift</label>' +
+        '<input type="text" data-tp-adresse value="' + txt(adresse) +
+          '" placeholder="Straße Hausnummer, PLZ Ort">' +
+        '<div class="tp-zeiten">' +
+          '<div><label>Entladen</label>' +
+            '<input type="text" data-tp-entladen inputmode="numeric" placeholder="Vorgabe" value="' +
+            txt(entladen == null || entladen === '' ? '' : entladen) + '"></div>' +
+          '<div><label>Da sein bis</label>' +
+            '<input type="time" data-tp-spaet value="' + txt(spaet) + '"></div>' +
+          (istKunde
+            ? '<div><label>Entfernen</label>' +
+              '<button type="button" class="zeilenknopf loeschen" data-tp-weg>Kunde löschen</button></div>'
+            : '') +
+        '</div>' +
+        '<div class="aufteilung">' + zeitHinweis + '</div>' +
+      '</div></div>';
+  }
+
+  // Alles, was in den Feldern steht, in die Vorlage übernehmen
+  function tourSammeln() {
+    var v = tourVorlage || (tourVorlage = leereVorlage());
+    v.maxTouren = parseInt(el('t-anzahl').value, 10) || 3;
+    v.abfahrten = [el('t-ab1').value, el('t-ab2').value, el('t-ab3').value];
+    v.zurueckBis = el('t-zurueck').value;
+    v.standardEntladen = parseFloat(String(el('t-entladen').value).replace(',', '.'));
+    if (!isFinite(v.standardEntladen)) v.standardEntladen = 6;
+    v.filialZeit = el('t-filialzeit').value;
+    v.maxStopps = String(el('t-maxstopps').value || '').replace(/\D/g, '');
+    v.filialen = []; v.kunden = []; v.entladen = {}; v.spaetestens = {};
+
+    Array.prototype.forEach.call(el('t-auswahl').querySelectorAll('.tp-stopp'), function (k) {
+      var schluessel = k.getAttribute('data-stopp');
+      var an = k.querySelector('[data-tp-an]').checked;
+      var adresse = String(k.querySelector('[data-tp-adresse]').value || '').trim();
+      var ent = String(k.querySelector('[data-tp-entladen]').value || '').trim();
+      var spaet = k.querySelector('[data-tp-spaet]').value;
+      var nameFeld = k.querySelector('[data-tp-name]');
+
+      if (schluessel.slice(0, 2) === 'f:') {
+        tourAdressen[schluessel.slice(2)] = adresse;
+        if (an) v.filialen.push(schluessel.slice(2));
+      } else {
+        var id = schluessel.slice(2);
+        lieferkunden.forEach(function (x) {
+          if (x.id !== id) return;
+          if (nameFeld) x.name = String(nameFeld.value || '').trim() || x.name;
+          x.adresse = adresse;
+          x.spaetestens = spaet || '';
+          x.entladen = ent === '' ? null : (parseFloat(ent.replace(',', '.')) || 0);
+        });
+        if (an) v.kunden.push(id);
+      }
+      if (ent !== '') v.entladen[schluessel] = parseFloat(ent.replace(',', '.')) || 0;
+      if (spaet) v.spaetestens[schluessel] = spaet;
+    });
+  }
+
+  // Die ausgewählten Stopps für die Berechnung zusammenstellen
+  function tourStopps() {
+    var v = tourVorlage;
+    var liste = [];
+    filialStamm.forEach(function (f) {
+      if ((v.filialen || []).indexOf(f.blatt) < 0) return;
+      var s = 'f:' + f.blatt;
+      liste.push({
+        schluessel: s, art: 'filiale', name: f.blatt, adresse: filialAdresse(f),
+        entladen: v.entladen[s] == null ? v.standardEntladen : v.entladen[s],
+        spaetestens: v.spaetestens[s] || v.filialZeit || ''
+      });
+    });
+    lieferkunden.forEach(function (k) {
+      if ((v.kunden || []).indexOf(k.id) < 0) return;
+      var s = 'k:' + k.id;
+      var ent = v.entladen[s];
+      if (ent == null) ent = (k.entladen == null ? v.standardEntladen : k.entladen);
+      liste.push({
+        schluessel: s, art: 'kunde', name: k.name, adresse: k.adresse || '',
+        entladen: ent, spaetestens: v.spaetestens[s] || k.spaetestens || ''
+      });
+    });
+    return liste;
+  }
+
+  function tourRechnen() {
+    tourSammeln();
+    var stopps = tourStopps();
+    if (!stopps.length) {
+      meldeTouren('Bitte mindestens eine Filiale oder einen Kunden anhaken.', 'fehler'); return;
+    }
+    var ohne = stopps.filter(function (s) { return s.adresse.replace(/[,\s]/g, '').length < 4; });
+    if (ohne.length) {
+      meldeTouren('Bei „' + ohne[0].name + '“ fehlt die Anschrift.', 'fehler'); return;
+    }
+
+    el('t-rechnen').disabled = true;
+    meldeTouren('Die Touren werden gerechnet … beim ersten Mal dauert das etwas länger, ' +
+                'weil alle Anschriften gesucht werden.', 'ladend');
+
+    fetch(ENDPUNKT_TOUREN, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        passwort: passwort, aktion: 'planen', stopps: stopps,
+        abfahrten: tourVorlage.abfahrten, maxTouren: tourVorlage.maxTouren,
+        zurueckBis: tourVorlage.zurueckBis, maxStopps: tourVorlage.maxStopps
+      })
+    })
+    .then(function (a) { return a.json(); })
+    .then(function (d) {
+      el('t-rechnen').disabled = false;
+      if (!d || d.fehler) {
+        meldeTouren((d && d.fehler) || 'Die Berechnung hat nicht geklappt.', 'fehler');
+        return;
+      }
+      tourPlan = d;
+      tourVorlage.plan = d;
+
+      var hinweise = [];
+      if (d.geschaetzt) {
+        hinweise.push('Die Zeiten sind geschätzt, weil noch kein Routen-Schlüssel hinterlegt ist.');
+      }
+      if (d.fristenGesprengt) {
+        hinweise.push('Mit den gewünschten Uhrzeiten war es nicht zu schaffen – gerechnet ' +
+                      'ohne Zeitvorgabe. Bitte früher abfahren oder eine Tour mehr erlauben.');
+      }
+      if ((d.fehlend || []).length) {
+        hinweise.push('Nicht gefunden: ' + d.fehlend.map(function (f) { return f.name; }).join(', ') +
+                      ' – bitte die Anschrift prüfen.');
+      }
+      meldeTouren(
+        hinweise.length
+          ? hinweise.join(' ')
+          : 'Fertig: ' + d.touren.length + (d.touren.length === 1 ? ' Tour' : ' Touren') + ', ' +
+            stunden(d.gesamtMin) + ' insgesamt.',
+        hinweise.length ? 'fehler' : 'gut');
+      tourPlanZeichnen();
+    })
+    .catch(function (f) {
+      el('t-rechnen').disabled = false;
+      meldeTouren('Die Berechnung hat nicht geklappt: ' + f.message, 'fehler');
+    });
+  }
+
+  function tourPlanZeichnen() {
+    var d = tourPlan;
+    if (!d || !d.touren || !d.touren.length) { el('t-plan').innerHTML = ''; return; }
+
+    var stopps = 0;
+    d.touren.forEach(function (t) { stopps += t.stopps.length; });
+
+    var html = '<h3 class="abschnitt">Tourenplan ' + txt(tagName(tourTag)) + '</h3>' +
+      '<div class="schnell">' +
+        '<div class="schnell-teil"><span>Touren</span><b>' + d.touren.length + '</b></div>' +
+        '<div class="schnell-teil"><span>Stopps</span><b>' + stopps + '</b></div>' +
+        '<div class="schnell-teil"><span>Gesamtdauer</span><b>' + stunden(d.gesamtMin) + '</b></div>' +
+      '</div>';
+
+    d.touren.forEach(function (t) {
+      html += '<div class="tp-tour">' +
+        '<div class="tp-tour-kopf"><b>Tour ' + t.nr + '</b><span>' +
+          'Abfahrt ' + t.abfahrt + ' · zurück ' + t.zurueck + ' · ' +
+          t.stopps.length + (t.stopps.length === 1 ? ' Stopp' : ' Stopps') + ' · ' +
+          stunden(t.dauer) +
+        '</span></div>' +
+        '<div class="tp-halt heim"><div class="zeit">' + t.abfahrt + '</div>' +
+          '<div class="wohin"><b>Abfahrt Produktion</b><small>' + txt(PRODUKTION) +
+          '</small></div></div>';
+
+      t.stopps.forEach(function (s) {
+        html += '<div class="tp-halt' + (s.zuSpaet ? ' spaet' : '') + '">' +
+          '<div class="zeit">' + s.ankunft + '</div>' +
+          '<div class="wohin"><b>' + txt(s.name) + '</b><small>' + txt(s.adresse) + '<br>' +
+            s.fahrzeit + ' min Fahrt · ' +
+            s.entladen + ' min entladen · weiter ' + s.weiter +
+            (s.spaetestens ? ' · spätestens ' + s.spaetestens : '') +
+            (s.zuSpaet ? ' – das wird zu spät' : '') +
+          '</small></div></div>';
+      });
+
+      html += '<div class="tp-halt heim"><div class="zeit">' + t.zurueck + '</div>' +
+          '<div class="wohin"><b>Zurück in der Produktion</b><small>' +
+          t.rueckfahrt.fahrzeit + ' min Rückfahrt</small></div></div>' +
+        '<div class="tp-knopfe">' +
+          '<a href="' + txt(appleLink(t)) + '" target="_blank" rel="noopener">In Apple Karten öffnen</a>' +
+          '<a href="' + txt(googleLink(t)) + '" target="_blank" rel="noopener">In Google Maps öffnen</a>' +
+        '</div>' +
+        '<div class="tp-qr" data-qr="' + t.nr + '"></div>' +
+      '</div>';
+    });
+
+    el('t-plan').innerHTML = html;
+    d.touren.forEach(qrEinsetzen);
+  }
+
+  // Die Fahrt beginnt beim Fahrer, darum steht im Link kein Startpunkt:
+  // Apple Karten und Google Maps nehmen dann den eigenen Standort.
+  function appleLink(t) {
+    var ziele = t.stopps.map(function (s) { return s.adresse; }).concat([PRODUKTION]);
+    return 'https://maps.apple.com/?dirflg=d&daddr=' +
+      ziele.map(function (z) { return encodeURIComponent(z); }).join('+to:');
+  }
+  function googleLink(t) {
+    var u = 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' +
+            encodeURIComponent(PRODUKTION);
+    var wege = t.stopps.map(function (s) { return s.adresse; }).slice(0, 9);
+    if (wege.length) {
+      u += '&waypoints=' + wege.map(function (z) { return encodeURIComponent(z); }).join('|');
+    }
+    return u;
+  }
+
+  function qrBild(text) {
+    try {
+      if (!window.QRCode) return '';
+      var huelle = document.createElement('div');
+      new window.QRCode(huelle, {
+        text: text, width: 260, height: 260,
+        correctLevel: window.QRCode.CorrectLevel.M
+      });
+      var c = huelle.querySelector('canvas');
+      return c ? c.toDataURL('image/png') : '';
+    } catch (e) { return ''; }
+  }
+
+  function qrEinsetzen(t) {
+    var ziel = el('t-plan').querySelector('[data-qr="' + t.nr + '"]');
+    if (!ziel) return;
+    t.qrApple = qrBild(appleLink(t));
+    t.qrGoogle = qrBild(googleLink(t));
+    if (!t.qrApple && !t.qrGoogle) {
+      ziel.innerHTML = '<div class="aufteilung">Die QR-Codes konnten nicht erzeugt werden. ' +
+        'Die Knöpfe oben führen trotzdem zur Navigation.</div>';
+      return;
+    }
+    ziel.innerHTML =
+      (t.qrApple ? '<figure><img src="' + t.qrApple + '" alt="">' +
+                   '<figcaption>Apple Karten</figcaption></figure>' : '') +
+      (t.qrGoogle ? '<figure><img src="' + t.qrGoogle + '" alt="">' +
+                    '<figcaption>Google Maps</figcaption></figure>' : '');
+  }
+
+  function tourKundeAnlegen() {
+    if (!tourVorlage) tourVorlage = leereVorlage();
+    tourSammeln();
+    var id = 'k' + Date.now().toString(36) + Math.floor(Math.random() * 100);
+    lieferkunden.push({ id: id, name: 'Neuer Lieferkunde', adresse: '', spaetestens: '', entladen: null });
+    tourVorlage.kunden = (tourVorlage.kunden || []).concat([id]);
+    tourenZeichnen();
+
+    var k = el('t-auswahl').querySelector('[data-stopp="k:' + id + '"]');
+    if (k) {
+      if (k.scrollIntoView) k.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      var feld = k.querySelector('[data-tp-name]');
+      if (feld) { feld.focus(); feld.select(); }
+    }
+    meldeTouren('Name, Anschrift und Uhrzeit eintragen, dann auf „Vorlage speichern“ tippen.',
+                'ladend');
+  }
+
+  function tourSpeichern() {
+    tourSammeln();
+    el('t-speichern').disabled = true;
+    meldeTouren('Wird gespeichert …', 'ladend');
+    Promise.all([
+      ablageSchreiben('lieferkunden', 'alle', { kunden: lieferkunden }),
+      ablageSchreiben('touren', 'adressen', { adressen: tourAdressen }),
+      ablageSchreiben('touren', tourTag, tourVorlage)
+    ]).then(function () {
+      el('t-speichern').disabled = false;
+      meldeTouren('Vorlage für ' + tagName(tourTag) + ' gespeichert.', 'gut');
+    }).catch(function (f) {
+      el('t-speichern').disabled = false;
+      meldeTouren('Das Speichern hat nicht geklappt: ' + f.message, 'fehler');
+    });
+  }
+
+  // ---------- Tourenplan als PDF ----------
+  function tourPdf() {
+    if (!tourPlan || !tourPlan.touren || !tourPlan.touren.length) {
+      meldeTouren('Bitte zuerst die Touren berechnen.', 'fehler'); return;
+    }
+    if (!window.jspdf) { meldeTouren('Das PDF-Werkzeug ist nicht geladen.', 'fehler'); return; }
+
+    var d = tourPlan;
+    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+    var stopps = 0;
+    d.touren.forEach(function (t) { stopps += t.stopps.length; });
+
+    tourPdfKopf(doc, 'Tourenplan ' + tagName(tourTag),
+      d.touren.length + (d.touren.length === 1 ? ' Tour' : ' Touren') + '  ·  ' +
+      stopps + ' Stopps  ·  ' + stunden(d.gesamtMin) + ' gesamt' +
+      (d.geschaetzt ? '   (Zeiten geschaetzt)' : ''));
+
+    doc.autoTable({
+      startY: 106,
+      head: [['Tour', 'Abfahrt', 'Zurück', 'Stopps', 'Dauer']],
+      body: d.touren.map(function (t) {
+        return ['Tour ' + t.nr, t.abfahrt, t.zurueck, String(t.stopps.length), stunden(t.dauer)];
+      }),
+      styles: { font: 'helvetica', fontSize: 10, cellPadding: 6 },
+      headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+      columnStyles: { 3: { halign: 'right' } },
+      margin: { left: 40, right: 40 }
+    });
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text('Start und Ziel: ' + entziffert(PRODUKTION) +
+             '   ·   Ruestzeit ab 2:00 Uhr, verladen bis 2:30 Uhr.',
+             40, doc.lastAutoTable.finalY + 20);
+
+    d.touren.forEach(function (t) {
+      doc.addPage();
+      tourPdfKopf(doc, 'Tour ' + t.nr + '  ·  ' + tagName(tourTag),
+        'Abfahrt ' + t.abfahrt + '   ·   zurueck ' + t.zurueck + '   ·   ' +
+        stunden(t.dauer));
+
+      var zeilen = [['', t.abfahrt, 'Abfahrt Produktion', entziffert(PRODUKTION), '', '']];
+      t.stopps.forEach(function (s, i) {
+        zeilen.push([
+          String(i + 1), s.ankunft, entziffert(s.name), entziffert(s.adresse),
+          String(s.entladen), s.weiter
+        ]);
+      });
+      zeilen.push(['', t.zurueck, 'Zurueck in der Produktion', entziffert(PRODUKTION), '', '']);
+
+      doc.autoTable({
+        startY: 106,
+        head: [['Nr.', 'Ankunft', 'Stopp', 'Anschrift', 'Entl.', 'Weiter']],
+        body: zeilen,
+        styles: { font: 'helvetica', fontSize: 9.5, cellPadding: 5, valign: 'middle' },
+        headStyles: { fillColor: [46, 42, 121], textColor: 255 },
+        columnStyles: {
+          0: { cellWidth: 26, halign: 'center' },
+          1: { cellWidth: 50, fontStyle: 'bold' },
+          2: { cellWidth: 126 },
+          4: { cellWidth: 36, halign: 'right' },
+          5: { cellWidth: 46 }
+        },
+        margin: { left: 40, right: 40 }
+      });
+
+      var y = doc.lastAutoTable.finalY + 24;
+      if (t.qrApple || t.qrGoogle) {
+        if (y > 620) { doc.addPage(); y = 60; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.setTextColor(46, 42, 121);
+        doc.text('Navigation ab dem eigenen Standort', 40, y);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+        doc.setTextColor(110, 110, 110);
+        doc.text('Mit der Kamera scannen – die Route beginnt dort, wo das Fahrzeug gerade steht.',
+                 40, y + 13);
+        if (t.qrApple) {
+          doc.addImage(t.qrApple, 'PNG', 40, y + 24, 118, 118);
+          doc.text('Apple Karten', 40, y + 154);
+        }
+        if (t.qrGoogle) {
+          doc.addImage(t.qrGoogle, 'PNG', 180, y + 24, 118, 118);
+          doc.text('Google Maps', 180, y + 154);
+        }
+      }
+    });
+
+    var seiten = doc.internal.getNumberOfPages();
+    for (var i = 1; i <= seiten; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(221, 218, 232); doc.setLineWidth(0.6);
+      doc.line(40, 792, 555, 792);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+      doc.setTextColor(130, 130, 130);
+      doc.text('Baeckerei Jung  ·  Walther-Eucken-Strasse 11  ·  66877 Ramstein-Miesenbach' +
+               '  ·  Geschaeftsfuehrer: Matthias Jung', 40, 806);
+      doc.text('Seite ' + i + ' von ' + seiten, 515, 806);
+    }
+
+    doc.save('Tourenplan_' + tagName(tourTag) + '.pdf');
+  }
+
+  function tourPdfKopf(doc, titel, unter) {
+    try {
+      var bild = document.querySelector('header img');
+      if (bild && String(bild.src).indexOf('data:image') === 0) {
+        doc.addImage(bild.src, 'PNG', 40, 34, 40, 40);
+      }
+    } catch (e) { /* ohne Logo geht es auch */ }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+    doc.setTextColor(46, 42, 121);
+    doc.text(entziffert(titel), 96, 58);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text(entziffert(unter), 96, 72);
+    doc.setDrawColor(46, 42, 121); doc.setLineWidth(1.5);
+    doc.line(40, 88, 555, 88);
   }
 
   // ---------- Hinweis auf weitere Reiter ----------
