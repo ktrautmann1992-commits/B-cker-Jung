@@ -78,6 +78,7 @@ exports.handler = async function (event) {
     }
 
     if (eingabe.aktion === 'planen') return await planen(eingabe);
+    if (eingabe.aktion === 'nachrechnen') return await nachrechnen(eingabe);
 
     return antwort(400, { fehler: 'Unbekannte Aktion.' });
   } catch (fehler) {
@@ -87,38 +88,29 @@ exports.handler = async function (event) {
 
 // ---------------------------------------------------------------- Planen
 
-async function planen(eingabe) {
-  const roh = Array.isArray(eingabe.stopps) ? eingabe.stopps : [];
-  if (!roh.length) return antwort(400, { fehler: 'Es ist kein Stopp ausgewählt.' });
-  if (roh.length > 45) return antwort(400, { fehler: 'Mehr als 45 Stopps sind nicht vorgesehen.' });
-
-  const stopps = roh.map(function (s, i) {
+// Liest die Stopps aus der Anfrage und bringt sie in eine einheitliche Form
+function stoppsLesen(roh) {
+  return roh.map(function (s, i) {
+    const feste = parseInt(s.festeTour, 10);
     return {
       schluessel: String(s.schluessel || ('s' + i)),
       name: String(s.name || ('Stopp ' + (i + 1))).slice(0, 80),
       adresse: String(s.adresse || '').trim(),
       art: s.art === 'kunde' ? 'kunde' : 'filiale',
       entladen: begrenzt(zahl(s.entladen, 6), 0, 120),
+      menge: Math.max(0, zahl(s.menge, 0)),
+      festeTour: (feste >= 1 && feste <= 3) ? feste : 0,
+      fahrzeug: begrenzt(parseInt(s.fahrzeug, 10) || 1, 1, 3),
       spaetestens: minuten(s.spaetestens)
     };
   }).filter(function (s) { return s.adresse; });
+}
 
-  if (!stopps.length) return antwort(400, { fehler: 'Zu keinem Stopp ist eine Adresse hinterlegt.' });
-
-  const maxTouren = begrenzt(parseInt(eingabe.maxTouren, 10) || 3, 1, 3);
-  const maxStopps = begrenzt(parseInt(eingabe.maxStopps, 10) || 0, 0, 45);
-  const zurueckBis = minuten(eingabe.zurueckBis);
-  const abfahrten = [];
-  for (let v = 0; v < maxTouren; v++) {
-    const t = minuten((eingabe.abfahrten || [])[v]);
-    abfahrten.push(t === null ? 150 : t);   // Standard: 2:30 Uhr
-  }
-
-  // 1. Adressen zu Koordinaten
+// Adressen suchen und die Fahrzeiten zwischen allen Punkten besorgen
+async function vorbereiten(stopps) {
   const orte = await orteHolen([PRODUKTION].concat(stopps.map(function (s) { return s.adresse; })));
-  if (!orte[0]) {
-    return antwort(502, { fehler: 'Die Adresse der Produktion wurde nicht gefunden.' });
-  }
+  if (!orte[0]) return { fehler: 'Die Adresse der Produktion wurde nicht gefunden.' };
+
   const fehlend = [];
   const gute = [];
   stopps.forEach(function (s, i) {
@@ -126,62 +118,35 @@ async function planen(eingabe) {
     else fehlend.push({ name: s.name, adresse: s.adresse });
   });
   if (!gute.length) {
-    return antwort(502, {
+    return {
       fehler: 'Keine der Adressen wurde gefunden. Bitte Straße, Hausnummer und Ort prüfen.',
       fehlend: fehlend
-    });
+    };
   }
 
-  // 2. Entfernungen
   const punkte = [orte[0]].concat(gute.map(function (s) { return s.ort; }));
   const gitter = await gitterHolen(punkte);
+  return { gute: gute, fehlend: fehlend, gitter: gitter };
+}
 
-  // 3. Verteilen
-  const aufgabe = {
-    anzahl: gute.length,
-    dauer: gitter.dauer,
-    weg: gitter.weg,
-    dienst: gute.map(function (s) { return s.entladen; }),
-    frist: gute.map(function (s) { return s.spaetestens; }),
-    abfahrten: abfahrten,
-    zurueckBis: zurueckBis,
-    maxStopps: maxStopps
-  };
-
-  let ergebnis = null;
-  for (let k = 1; k <= maxTouren; k++) {
-    ergebnis = verteilen(aufgabe, k);
-    if (ergebnis) break;
-  }
-  const knapp = !ergebnis;
-  if (!ergebnis) {
-    // Nichts passt in die Zeitfenster: ohne Fristen rechnen und darauf hinweisen
-    const ohne = Object.assign({}, aufgabe, {
-      frist: gute.map(function () { return null; }), zurueckBis: null
-    });
-    for (let k = 1; k <= maxTouren; k++) {
-      ergebnis = verteilen(ohne, k);
-      if (ergebnis) break;
-    }
-  }
-  if (!ergebnis) return antwort(500, { fehler: 'Die Stopps ließen sich nicht aufteilen.' });
-
-  // 4. Antwort aufbereiten
+// Aus fertigen Routen die Zeiten je Stopp ausrechnen
+function ausgeben(routen, abfahrten, kapazitaeten, gute, gitter, zusatz) {
   const touren = [];
-  let gesamtKm = 0, gesamtMin = 0;
-  ergebnis.routen.forEach(function (route, v) {
+  let gesamtMin = 0;
+
+  routen.forEach(function (route, v) {
     if (!route.length) return;
     let t = abfahrten[v];
-    let km = 0;
     let vorher = 0;
+    let ladung = 0;
+
     const halte = route.map(function (idx) {
       const s = gute[idx];
       const fahrMin = gitter.dauer[vorher][idx + 1];
-      const fahrKm = gitter.weg[vorher][idx + 1];
       t += fahrMin;
       const ankunft = t;
       t += s.entladen;
-      km += fahrKm;
+      ladung += s.menge;
       vorher = idx + 1;
       return {
         schluessel: s.schluessel,
@@ -189,6 +154,7 @@ async function planen(eingabe) {
         adresse: s.adresse,
         art: s.art,
         entladen: s.entladen,
+        menge: s.menge,
         fahrzeit: Math.round(fahrMin),
         ankunft: uhr(ankunft),
         weiter: uhr(t),
@@ -196,31 +162,138 @@ async function planen(eingabe) {
         zuSpaet: s.spaetestens !== null && ankunft > s.spaetestens + 1
       };
     });
+
     const rueckMin = gitter.dauer[vorher][0];
-    const rueckKm = gitter.weg[vorher][0];
     t += rueckMin;
-    km += rueckKm;
-    gesamtKm += km;
     gesamtMin += t - abfahrten[v];
+    const kap = kapazitaeten[v] || 0;
     touren.push({
-      nr: touren.length + 1,
+      nr: v + 1,                 // die Nummer gehört zum Fahrzeug, nicht zur Reihenfolge
+      fahrzeug: v + 1,
       abfahrt: uhr(abfahrten[v]),
       zurueck: uhr(t),
       dauer: Math.round(t - abfahrten[v]),
       rueckfahrt: { fahrzeit: Math.round(rueckMin) },
+      ladung: runde(ladung, 1),
+      kapazitaet: kap,
+      ueberladen: kap > 0 && ladung > kap + 0.001,
       stopps: halte
     });
   });
 
-  return antwort(200, {
+  return antwort(200, Object.assign({
     produktion: PRODUKTION,
     quelle: gitter.quelle,
     geschaetzt: gitter.quelle !== 'ors',
     touren: touren,
     gesamtMin: Math.round(gesamtMin),
-    fehlend: fehlend,
-    fristenGesprengt: knapp,
     gerechnet: new Date().toISOString()
+  }, zusatz || {}));
+}
+
+function einstellungenLesen(eingabe) {
+  const maxTouren = begrenzt(parseInt(eingabe.maxTouren, 10) || 3, 1, 3);
+  const abfahrten = [];
+  const kapazitaeten = [];
+  for (let v = 0; v < 3; v++) {
+    const t = minuten((eingabe.abfahrten || [])[v]);
+    abfahrten.push(t === null ? 150 : t);                      // Standard: 2:30 Uhr
+    kapazitaeten.push(Math.max(0, zahl((eingabe.kapazitaeten || [])[v], 0)));
+  }
+  return { maxTouren: maxTouren, abfahrten: abfahrten, kapazitaeten: kapazitaeten,
+           zurueckBis: minuten(eingabe.zurueckBis) };
+}
+
+async function planen(eingabe) {
+  const roh = Array.isArray(eingabe.stopps) ? eingabe.stopps : [];
+  if (!roh.length) return antwort(400, { fehler: 'Es ist kein Stopp ausgewählt.' });
+  if (roh.length > 45) return antwort(400, { fehler: 'Mehr als 45 Stopps sind nicht vorgesehen.' });
+
+  const stopps = stoppsLesen(roh);
+  if (!stopps.length) return antwort(400, { fehler: 'Zu keinem Stopp ist eine Adresse hinterlegt.' });
+
+  const e = einstellungenLesen(eingabe);
+  const vor = await vorbereiten(stopps);
+  if (vor.fehler) return antwort(502, { fehler: vor.fehler, fehlend: vor.fehlend || [] });
+
+  const aufgabe = {
+    anzahl: vor.gute.length,
+    dauer: vor.gitter.dauer,
+    weg: vor.gitter.weg,
+    dienst: vor.gute.map(function (s) { return s.entladen; }),
+    frist: vor.gute.map(function (s) { return s.spaetestens; }),
+    menge: vor.gute.map(function (s) { return s.menge; }),
+    feste: vor.gute.map(function (s) { return s.festeTour; }),
+    abfahrten: e.abfahrten,
+    kapazitaeten: e.kapazitaeten,
+    zurueckBis: e.zurueckBis
+  };
+
+  // So wenige Touren wie möglich: erst eine versuchen, dann zwei, dann drei
+  let ergebnis = null;
+  for (let k = 1; k <= e.maxTouren; k++) {
+    ergebnis = verteilen(aufgabe, k);
+    if (ergebnis) break;
+  }
+
+  // Geht es mit den Uhrzeiten nicht auf, noch einmal ohne Fristen rechnen
+  const knapp = !ergebnis;
+  if (!ergebnis) {
+    const ohne = Object.assign({}, aufgabe, {
+      frist: vor.gute.map(function () { return null; }), zurueckBis: null
+    });
+    for (let k = 1; k <= e.maxTouren; k++) {
+      ergebnis = verteilen(ohne, k);
+      if (ergebnis) break;
+    }
+  }
+
+  // Passt die Ladung nirgends hinein, zuletzt ohne Kapazitäten rechnen
+  const platzt = !ergebnis;
+  if (!ergebnis) {
+    const ohne = Object.assign({}, aufgabe, {
+      frist: vor.gute.map(function () { return null; }), zurueckBis: null,
+      kapazitaeten: [0, 0, 0]
+    });
+    for (let k = 1; k <= e.maxTouren; k++) {
+      ergebnis = verteilen(ohne, k);
+      if (ergebnis) break;
+    }
+  }
+  if (!ergebnis) return antwort(500, { fehler: 'Die Stopps ließen sich nicht aufteilen.' });
+
+  return ausgeben(ergebnis.routen, e.abfahrten, e.kapazitaeten, vor.gute, vor.gitter, {
+    fehlend: vor.fehlend,
+    fristenGesprengt: knapp,
+    ladungGesprengt: platzt
+  });
+}
+
+// Der Chef hat von Hand umsortiert: nur die Zeiten neu ausrechnen
+async function nachrechnen(eingabe) {
+  const gruppen = Array.isArray(eingabe.touren) ? eingabe.touren : [];
+  const flach = [];
+  gruppen.forEach(function (g, i) {
+    const v = begrenzt(parseInt(g.fahrzeug, 10) || (i + 1), 1, 3);
+    (g.stopps || []).forEach(function (s) {
+      flach.push(Object.assign({}, s, { fahrzeug: v }));
+    });
+  });
+  if (!flach.length) return antwort(400, { fehler: 'Es ist kein Stopp vorhanden.' });
+
+  const stopps = stoppsLesen(flach);
+  if (!stopps.length) return antwort(400, { fehler: 'Zu keinem Stopp ist eine Adresse hinterlegt.' });
+
+  const e = einstellungenLesen(eingabe);
+  const vor = await vorbereiten(stopps);
+  if (vor.fehler) return antwort(502, { fehler: vor.fehler, fehlend: vor.fehlend || [] });
+
+  // Die Reihenfolge bleibt genau so, wie sie hereingereicht wurde
+  const routen = [[], [], []];
+  vor.gute.forEach(function (s, i) { routen[s.fahrzeug - 1].push(i); });
+
+  return ausgeben(routen, e.abfahrten, e.kapazitaeten, vor.gute, vor.gitter, {
+    fehlend: vor.fehlend, vonHand: true
   });
 }
 
@@ -241,6 +314,8 @@ function verteilen(a, k) {
     if (fx !== null && fy !== null && fx !== fy) return fx - fy;
     if (fx !== null && fy === null) return -1;
     if (fx === null && fy !== null) return 1;
+    const mx = a.menge[x] || 0, my = a.menge[y] || 0;
+    if (mx !== my) return my - mx;
     return a.dauer[0][y + 1] - a.dauer[0][x + 1];
   });
 
@@ -248,7 +323,7 @@ function verteilen(a, k) {
     const idx = reihe[n];
     let bestV = -1, bestP = -1, bestZu = Infinity;
     for (let v = 0; v < k; v++) {
-      if (a.maxStopps && routen[v].length >= a.maxStopps) continue;
+      if (a.feste[idx] && a.feste[idx] !== v + 1) continue;   // der Chef hat es festgelegt
       const vorher = kosten(a, routen[v], v);
       for (let p = 0; p <= routen[v].length; p++) {
         const neu = routen[v].slice();
@@ -277,7 +352,7 @@ function verteilen(a, k) {
         if (alt === null || ohneK === null) continue;
         let bestV = -1, bestP = -1, bestGewinn = 0.0001;
         for (let w = 0; w < k; w++) {
-          if (w !== v && a.maxStopps && routen[w].length >= a.maxStopps) continue;
+          if (a.feste[idx] && a.feste[idx] !== w + 1) continue;
           const basis = w === v ? ohne : routen[w];
           const basisK = kosten(a, basis, w);
           if (basisK === null) continue;
@@ -339,7 +414,15 @@ function verteilen(a, k) {
 // null bedeutet: so geht es zeitlich nicht.
 function kosten(a, route, v) {
   if (!route.length) return 0;
-  if (a.maxStopps && route.length > a.maxStopps) return null;
+
+  // Passt die Ware überhaupt ins Fahrzeug?
+  const kap = (a.kapazitaeten || [])[v] || 0;
+  if (kap > 0) {
+    let ladung = 0;
+    for (let n = 0; n < route.length; n++) ladung += a.menge[route[n]] || 0;
+    if (ladung > kap + 0.001) return null;
+  }
+
   let t = a.abfahrten[v];
   let fahrt = 0, km = 0, vorher = 0;
   for (let n = 0; n < route.length; n++) {

@@ -342,15 +342,82 @@
   .werkzeuge button.haupt {
     background: var(--blau); border-color: var(--blau); color: #fff;
   }
-  #bereich-touren input[type=text], #bereich-touren input[type=time] {
-    width: 100%; box-sizing: border-box;
-    font-family: inherit; font-size: 15px; padding: 9px 10px;
+  #bereich-touren input[type=text], #bereich-touren input[type=time],
+  #bereich-touren select {
+    width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+    font-family: inherit; font-size: 15px; padding: 10px 11px;
     border: 1px solid var(--linie); border-radius: 9px;
     background: #fff; color: inherit;
   }
-  #bereich-touren .mit-einheit input {
-    padding-right: 36px; text-align: right; font-weight: 600;
+
+  /* Einstellungen als ruhige Liste: links die Bezeichnung, rechts das Feld */
+  .tp-liste {
+    background: var(--papier); border: 1px solid var(--linie);
+    border-radius: 12px; overflow: hidden; margin-bottom: 16px;
   }
+  .tp-kopfzeile {
+    font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--grau); padding: 11px 13px 9px;
+  }
+  .tp-zeile {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 13px; border-top: 1px solid var(--linie);
+  }
+  .tp-zeile .bez { flex: 1 1 auto; min-width: 0; }
+  .tp-zeile .bez b { display: block; font-size: 14.5px; font-weight: 600; line-height: 1.3; }
+  .tp-zeile .bez small {
+    display: block; font-size: 12px; color: var(--grau); margin-top: 2px; line-height: 1.35;
+  }
+  .tp-zeile .wert { flex: 0 0 128px; min-width: 0; }
+  .tp-zeile .wert.breit { flex: 0 0 146px; min-width: 0; }
+  .tp-zeile .wert.einheit { display: flex; align-items: center; gap: 7px; }
+  .tp-zeile .wert.einheit input { flex: 1 1 auto; min-width: 0; text-align: center; font-weight: 600; }
+  .tp-zeile .wert.einheit span {
+    flex: 0 0 auto; font-size: 13px; font-weight: 600; color: var(--grau);
+  }
+  @media (max-width: 360px) {
+    .tp-zeile { flex-wrap: wrap; }
+    .tp-zeile .wert, .tp-zeile .wert.breit { flex: 1 1 100%; }
+  }
+
+  .tp-fahrzeug { padding: 11px 13px 12px; border-top: 1px solid var(--linie); }
+  .tp-fahrzeug > b {
+    display: block; font-size: 14.5px; font-weight: 600; margin-bottom: 9px;
+  }
+  .tp-fahrzeug .tp-paar { margin-top: 0; }
+
+  /* Übersicht der Lieferkunden, aufklappbar */
+  .tp-klapp {
+    border: 1px solid var(--linie); border-radius: 12px;
+    background: #fff; margin-bottom: 14px; overflow: hidden;
+  }
+  .tp-klapp > summary {
+    list-style: none; cursor: pointer; padding: 13px 14px;
+    font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 15px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .tp-klapp > summary::-webkit-details-marker { display: none; }
+  .tp-klapp > summary::after { content: '\25be'; color: var(--grau); font-size: 13px; }
+  .tp-klapp[open] > summary::after { content: '\25b4'; }
+  .tp-klapp[open] > summary { border-bottom: 1px solid var(--linie); }
+  .tp-klapp > summary span { font-weight: 600; font-size: 13px; color: var(--grau); }
+  .tp-klapp-inhalt { padding: 13px 14px 14px; }
+  .tp-erklaerung { margin: 0 0 12px; font-size: 13px; color: var(--grau); line-height: 1.5; }
+  .tp-kunde {
+    border: 1px solid var(--linie); border-radius: 11px;
+    padding: 12px; margin-bottom: 9px; background: var(--papier);
+  }
+  .tp-kunde .feld + .feld { margin-top: 11px; }
+  .tp-kunde label {
+    display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--grau); margin: 0 0 5px;
+  }
+  .tp-abweichung {
+    display: block; font-size: 11.5px; color: var(--grau);
+    margin-top: 10px; line-height: 1.4;
+  }
+
+  /* Auswahl der Stopps */
   .tp-gruppe {
     font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
     color: var(--grau); margin: 18px 0 7px;
@@ -360,45 +427,68 @@
     margin-bottom: 8px; background: #fff;
   }
   .tp-stopp.gewaehlt { border-color: var(--blau); background: #FCFCFF; }
-  .tp-stopp > label.haken { padding: 10px 12px; font-weight: 600; }
-  .tp-detail { padding: 0 12px 12px; display: none; }
+  .tp-stopp > label.haken { padding: 11px 12px; font-weight: 600; }
+  .tp-detail { padding: 0 12px 13px; display: none; }
   .tp-stopp.gewaehlt .tp-detail { display: block; }
-  .tp-zeiten {
-    display: grid; gap: 8px; margin-top: 8px; align-items: end;
-    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
-  }
+  .tp-detail .feld + .feld { margin-top: 11px; }
   .tp-detail label {
     display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em;
-    text-transform: uppercase; color: var(--grau); margin-bottom: 4px;
+    text-transform: uppercase; color: var(--grau); margin: 0 0 5px;
   }
+  .tp-paar {
+    display: grid; gap: 11px; margin-top: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(146px, 1fr));
+  }
+  .tp-paar > div { min-width: 0; }
+  .tp-paar small {
+    display: block; font-size: 11.5px; color: var(--grau);
+    margin-top: 5px; line-height: 1.35;
+  }
+  .einheit-feld { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .einheit-feld input { flex: 1 1 auto; min-width: 0; text-align: center; font-weight: 600; }
+  .einheit-feld span { flex: 0 0 auto; font-size: 13px; font-weight: 600; color: var(--grau); }
+  .tp-weg { margin-top: 12px; }
+  .tp-weg button { margin-left: 0; }
+
+  /* Ergebnis */
   .tp-tour {
     border: 1px solid var(--linie); border-radius: 12px;
     margin-bottom: 14px; overflow: hidden;
   }
-  .tp-tour-kopf { background: var(--blau); color: #fff; padding: 11px 13px; }
+  .tp-tour-kopf { background: var(--blau); color: #fff; padding: 12px 13px; }
   .tp-tour-kopf b { font-family: 'Nunito', sans-serif; font-size: 16px; }
-  .tp-tour-kopf span { display: block; font-size: 12.5px; opacity: .88; margin-top: 2px; }
+  .tp-tour-kopf span { display: block; font-size: 12.5px; opacity: .88; margin-top: 3px; line-height: 1.4; }
   .tp-halt {
-    display: flex; gap: 10px; padding: 10px 13px;
+    display: flex; gap: 11px; padding: 11px 13px;
     border-top: 1px solid #F0EEF6; font-size: 14px;
   }
   .tp-halt .zeit {
-    flex: 0 0 50px; font-weight: 700; color: var(--blau);
+    flex: 0 0 48px; font-weight: 700; color: var(--blau);
     font-variant-numeric: tabular-nums;
   }
   .tp-halt .wohin { flex: 1; min-width: 0; }
-  .tp-halt .wohin small { display: block; color: var(--grau); font-size: 12px; margin-top: 2px; }
+  .tp-halt .wohin small { display: block; color: var(--grau); font-size: 12px; margin-top: 3px; line-height: 1.45; }
   .tp-halt.heim { background: var(--papier); }
   .tp-halt.spaet .zeit { color: var(--rot); }
+  .tp-schieben { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+  .tp-schieben button {
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    padding: 7px 10px; min-width: 38px;
+    border: 1px solid var(--linie); border-radius: 8px;
+    background: #fff; color: var(--blau); cursor: pointer;
+  }
+  .tp-schieben button:active { background: #F4F2FB; }
+  .tp-tour.voll { border-color: var(--rot); }
+  .tp-tour.voll .tp-tour-kopf { background: var(--rot); }
   .tp-knopfe { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 13px; border-top: 1px solid #F0EEF6; }
   .tp-knopfe a {
-    font-size: 13px; font-weight: 600; text-decoration: none; padding: 9px 12px;
+    font-size: 13px; font-weight: 600; text-decoration: none; padding: 10px 13px;
     border: 1px solid var(--linie); border-radius: 9px; background: #fff; color: var(--blau);
   }
   .tp-qr { display: flex; gap: 14px; flex-wrap: wrap; padding: 0 13px 13px; }
   .tp-qr figure { margin: 0; text-align: center; font-size: 11.5px; color: var(--grau); }
   .tp-qr img {
-    display: block; width: 118px; height: 118px;
+    display: block; width: 118px; height: 118px; margin-bottom: 5px;
     border: 1px solid var(--linie); border-radius: 8px;
   }
 
@@ -665,59 +755,90 @@
       Ramstein-Miesenbach. R&uuml;stzeit ab 2:00 Uhr, verladen bis 2:30 Uhr.
     </div>
 
-    <div class="raster" style="margin-bottom:12px">
-      <div style="flex:1 1 170px">
-        <label class="feldname" for="t-tag">Wochentag</label>
-        <select id="t-tag"></select>
+    <details class="tp-klapp" id="t-kundenstamm">
+      <summary>Lieferkunden <span id="t-kundenzahl"></span></summary>
+      <div class="tp-klapp-inhalt">
+        <p class="tp-erklaerung">Hier stehen alle Lieferkunden mit ihrer Anschrift. Einmal angelegt,
+          lassen sie sich unten bei jedem Wochentag einfach anhaken &ndash; neu eintragen
+          m&uuml;ssen Sie sie nie wieder.</p>
+        <div id="t-kundenliste"></div>
+        <div class="werkzeuge" style="margin-top:12px;margin-bottom:0">
+          <button type="button" id="t-kunde">Lieferkunde anlegen</button>
+          <button type="button" id="t-kunden-speichern">Lieferkunden speichern</button>
+        </div>
       </div>
-      <div style="flex:1 1 140px">
-        <label class="feldname" for="t-anzahl">H&ouml;chstens</label>
-        <select id="t-anzahl">
-          <option value="1">1 Tour</option>
-          <option value="2">2 Touren</option>
-          <option value="3" selected>3 Touren</option>
-        </select>
-      </div>
+    </details>
+
+    <div style="margin-bottom:14px">
+      <label class="feldname" for="t-tag">Wochentag</label>
+      <select id="t-tag"></select>
     </div>
 
-    <div class="einstellungen">
-      <div class="einstellungen-kopf">Zeiten f&uuml;r diesen Wochentag</div>
-      <div class="einstellungen-felder">
-        <div class="einstellung">
-          <label for="t-ab1">Abfahrt Tour 1</label>
-          <input type="time" id="t-ab1" value="02:30">
+    <div class="tp-liste">
+      <div class="tp-kopfzeile">Zeiten f&uuml;r diesen Wochentag</div>
+
+      <div class="tp-zeile">
+        <div class="bez"><b>H&ouml;chstens</b><small>Fahrzeuge im Einsatz</small></div>
+        <div class="wert breit">
+          <select id="t-anzahl">
+            <option value="1">1 Tour</option>
+            <option value="2">2 Touren</option>
+            <option value="3" selected>3 Touren</option>
+          </select>
         </div>
-        <div class="einstellung">
-          <label for="t-ab2">Abfahrt Tour 2</label>
-          <input type="time" id="t-ab2" value="02:30">
+      </div>
+
+      <div class="tp-zeile">
+        <div class="bez"><b>Ladung messen in</b><small>K&ouml;rbe, Kisten, Rollwagen &hellip;</small></div>
+        <div class="wert"><input type="text" id="t-einheit" value="K&ouml;rbe" maxlength="14"></div>
+      </div>
+
+      <div class="tp-fahrzeug">
+        <b>Tour 1</b>
+        <div class="tp-paar">
+          <div><label>Abfahrt</label><input type="time" id="t-ab1" value="02:30">
+            <small>Uhrzeit, z.&nbsp;B. 02:30</small></div>
+          <div><label>Fahrzeug fasst</label>
+            <div class="einheit-feld">
+              <input type="text" id="t-kap1" inputmode="numeric" placeholder="egal"><span class="t-einheit">K&ouml;rbe</span>
+            </div>
+            <small>leer: keine Grenze</small></div>
         </div>
-        <div class="einstellung">
-          <label for="t-ab3">Abfahrt Tour 3</label>
-          <input type="time" id="t-ab3" value="02:30">
+      </div>
+      <div class="tp-fahrzeug">
+        <b>Tour 2</b>
+        <div class="tp-paar">
+          <div><label>Abfahrt</label><input type="time" id="t-ab2" value="02:30"></div>
+          <div><label>Fahrzeug fasst</label>
+            <div class="einheit-feld">
+              <input type="text" id="t-kap2" inputmode="numeric" placeholder="egal"><span class="t-einheit">K&ouml;rbe</span>
+            </div></div>
         </div>
-        <div class="einstellung">
-          <label for="t-zurueck">Zur&uuml;ck bis</label>
-          <input type="time" id="t-zurueck" value="07:00">
-          <small>in der Produktion</small>
+      </div>
+      <div class="tp-fahrzeug">
+        <b>Tour 3</b>
+        <div class="tp-paar">
+          <div><label>Abfahrt</label><input type="time" id="t-ab3" value="02:30"></div>
+          <div><label>Fahrzeug fasst</label>
+            <div class="einheit-feld">
+              <input type="text" id="t-kap3" inputmode="numeric" placeholder="egal"><span class="t-einheit">K&ouml;rbe</span>
+            </div></div>
         </div>
-        <div class="einstellung">
-          <label for="t-entladen">Entladen</label>
-          <div class="mit-einheit">
-            <input type="text" id="t-entladen" inputmode="numeric" value="6"><span>min</span>
-          </div>
-          <small>Standard je Stopp</small>
-        </div>
-        <div class="einstellung">
-          <label for="t-filialzeit">Filialen bis</label>
-          <input type="time" id="t-filialzeit" value="05:30">
-          <small>sp&auml;teste Ankunft</small>
-        </div>
-        <div class="einstellung">
-          <label for="t-maxstopps">Je Tour</label>
-          <div class="mit-einheit">
-            <input type="text" id="t-maxstopps" inputmode="numeric" placeholder="frei"><span>St.</span>
-          </div>
-          <small>h&ouml;chstens so viele Stopps</small>
+      </div>
+
+      <div class="tp-zeile">
+        <div class="bez"><b>Filialen beliefert bis</b><small>je Filiale &auml;nderbar</small></div>
+        <div class="wert"><input type="time" id="t-filialzeit" value="05:30"></div>
+      </div>
+      <div class="tp-zeile">
+        <div class="bez"><b>Zur&uuml;ck in der Produktion</b><small>sp&auml;testens</small></div>
+        <div class="wert"><input type="time" id="t-zurueck" value="07:00"></div>
+      </div>
+
+      <div class="tp-zeile">
+        <div class="bez"><b>Entladen je Stopp</b><small>Minuten, je Stopp &auml;nderbar</small></div>
+        <div class="wert einheit">
+          <input type="text" id="t-entladen" inputmode="numeric" value="6"><span>Min.</span>
         </div>
       </div>
     </div>
@@ -726,7 +847,6 @@
 
     <div class="werkzeuge" style="margin-top:14px">
       <button type="button" class="haupt" id="t-rechnen">Touren berechnen</button>
-      <button type="button" id="t-kunde">Lieferkunde anlegen</button>
       <button type="button" id="t-speichern">Vorlage speichern</button>
       <button type="button" id="t-pdf">Als PDF speichern</button>
     </div>
@@ -3557,10 +3677,11 @@
   function leereVorlage() {
     return {
       filialen: filialStamm.map(function (f) { return f.blatt; }),
-      kunden: [], entladen: {}, spaetestens: {},
+      kunden: [], entladen: {}, spaetestens: {}, menge: {}, festeTour: {},
       abfahrten: ['02:30', '02:30', '02:30'],
+      kapazitaeten: ['', '', ''], einheit: 'K\u00f6rbe',
       zurueckBis: '07:00', standardEntladen: 6, filialZeit: '05:30',
-      maxTouren: 3, maxStopps: '', plan: null
+      maxTouren: 3, plan: null
     };
   }
 
@@ -3609,21 +3730,55 @@
       var k = e.target.parentNode.parentNode;
       k.classList.toggle('gewaehlt', e.target.checked);
     });
-    el('t-auswahl').addEventListener('click', function (e) {
-      if (!e.target.hasAttribute || !e.target.hasAttribute('data-tp-weg')) return;
-      var k = e.target.closest ? e.target.closest('.tp-stopp') : null;
+    el('t-kunden-speichern').addEventListener('click', kundenSpeichern);
+    el('t-einheit').addEventListener('input', einheitZeigen);
+
+    el('t-plan').addEventListener('click', function (e) {
+      var b = e.target;
+      if (!b.getAttribute || !b.getAttribute('data-schiebe')) return;
+      tourSchieben(b.getAttribute('data-schiebe'),
+                   parseInt(b.getAttribute('data-tour'), 10),
+                   parseInt(b.getAttribute('data-pos'), 10),
+                   parseInt(b.getAttribute('data-ziel'), 10));
+    });
+
+    // Name und Anschrift oben geändert: unten beim Wochentag sofort mitziehen
+    el('t-kundenliste').addEventListener('input', function (e) {
+      if (!e.target.hasAttribute) return;
+      var name = e.target.hasAttribute('data-ks-name');
+      if (!name && !e.target.hasAttribute('data-ks-adresse')) return;
+      var karte = e.target.closest ? e.target.closest('[data-kunde]') : null;
+      if (!karte) return;
+      var unten = el('t-auswahl').querySelector(
+        '[data-stopp="k:' + karte.getAttribute('data-kunde') + '"] label.haken span');
+      if (!unten) return;
+      var wert = String(e.target.value || '').trim();
+      if (name) {
+        unten.childNodes[0].nodeValue = wert || 'Ohne Namen';
+      } else {
+        var klein = unten.querySelector('small');
+        if (klein) klein.textContent = wert || 'Anschrift fehlt – oben eintragen';
+      }
+    });
+
+    // Löschen gilt für alle Wochentage – darum steht es in der Übersicht oben
+    el('t-kundenliste').addEventListener('click', function (e) {
+      if (!e.target.hasAttribute || !e.target.hasAttribute('data-ks-weg')) return;
+      var k = e.target.closest ? e.target.closest('[data-kunde]') : null;
       if (!k) {
         k = e.target;
-        while (k && String(k.className || '').indexOf('tp-stopp') !== 0) k = k.parentNode;
+        while (k && (!k.getAttribute || !k.getAttribute('data-kunde'))) k = k.parentNode;
       }
       if (!k || !k.getAttribute) return;
-      if (!window.confirm('Diesen Lieferkunden wirklich löschen?')) return;
-      var id = k.getAttribute('data-stopp').slice(2);
+      var id = k.getAttribute('data-kunde');
+      var name = (lieferkunden.filter(function (x) { return x.id === id; })[0] || {}).name || '';
+      if (!window.confirm('„' + name + '“ wirklich löschen? ' +
+                          'Der Kunde fällt dann an allen Wochentagen weg.')) return;
       tourSammeln();
       lieferkunden = lieferkunden.filter(function (x) { return x.id !== id; });
       tourVorlage.kunden = (tourVorlage.kunden || []).filter(function (x) { return x !== id; });
       tourenZeichnen();
-      meldeTouren('Gelöscht. Zum Sichern auf „Vorlage speichern“ tippen.', 'ladend');
+      meldeTouren('Gelöscht. Zum Sichern auf „Lieferkunden speichern“ tippen.', 'ladend');
     });
 
     // Steht ein Routen-Schlüssel bereit?
@@ -3655,37 +3810,44 @@
     var v = tourVorlage || (tourVorlage = leereVorlage());
     v.entladen = v.entladen || {};
     v.spaetestens = v.spaetestens || {};
+    v.menge = v.menge || {};
+    v.festeTour = v.festeTour || {};
 
     el('t-anzahl').value = String(v.maxTouren || 3);
     el('t-ab1').value = (v.abfahrten || [])[0] || '02:30';
     el('t-ab2').value = (v.abfahrten || [])[1] || '02:30';
     el('t-ab3').value = (v.abfahrten || [])[2] || '02:30';
+    el('t-kap1').value = (v.kapazitaeten || [])[0] || '';
+    el('t-kap2').value = (v.kapazitaeten || [])[1] || '';
+    el('t-kap3').value = (v.kapazitaeten || [])[2] || '';
+    el('t-einheit').value = v.einheit || 'K\u00f6rbe';
+    einheitZeigen();
     el('t-zurueck').value = v.zurueckBis || '';
     el('t-entladen').value = v.standardEntladen == null ? 6 : v.standardEntladen;
     el('t-filialzeit').value = v.filialZeit || '';
-    el('t-maxstopps').value = v.maxStopps || '';
 
-    var html = '<div class="tp-gruppe">Filialen – wer wird ' + txt(tagName(tourTag)) +
+    kundenstammZeichnen();
+
+    var html = '<div class="tp-gruppe">Filialen \u2013 wer wird ' + txt(tagName(tourTag)) +
                's beliefert?</div>';
     if (!filialStamm.length) html += '<div class="leer">Es sind keine Filialen hinterlegt.</div>';
     filialStamm.forEach(function (f) {
-      var s = 'f:' + f.blatt;
-      html += stoppFeld(s, f.blatt, f.ort, filialAdresse(f),
-        (v.filialen || []).indexOf(f.blatt) >= 0,
-        v.entladen[s], v.spaetestens[s] || '', false);
+      var k = 'f:' + f.blatt;
+      html += filialFeld(k, f.blatt, f.ort, filialAdresse(f),
+        (v.filialen || []).indexOf(f.blatt) >= 0, v.entladen[k], v.spaetestens[k] || '',
+        v.menge[k], v.festeTour[k]);
     });
 
-    html += '<div class="tp-gruppe">Lieferkunden</div>';
+    html += '<div class="tp-gruppe">Lieferkunden \u2013 wer wird ' + txt(tagName(tourTag)) +
+            's beliefert?</div>';
     if (!lieferkunden.length) {
       html += '<div class="leer">Noch kein Lieferkunde angelegt.<br>' +
-              'Unten auf &bdquo;Lieferkunde anlegen&ldquo; tippen.</div>';
+              'Ganz oben unter &bdquo;Lieferkunden&ldquo; anlegen, dann erscheint er hier.</div>';
     }
-    lieferkunden.forEach(function (k) {
-      var s = 'k:' + k.id;
-      html += stoppFeld(s, k.name, '', k.adresse || '',
-        (v.kunden || []).indexOf(k.id) >= 0,
-        v.entladen[s] == null ? k.entladen : v.entladen[s],
-        v.spaetestens[s] || k.spaetestens || '', true);
+    lieferkunden.forEach(function (x) {
+      var k = 'k:' + x.id;
+      html += kundenFeld(k, x, (v.kunden || []).indexOf(x.id) >= 0,
+                         v.entladen[k], v.spaetestens[k] || '', v.menge[k], v.festeTour[k]);
     });
 
     el('t-auswahl').innerHTML = html;
@@ -3693,74 +3855,173 @@
     if (v.plan && v.plan.touren) { tourPlan = v.plan; tourPlanZeichnen(); }
   }
 
-  function stoppFeld(schluessel, name, zusatz, adresse, gewaehlt, entladen, spaet, istKunde) {
-    var zeitHinweis = istKunde ? 'Wann muss die Ware da sein?' : 'leer = Vorgabe oben';
+  // Die Übersicht ganz oben: hier werden die Kunden gepflegt
+  function kundenstammZeichnen() {
+    el('t-kundenzahl').textContent = lieferkunden.length
+      ? '(' + lieferkunden.length + ')' : '(noch keiner)';
+
+    if (!lieferkunden.length) {
+      el('t-kundenliste').innerHTML =
+        '<div class="leer">Noch kein Lieferkunde angelegt.<br>' +
+        'Unten auf &bdquo;Lieferkunde anlegen&ldquo; tippen.</div>';
+      el('t-kundenstamm').open = true;
+      return;
+    }
+
+    el('t-kundenliste').innerHTML = lieferkunden.map(function (x) {
+      return '<div class="tp-kunde" data-kunde="' + txt(x.id) + '">' +
+        '<div class="feld"><label>Name</label>' +
+          '<input type="text" data-ks-name value="' + txt(x.name || '') + '"></div>' +
+        '<div class="feld"><label>Anschrift</label>' +
+          '<input type="text" data-ks-adresse value="' + txt(x.adresse || '') +
+          '" placeholder="Stra\u00dfe Hausnummer, PLZ Ort"></div>' +
+        '<div class="tp-paar">' +
+          '<div><label>Entladen</label>' +
+            '<div class="einheit-feld">' +
+              '<input type="text" data-ks-entladen inputmode="numeric" placeholder="Vorgabe" value="' +
+              txt(x.entladen == null || x.entladen === '' ? '' : x.entladen) + '"><span>Min.</span>' +
+            '</div></div>' +
+          '<div><label>Da sein bis</label>' +
+            '<input type="time" data-ks-spaet value="' + txt(x.spaetestens || '') + '">' +
+            '<small>Uhrzeit, z.\u00a0B. 05:00</small></div>' +
+          '<div><label>Ladung</label>' +
+            '<div class="einheit-feld">' +
+              '<input type="text" data-ks-menge inputmode="decimal" placeholder="0" value="' +
+              txt(x.menge == null || x.menge === '' ? '' : x.menge) + '">' +
+              '<span class="t-einheit">' + txt(tourEinheit()) + '</span>' +
+            '</div>' +
+            '<small>\u00fcblich je Lieferung</small></div>' +
+        '</div>' +
+        '<div class="tp-weg">' +
+          '<button type="button" class="zeilenknopf loeschen" data-ks-weg>Diesen Kunden l\u00f6schen</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function filialFeld(schluessel, name, ort, adresse, gewaehlt, entladen, spaet, menge, feste) {
     return '<div class="tp-stopp' + (gewaehlt ? ' gewaehlt' : '') +
              '" data-stopp="' + txt(schluessel) + '">' +
       '<label class="haken"><input type="checkbox" data-tp-an' + (gewaehlt ? ' checked' : '') + '>' +
         '<span>' + txt(name) +
-        (zusatz && zusatz !== name
-          ? ' <small style="color:var(--grau);font-weight:400">' + txt(zusatz) + '</small>' : '') +
+        (ort && ort !== name
+          ? ' <small style="color:var(--grau);font-weight:400">' + txt(ort) + '</small>' : '') +
         '</span></label>' +
       '<div class="tp-detail">' +
-        (istKunde
-          ? '<label>Name</label><input type="text" data-tp-name value="' + txt(name) + '">' +
-            '<div style="height:9px"></div>'
-          : '') +
-        '<label>Anschrift</label>' +
-        '<input type="text" data-tp-adresse value="' + txt(adresse) +
-          '" placeholder="Straße Hausnummer, PLZ Ort">' +
-        '<div class="tp-zeiten">' +
-          '<div><label>Entladen</label>' +
-            '<input type="text" data-tp-entladen inputmode="numeric" placeholder="Vorgabe" value="' +
-            txt(entladen == null || entladen === '' ? '' : entladen) + '"></div>' +
-          '<div><label>Da sein bis</label>' +
-            '<input type="time" data-tp-spaet value="' + txt(spaet) + '"></div>' +
-          (istKunde
-            ? '<div><label>Entfernen</label>' +
-              '<button type="button" class="zeilenknopf loeschen" data-tp-weg>Kunde löschen</button></div>'
-            : '') +
-        '</div>' +
-        '<div class="aufteilung">' + zeitHinweis + '</div>' +
+        '<div class="feld"><label>Anschrift</label>' +
+          '<input type="text" data-tp-adresse value="' + txt(adresse) +
+          '" placeholder="Stra\u00dfe Hausnummer, PLZ Ort"></div>' +
+        zeitenPaar(entladen, spaet, menge, feste) +
       '</div></div>';
   }
 
-  // Alles, was in den Feldern steht, in die Vorlage übernehmen
+  function kundenFeld(schluessel, kunde, gewaehlt, entladen, spaet, menge, feste) {
+    return '<div class="tp-stopp' + (gewaehlt ? ' gewaehlt' : '') +
+             '" data-stopp="' + txt(schluessel) + '">' +
+      '<label class="haken"><input type="checkbox" data-tp-an' + (gewaehlt ? ' checked' : '') + '>' +
+        '<span>' + txt(kunde.name || 'Ohne Namen') +
+        '<small style="display:block;color:var(--grau);font-weight:400;margin-top:2px">' +
+        txt(kunde.adresse || 'Anschrift fehlt \u2013 oben eintragen') + '</small></span></label>' +
+      '<div class="tp-detail">' +
+        zeitenPaar(entladen, spaet, menge, feste) +
+        '<small class="tp-abweichung">Nur f\u00fcr ' + txt(tagName(tourTag)) +
+        '. Leer: es gelten die Angaben aus der \u00dcbersicht oben.</small>' +
+      '</div></div>';
+  }
+
+  function zeitenPaar(entladen, spaet, menge, feste) {
+    var gewaehlt = parseInt(feste, 10) || 0;
+    return '<div class="tp-paar">' +
+      '<div><label>Entladen</label>' +
+        '<div class="einheit-feld">' +
+          '<input type="text" data-tp-entladen inputmode="numeric" placeholder="Vorgabe" value="' +
+          txt(entladen == null || entladen === '' ? '' : entladen) + '"><span>Min.</span>' +
+        '</div>' +
+        '<small>Minuten zum Ausladen</small></div>' +
+      '<div><label>Da sein bis</label>' +
+        '<input type="time" data-tp-spaet value="' + txt(spaet) + '">' +
+        '<small>Uhrzeit, z.\u00a0B. 05:30</small></div>' +
+      '<div><label>Ladung</label>' +
+        '<div class="einheit-feld">' +
+          '<input type="text" data-tp-menge inputmode="decimal" placeholder="0" value="' +
+          txt(menge == null || menge === '' ? '' : menge) + '">' +
+          '<span class="t-einheit">' + txt(tourEinheit()) + '</span>' +
+        '</div>' +
+        '<small>wie viel dort hingeht</small></div>' +
+      '<div><label>Tour</label>' +
+        '<select data-tp-feste>' +
+          '<option value="">automatisch</option>' +
+          '<option value="1"' + (gewaehlt === 1 ? ' selected' : '') + '>immer Tour 1</option>' +
+          '<option value="2"' + (gewaehlt === 2 ? ' selected' : '') + '>immer Tour 2</option>' +
+          '<option value="3"' + (gewaehlt === 3 ? ' selected' : '') + '>immer Tour 3</option>' +
+        '</select>' +
+        '<small>sonst teilt die Software ein</small></div>' +
+    '</div>';
+  }
+
+  function tourEinheit() {
+    var e = el('t-einheit') ? String(el('t-einheit').value || '').trim() : '';
+    return e || 'K\u00f6rbe';
+  }
+
+  // Die selbst gew\u00e4hlte Einheit \u00fcberall anzeigen
+  function einheitZeigen() {
+    var name = tourEinheit();
+    Array.prototype.forEach.call(document.querySelectorAll('#bereich-touren .t-einheit'),
+      function (f) { f.textContent = name; });
+  }
+
+  // Alles, was in den Feldern steht, übernehmen: erst die Kunden, dann der Wochentag
+  function kundenstammSammeln() {
+    Array.prototype.forEach.call(el('t-kundenliste').querySelectorAll('[data-kunde]'), function (k) {
+      var id = k.getAttribute('data-kunde');
+      var ent = String(k.querySelector('[data-ks-entladen]').value || '').trim();
+      lieferkunden.forEach(function (x) {
+        if (x.id !== id) return;
+        x.name = String(k.querySelector('[data-ks-name]').value || '').trim() || x.name;
+        x.adresse = String(k.querySelector('[data-ks-adresse]').value || '').trim();
+        x.spaetestens = k.querySelector('[data-ks-spaet]').value || '';
+        x.entladen = ent === '' ? null : (parseFloat(ent.replace(',', '.')) || 0);
+        var m = String(k.querySelector('[data-ks-menge]').value || '').trim();
+        x.menge = m === '' ? null : (parseFloat(m.replace(',', '.')) || 0);
+      });
+    });
+  }
+
   function tourSammeln() {
+    kundenstammSammeln();
+
     var v = tourVorlage || (tourVorlage = leereVorlage());
     v.maxTouren = parseInt(el('t-anzahl').value, 10) || 3;
     v.abfahrten = [el('t-ab1').value, el('t-ab2').value, el('t-ab3').value];
+    v.kapazitaeten = ['t-kap1', 't-kap2', 't-kap3'].map(function (id) {
+      return String(el(id).value || '').replace(/[^\d.,]/g, '').replace(',', '.');
+    });
+    v.einheit = String(el('t-einheit').value || '').trim() || 'K\u00f6rbe';
     v.zurueckBis = el('t-zurueck').value;
     v.standardEntladen = parseFloat(String(el('t-entladen').value).replace(',', '.'));
     if (!isFinite(v.standardEntladen)) v.standardEntladen = 6;
     v.filialZeit = el('t-filialzeit').value;
-    v.maxStopps = String(el('t-maxstopps').value || '').replace(/\D/g, '');
     v.filialen = []; v.kunden = []; v.entladen = {}; v.spaetestens = {};
 
     Array.prototype.forEach.call(el('t-auswahl').querySelectorAll('.tp-stopp'), function (k) {
       var schluessel = k.getAttribute('data-stopp');
       var an = k.querySelector('[data-tp-an]').checked;
-      var adresse = String(k.querySelector('[data-tp-adresse]').value || '').trim();
       var ent = String(k.querySelector('[data-tp-entladen]').value || '').trim();
       var spaet = k.querySelector('[data-tp-spaet]').value;
-      var nameFeld = k.querySelector('[data-tp-name]');
+      var menge = String(k.querySelector('[data-tp-menge]').value || '').trim();
+      var feste = k.querySelector('[data-tp-feste]').value;
 
       if (schluessel.slice(0, 2) === 'f:') {
-        tourAdressen[schluessel.slice(2)] = adresse;
+        var feld = k.querySelector('[data-tp-adresse]');
+        if (feld) tourAdressen[schluessel.slice(2)] = String(feld.value || '').trim();
         if (an) v.filialen.push(schluessel.slice(2));
-      } else {
-        var id = schluessel.slice(2);
-        lieferkunden.forEach(function (x) {
-          if (x.id !== id) return;
-          if (nameFeld) x.name = String(nameFeld.value || '').trim() || x.name;
-          x.adresse = adresse;
-          x.spaetestens = spaet || '';
-          x.entladen = ent === '' ? null : (parseFloat(ent.replace(',', '.')) || 0);
-        });
-        if (an) v.kunden.push(id);
+      } else if (an) {
+        v.kunden.push(schluessel.slice(2));
       }
       if (ent !== '') v.entladen[schluessel] = parseFloat(ent.replace(',', '.')) || 0;
       if (spaet) v.spaetestens[schluessel] = spaet;
+      if (menge !== '') v.menge[schluessel] = parseFloat(menge.replace(',', '.')) || 0;
+      if (feste) v.festeTour[schluessel] = parseInt(feste, 10);
     });
   }
 
@@ -3774,7 +4035,8 @@
       liste.push({
         schluessel: s, art: 'filiale', name: f.blatt, adresse: filialAdresse(f),
         entladen: v.entladen[s] == null ? v.standardEntladen : v.entladen[s],
-        spaetestens: v.spaetestens[s] || v.filialZeit || ''
+        spaetestens: v.spaetestens[s] || v.filialZeit || '',
+        menge: v.menge[s] || 0, festeTour: v.festeTour[s] || 0
       });
     });
     lieferkunden.forEach(function (k) {
@@ -3782,9 +4044,12 @@
       var s = 'k:' + k.id;
       var ent = v.entladen[s];
       if (ent == null) ent = (k.entladen == null ? v.standardEntladen : k.entladen);
+      var menge = v.menge[s];
+      if (menge == null) menge = (k.menge == null ? 0 : k.menge);
       liste.push({
         schluessel: s, art: 'kunde', name: k.name, adresse: k.adresse || '',
-        entladen: ent, spaetestens: v.spaetestens[s] || k.spaetestens || ''
+        entladen: ent, spaetestens: v.spaetestens[s] || k.spaetestens || '',
+        menge: menge, festeTour: v.festeTour[s] || 0
       });
     });
     return liste;
@@ -3810,7 +4075,7 @@
       body: JSON.stringify({
         passwort: passwort, aktion: 'planen', stopps: stopps,
         abfahrten: tourVorlage.abfahrten, maxTouren: tourVorlage.maxTouren,
-        zurueckBis: tourVorlage.zurueckBis, maxStopps: tourVorlage.maxStopps
+        zurueckBis: tourVorlage.zurueckBis, kapazitaeten: tourVorlage.kapazitaeten
       })
     })
     .then(function (a) { return a.json(); })
@@ -3855,6 +4120,7 @@
 
     var stopps = 0;
     d.touren.forEach(function (t) { stopps += t.stopps.length; });
+    var einheit = tourEinheit();
 
     var html = '<h3 class="abschnitt">Tourenplan ' + txt(tagName(tourTag)) + '</h3>' +
       '<div class="schnell">' +
@@ -3864,40 +4130,160 @@
       '</div>';
 
     d.touren.forEach(function (t) {
-      html += '<div class="tp-tour">' +
+      var ladung = t.kapazitaet
+        ? zahlKurz(t.ladung) + '/' + zahlKurz(t.kapazitaet) + ' ' + txt(einheit)
+        : (t.ladung ? zahlKurz(t.ladung) + ' ' + txt(einheit) : '');
+
+      html += '<div class="tp-tour' + (t.ueberladen ? ' voll' : '') + '">' +
         '<div class="tp-tour-kopf"><b>Tour ' + t.nr + '</b><span>' +
-          'Abfahrt ' + t.abfahrt + ' · zurück ' + t.zurueck + ' · ' +
-          t.stopps.length + (t.stopps.length === 1 ? ' Stopp' : ' Stopps') + ' · ' +
-          stunden(t.dauer) +
+          'Abfahrt ' + t.abfahrt + ' \u00b7 zur\u00fcck ' + t.zurueck + ' \u00b7 ' +
+          t.stopps.length + (t.stopps.length === 1 ? ' Stopp' : ' Stopps') + ' \u00b7 ' +
+          stunden(t.dauer) + (ladung ? ' \u00b7 ' + ladung : '') +
+          (t.ueberladen ? ' \u00b7 zu voll!' : '') +
         '</span></div>' +
         '<div class="tp-halt heim"><div class="zeit">' + t.abfahrt + '</div>' +
           '<div class="wohin"><b>Abfahrt Produktion</b><small>' + txt(PRODUKTION) +
           '</small></div></div>';
 
-      t.stopps.forEach(function (s) {
-        html += '<div class="tp-halt' + (s.zuSpaet ? ' spaet' : '') + '">' +
-          '<div class="zeit">' + s.ankunft + '</div>' +
-          '<div class="wohin"><b>' + txt(s.name) + '</b><small>' + txt(s.adresse) + '<br>' +
-            s.fahrzeit + ' min Fahrt · ' +
-            s.entladen + ' min entladen · weiter ' + s.weiter +
-            (s.spaetestens ? ' · spätestens ' + s.spaetestens : '') +
-            (s.zuSpaet ? ' – das wird zu spät' : '') +
-          '</small></div></div>';
+      t.stopps.forEach(function (sp, pos) {
+        html += '<div class="tp-halt' + (sp.zuSpaet ? ' spaet' : '') + '">' +
+          '<div class="zeit">' + sp.ankunft + '</div>' +
+          '<div class="wohin"><b>' + txt(sp.name) + '</b><small>' + txt(sp.adresse) + '<br>' +
+            sp.fahrzeit + ' min Fahrt \u00b7 ' + sp.entladen + ' min entladen \u00b7 weiter ' +
+            sp.weiter + (sp.menge ? ' \u00b7 ' + zahlKurz(sp.menge) + ' ' + txt(einheit) : '') +
+            (sp.spaetestens ? ' \u00b7 sp\u00e4testens ' + sp.spaetestens : '') +
+            (sp.zuSpaet ? ' \u2013 das wird zu sp\u00e4t' : '') +
+          '</small>' + schiebeKnoepfe(t.nr, pos) + '</div></div>';
       });
 
       html += '<div class="tp-halt heim"><div class="zeit">' + t.zurueck + '</div>' +
-          '<div class="wohin"><b>Zurück in der Produktion</b><small>' +
-          t.rueckfahrt.fahrzeit + ' min Rückfahrt</small></div></div>' +
+          '<div class="wohin"><b>Zur\u00fcck in der Produktion</b><small>' +
+          t.rueckfahrt.fahrzeit + ' min R\u00fcckfahrt</small></div></div>' +
         '<div class="tp-knopfe">' +
-          '<a href="' + txt(appleLink(t)) + '" target="_blank" rel="noopener">In Apple Karten öffnen</a>' +
-          '<a href="' + txt(googleLink(t)) + '" target="_blank" rel="noopener">In Google Maps öffnen</a>' +
+          '<a href="' + txt(appleLink(t)) + '" target="_blank" rel="noopener">In Apple Karten \u00f6ffnen</a>' +
+          '<a href="' + txt(googleLink(t)) + '" target="_blank" rel="noopener">In Google Maps \u00f6ffnen</a>' +
         '</div>' +
         '<div class="tp-qr" data-qr="' + t.nr + '"></div>' +
       '</div>';
     });
 
+    html += '<div class="aufteilung" style="margin-top:-4px">Ein verschobener Stopp bleibt ' +
+            'f\u00fcr ' + txt(tagName(tourTag)) + ' auf seiner Tour \u2013 auch beim n\u00e4chsten ' +
+            'Berechnen. Zum Sichern auf \u201eVorlage speichern\u201c tippen.</div>';
+
     el('t-plan').innerHTML = html;
     d.touren.forEach(qrEinsetzen);
+  }
+
+  function zahlKurz(n) {
+    var z = Number(n || 0);
+    return (Math.round(z * 10) / 10).toString().replace('.', ',');
+  }
+
+  // Knöpfe zum Umsortieren: früher, später, auf ein anderes Fahrzeug
+  function schiebeKnoepfe(nr, pos) {
+    var k = '<div class="tp-schieben">' +
+      '<button type="button" data-schiebe="hoch" data-tour="' + nr + '" data-pos="' + pos +
+        '" title="fr\u00fcher">\u25b2</button>' +
+      '<button type="button" data-schiebe="runter" data-tour="' + nr + '" data-pos="' + pos +
+        '" title="sp\u00e4ter">\u25bc</button>';
+    var grenze = (tourVorlage && tourVorlage.maxTouren) || 3;
+    for (var z = 1; z <= grenze; z++) {
+      if (z === nr) continue;
+      k += '<button type="button" data-schiebe="tour" data-tour="' + nr + '" data-pos="' + pos +
+           '" data-ziel="' + z + '">\u2192 Tour ' + z + '</button>';
+    }
+    return k + '</div>';
+  }
+
+  // Umsortieren und die Zeiten neu rechnen lassen
+  function tourSchieben(art, nr, pos, ziel) {
+    if (!tourPlan) return;
+    var tour = tourPlan.touren.filter(function (t) { return t.nr === nr; })[0];
+    if (!tour) return;
+    var von = tour.stopps;
+    var sp = von[pos];
+    if (!sp) return;
+
+    if (art === 'hoch' || art === 'runter') {
+      var neu = art === 'hoch' ? pos - 1 : pos + 1;
+      if (neu < 0 || neu >= von.length) return;
+      von[pos] = von[neu];
+      von[neu] = sp;
+    } else {
+      var zielTour = tourPlan.touren.filter(function (t) { return t.nr === ziel; })[0];
+      if (!zielTour) {
+        zielTour = {
+          nr: ziel, fahrzeug: ziel,
+          abfahrt: (tourVorlage.abfahrten || [])[ziel - 1] || '02:30',
+          zurueck: '', dauer: 0, ladung: 0, kapazitaet: 0,
+          rueckfahrt: { fahrzeit: 0 }, stopps: []
+        };
+        tourPlan.touren.push(zielTour);
+        tourPlan.touren.sort(function (a, b) { return a.nr - b.nr; });
+      }
+      von.splice(pos, 1);
+      zielTour.stopps.push(sp);
+      tourPlan.touren = tourPlan.touren.filter(function (t) { return t.stopps.length; });
+
+      // Die Zuordnung merken, damit sie das nächste Berechnen übersteht
+      tourVorlage.festeTour = tourVorlage.festeTour || {};
+      tourVorlage.festeTour[sp.schluessel] = ziel;
+      var felder = el('t-auswahl').querySelectorAll('[data-tp-feste]');
+      Array.prototype.forEach.call(felder, function (f) {
+        var karte = f.parentNode.parentNode.parentNode;
+        if (karte && karte.getAttribute && karte.getAttribute('data-stopp') === sp.schluessel) {
+          f.value = String(ziel);
+        }
+      });
+    }
+
+    tourNachrechnen();
+  }
+
+  function tourNachrechnen() {
+    var touren = tourPlan.touren.map(function (t) {
+      return {
+        fahrzeug: t.nr,
+        abfahrt: (tourVorlage.abfahrten || [])[t.nr - 1] || t.abfahrt || '02:30',
+        stopps: t.stopps.map(function (sp) {
+          return {
+            schluessel: sp.schluessel, name: sp.name, adresse: sp.adresse, art: sp.art,
+            entladen: sp.entladen, menge: sp.menge, spaetestens: sp.spaetestens
+          };
+        })
+      };
+    });
+
+    meldeTouren('Zeiten werden neu gerechnet \u2026', 'ladend');
+    fetch(ENDPUNKT_TOUREN, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        passwort: passwort, aktion: 'nachrechnen', touren: touren,
+        abfahrten: tourVorlage.abfahrten, maxTouren: tourVorlage.maxTouren,
+        zurueckBis: tourVorlage.zurueckBis, kapazitaeten: tourVorlage.kapazitaeten
+      })
+    })
+    .then(function (a) { return a.json(); })
+    .then(function (d) {
+      if (!d || d.fehler) { meldeTouren((d && d.fehler) || 'Das hat nicht geklappt.', 'fehler'); return; }
+      tourPlan = d;
+      tourVorlage.plan = d;
+      tourPlanZeichnen();
+
+      var klagen = [];
+      d.touren.forEach(function (t) {
+        if (t.ueberladen) klagen.push('Tour ' + t.nr + ' ist jetzt zu voll');
+        t.stopps.forEach(function (sp) {
+          if (sp.zuSpaet) klagen.push(sp.name + ' w\u00e4re erst um ' + sp.ankunft + ' dran');
+        });
+      });
+      meldeTouren(klagen.length ? klagen.join(' \u00b7 ') : 'Verschoben, Zeiten stimmen wieder.',
+                  klagen.length ? 'fehler' : 'gut');
+    })
+    .catch(function (f) {
+      meldeTouren('Das Nachrechnen hat nicht geklappt: ' + f.message, 'fehler');
+    });
   }
 
   // Die Fahrt beginnt beim Fahrer, darum steht im Link kein Startpunkt:
@@ -3953,16 +4339,37 @@
     var id = 'k' + Date.now().toString(36) + Math.floor(Math.random() * 100);
     lieferkunden.push({ id: id, name: 'Neuer Lieferkunde', adresse: '', spaetestens: '', entladen: null });
     tourVorlage.kunden = (tourVorlage.kunden || []).concat([id]);
+    el('t-kundenstamm').open = true;
     tourenZeichnen();
 
-    var k = el('t-auswahl').querySelector('[data-stopp="k:' + id + '"]');
+    var k = el('t-kundenliste').querySelector('[data-kunde="' + id + '"]');
     if (k) {
       if (k.scrollIntoView) k.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      var feld = k.querySelector('[data-tp-name]');
+      var feld = k.querySelector('[data-ks-name]');
       if (feld) { feld.focus(); feld.select(); }
     }
-    meldeTouren('Name, Anschrift und Uhrzeit eintragen, dann auf „Vorlage speichern“ tippen.',
-                'ladend');
+    meldeTouren('Name und Anschrift eintragen, dann auf „Lieferkunden speichern“ tippen. ' +
+                'Für ' + tagName(tourTag) + ' ist der Kunde schon angehakt.', 'ladend');
+  }
+
+  // Die Kunden gelten für alle Wochentage, darum werden sie für sich gespeichert
+  function kundenSpeichern() {
+    tourSammeln();
+    var ohne = lieferkunden.filter(function (x) { return !x.adresse; }).length;
+    el('t-kunden-speichern').disabled = true;
+    meldeTouren('Wird gespeichert …', 'ladend');
+    ablageSchreiben('lieferkunden', 'alle', { kunden: lieferkunden }).then(function () {
+      el('t-kunden-speichern').disabled = false;
+      kundenstammZeichnen();
+      meldeTouren(ohne
+        ? 'Gespeichert. Bei ' + ohne + (ohne === 1 ? ' Kunden' : ' Kunden') +
+          ' fehlt noch die Anschrift.'
+        : lieferkunden.length + (lieferkunden.length === 1 ? ' Lieferkunde' : ' Lieferkunden') +
+          ' gespeichert.', ohne ? 'fehler' : 'gut');
+    }).catch(function (f) {
+      el('t-kunden-speichern').disabled = false;
+      meldeTouren('Das Speichern hat nicht geklappt: ' + f.message, 'fehler');
+    });
   }
 
   function tourSpeichern() {
@@ -3999,15 +4406,24 @@
       stopps + ' Stopps  ·  ' + stunden(d.gesamtMin) + ' gesamt' +
       (d.geschaetzt ? '   (Zeiten geschaetzt)' : ''));
 
+    var einheit = entziffert(tourEinheit());
+    var mitLadung = d.touren.filter(function (t) { return t.ladung > 0; }).length > 0;
+
     doc.autoTable({
       startY: 106,
-      head: [['Tour', 'Abfahrt', 'Zurück', 'Stopps', 'Dauer']],
+      head: [mitLadung
+        ? ['Tour', 'Abfahrt', 'Zurück', 'Stopps', 'Dauer', einheit]
+        : ['Tour', 'Abfahrt', 'Zurück', 'Stopps', 'Dauer']],
       body: d.touren.map(function (t) {
-        return ['Tour ' + t.nr, t.abfahrt, t.zurueck, String(t.stopps.length), stunden(t.dauer)];
+        var z = ['Tour ' + t.nr, t.abfahrt, t.zurueck, String(t.stopps.length), stunden(t.dauer)];
+        if (mitLadung) {
+          z.push(zahlKurz(t.ladung) + (t.kapazitaet ? '/' + zahlKurz(t.kapazitaet) : ''));
+        }
+        return z;
       }),
       styles: { font: 'helvetica', fontSize: 10, cellPadding: 6 },
       headStyles: { fillColor: [46, 42, 121], textColor: 255 },
-      columnStyles: { 3: { halign: 'right' } },
+      columnStyles: { 3: { halign: 'right' }, 5: { halign: 'right' } },
       margin: { left: 40, right: 40 }
     });
 
@@ -4021,29 +4437,32 @@
       doc.addPage();
       tourPdfKopf(doc, 'Tour ' + t.nr + '  ·  ' + tagName(tourTag),
         'Abfahrt ' + t.abfahrt + '   ·   zurueck ' + t.zurueck + '   ·   ' +
-        stunden(t.dauer));
+        stunden(t.dauer) +
+        (t.ladung ? '   ·   ' + zahlKurz(t.ladung) +
+          (t.kapazitaet ? '/' + zahlKurz(t.kapazitaet) : '') + ' ' + einheit : ''));
 
-      var zeilen = [['', t.abfahrt, 'Abfahrt Produktion', entziffert(PRODUKTION), '', '']];
+      var zeilen = [['', t.abfahrt, 'Abfahrt Produktion', entziffert(PRODUKTION), '', '', '']];
       t.stopps.forEach(function (s, i) {
         zeilen.push([
           String(i + 1), s.ankunft, entziffert(s.name), entziffert(s.adresse),
-          String(s.entladen), s.weiter
+          s.menge ? zahlKurz(s.menge) : '', String(s.entladen), s.weiter
         ]);
       });
-      zeilen.push(['', t.zurueck, 'Zurueck in der Produktion', entziffert(PRODUKTION), '', '']);
+      zeilen.push(['', t.zurueck, 'Zurueck in der Produktion', entziffert(PRODUKTION), '', '', '']);
 
       doc.autoTable({
         startY: 106,
-        head: [['Nr.', 'Ankunft', 'Stopp', 'Anschrift', 'Entl.', 'Weiter']],
+        head: [['Nr.', 'Ankunft', 'Stopp', 'Anschrift', einheit, 'Entl.', 'Weiter']],
         body: zeilen,
         styles: { font: 'helvetica', fontSize: 9.5, cellPadding: 5, valign: 'middle' },
         headStyles: { fillColor: [46, 42, 121], textColor: 255 },
         columnStyles: {
-          0: { cellWidth: 26, halign: 'center' },
-          1: { cellWidth: 50, fontStyle: 'bold' },
-          2: { cellWidth: 126 },
-          4: { cellWidth: 36, halign: 'right' },
-          5: { cellWidth: 46 }
+          0: { cellWidth: 24, halign: 'center' },
+          1: { cellWidth: 48, fontStyle: 'bold' },
+          2: { cellWidth: 112 },
+          4: { cellWidth: 40, halign: 'right' },
+          5: { cellWidth: 32, halign: 'right' },
+          6: { cellWidth: 44 }
         },
         margin: { left: 40, right: 40 }
       });
