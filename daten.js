@@ -27,7 +27,7 @@ function getStore(name) {
 }
 
 const BEREICHE = ['personal', 'kosten', 'dienstplan', 'kunden', 'gewinn',
-                  'touren', 'lieferkunden'];
+                  'touren', 'lieferkunden', 'artikel'];
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {

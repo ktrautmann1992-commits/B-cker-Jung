@@ -23,7 +23,7 @@
 const blobs = require('@netlify/blobs');
 const crypto = require('crypto');
 
-const PRODUKTION = 'Walther-Eucken-Straße 11, 66877 Ramstein-Miesenbach';
+const PRODUKTION = 'Walter-Eucken-Straße 11, 66877 Ramstein-Miesenbach';
 
 function getStore(name) {
   if (process.env.NETLIFY_BLOBS_CONTEXT) return blobs.getStore(name);
@@ -40,11 +40,13 @@ exports.handler = async function (event) {
   if (event.httpMethod === 'GET') {
     return antwort(200, {
       bereit: true,
-      routenschluessel: !!process.env.ORS_API_KEY,
+      routenschluessel: !!(process.env.GOOGLE_MAPS_API_KEY || process.env.ORS_API_KEY),
+      dienst: process.env.GOOGLE_MAPS_API_KEY ? 'google'
+            : (process.env.ORS_API_KEY ? 'ors' : 'schaetzung'),
       produktion: PRODUKTION,
-      hinweis: process.env.ORS_API_KEY
-        ? 'Echte Straßenrouten über OpenRouteService.'
-        : 'Noch kein ORS_API_KEY hinterlegt – es wird geschätzt.'
+      hinweis: process.env.GOOGLE_MAPS_API_KEY ? 'Echte Straßenrouten über Google Maps.'
+             : (process.env.ORS_API_KEY ? 'Echte Straßenrouten über OpenRouteService.'
+             : 'Noch kein Routenschlüssel hinterlegt – es wird geschätzt.')
     });
   }
   if (event.httpMethod !== 'POST') return antwort(405, { fehler: 'Nur POST' });
@@ -60,7 +62,9 @@ exports.handler = async function (event) {
   try {
     if (eingabe.aktion === 'lage') {
       return antwort(200, {
-        routenschluessel: !!process.env.ORS_API_KEY,
+        routenschluessel: !!(process.env.GOOGLE_MAPS_API_KEY || process.env.ORS_API_KEY),
+        dienst: process.env.GOOGLE_MAPS_API_KEY ? 'google'
+              : (process.env.ORS_API_KEY ? 'ors' : 'schaetzung'),
         produktion: PRODUKTION
       });
     }
@@ -184,7 +188,7 @@ function ausgeben(routen, abfahrten, kapazitaeten, gute, gitter, zusatz) {
   return antwort(200, Object.assign({
     produktion: PRODUKTION,
     quelle: gitter.quelle,
-    geschaetzt: gitter.quelle !== 'ors',
+    geschaetzt: gitter.quelle === 'schaetzung',
     touren: touren,
     gesamtMin: Math.round(gesamtMin),
     gerechnet: new Date().toISOString()
@@ -454,7 +458,8 @@ async function orteHolen(adressen) {
     const pfad = 'geo/' + crypto.createHash('sha1').update(a.toLowerCase()).digest('hex').slice(0, 24);
     let merk = null;
     if (ablage) { try { merk = await ablage.get(pfad, { type: 'json' }); } catch (e) { /* egal */ } }
-    if (merk && merk.lon && merk.lat) ergebnis[i] = merk;
+    const frisch = merk && merk.lon && merk.lat && !(merk.bis && Date.now() > merk.bis);
+    if (frisch) ergebnis[i] = merk;
     else offen.push({ i: i, adresse: a, pfad: pfad });
   }
 
@@ -466,21 +471,51 @@ async function orteHolen(adressen) {
       ergebnis[o.i] = punkt;
       if (ablage) { try { await ablage.setJSON(o.pfad, punkt); } catch (e) { /* egal */ } }
     }
-    if (n < offen.length - 1) await warten(process.env.ORS_API_KEY ? 120 : 1100);
+    const flott = process.env.GOOGLE_MAPS_API_KEY || process.env.ORS_API_KEY;
+    if (n < offen.length - 1) await warten(flott ? 120 : 1100);
   }
   return ergebnis;
 }
 
 async function suchen(adresse) {
-  const schluessel = process.env.ORS_API_KEY;
-
-  if (schluessel) {
-    const u = 'https://api.openrouteservice.org/geocode/search?api_key=' +
-              encodeURIComponent(schluessel) + '&text=' + encodeURIComponent(adresse) +
-              '&boundary.country=DE&size=1';
+  // Google Maps, sobald ein Schlüssel hinterlegt ist
+  const google = process.env.GOOGLE_MAPS_API_KEY;
+  if (google) {
+    const u = 'https://maps.googleapis.com/maps/api/geocode/json?region=de&language=de' +
+              '&address=' + encodeURIComponent(adresse) + '&key=' + encodeURIComponent(google);
     const a = await fetch(u, { headers: { Accept: 'application/json' } });
     if (a.ok) {
       const d = await a.json();
+      const t = (d.results || [])[0];
+      if (t && t.geometry && t.geometry.location) {
+        return {
+          lon: t.geometry.location.lng,
+          lat: t.geometry.location.lat,
+          label: t.formatted_address || adresse,
+          quelle: 'google',
+          // Googles Bedingungen erlauben das Zwischenspeichern für 30 Tage
+          bis: Date.now() + 30 * 24 * 3600 * 1000
+        };
+      }
+    }
+  }
+
+  const schluessel = process.env.ORS_API_KEY;
+
+  if (schluessel) {
+    // Je nach Alter des Zugangs wird der Schlüssel als Parameter oder im Kopf erwartet
+    const grund = 'https://api.openrouteservice.org/geocode/search?text=' +
+                  encodeURIComponent(adresse) + '&boundary.country=DE&size=1';
+    const versuche = [
+      { u: grund + '&api_key=' + encodeURIComponent(schluessel), k: { Accept: 'application/json' } },
+      { u: grund, k: { Accept: 'application/json', Authorization: schluessel } },
+      { u: grund, k: { Accept: 'application/json', Authorization: 'Bearer ' + schluessel } }
+    ];
+    for (let n = 0; n < versuche.length; n++) {
+      let a = null;
+      try { a = await fetch(versuche[n].u, { headers: versuche[n].k }); } catch (e) { continue; }
+      if (!a.ok) continue;
+      const d = await a.json().catch(function () { return {}; });
       const f = (d.features || [])[0];
       if (f && f.geometry && f.geometry.coordinates) {
         return {
@@ -489,6 +524,7 @@ async function suchen(adresse) {
           label: (f.properties && f.properties.label) || adresse
         };
       }
+      break;   // Der Zugang stimmt, nur diese Adresse war unbekannt
     }
   }
 
@@ -508,24 +544,73 @@ async function suchen(adresse) {
 // ---------------------------------------------------- Fahrzeiten und Wege
 
 async function gitterHolen(punkte) {
-  const schluessel = process.env.ORS_API_KEY;
+  const google = process.env.GOOGLE_MAPS_API_KEY;
 
-  if (schluessel && punkte.length <= 40) {
+  // Google rechnet je Paar aus Start und Ziel ab, darum nur bis 25 Punkte
+  if (google && punkte.length <= 25) {
     try {
-      const a = await fetch('https://api.openrouteservice.org/v2/matrix/driving-car', {
+      const wegpunkte = punkte.map(function (p) {
+        return { waypoint: { location: { latLng: { latitude: p.lat, longitude: p.lon } } } };
+      });
+      const a = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
         method: 'POST',
         headers: {
-          Authorization: schluessel,
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
+          'X-Goog-Api-Key': google,
+          'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,distanceMeters,condition',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          locations: punkte.map(function (p) { return [p.lon, p.lat]; }),
-          metrics: ['duration', 'distance'],
-          units: 'km'
+          origins: wegpunkte,
+          destinations: wegpunkte,
+          travelMode: 'DRIVE',
+          routingPreference: 'TRAFFIC_UNAWARE'   // nachts ohne Verkehr, das ist die günstige Stufe
         })
       });
       if (a.ok) {
+        const liste = await a.json();
+        if (Array.isArray(liste) && liste.length) {
+          const dauer = [], weg = [];
+          for (let i = 0; i < punkte.length; i++) {
+            dauer.push(new Array(punkte.length).fill(9999));
+            weg.push(new Array(punkte.length).fill(999));
+            dauer[i][i] = 0; weg[i][i] = 0;
+          }
+          liste.forEach(function (e) {
+            const i = e.originIndex, j = e.destinationIndex;
+            if (i == null || j == null) return;
+            if (e.condition && e.condition !== 'ROUTE_EXISTS') return;
+            const sek = parseFloat(String(e.duration || '0').replace('s', '')) || 0;
+            dauer[i][j] = i === j ? 0 : sek / 60;
+            weg[i][j] = i === j ? 0 : (e.distanceMeters || 0) / 1000;
+          });
+          return { quelle: 'google', dauer: dauer, weg: weg };
+        }
+      }
+    } catch (e) { /* dann der nächste Dienst */ }
+  }
+
+  const schluessel = process.env.ORS_API_KEY;
+
+  if (schluessel && punkte.length <= 40) {
+    const koerper = JSON.stringify({
+      locations: punkte.map(function (p) { return [p.lon, p.lat]; }),
+      metrics: ['duration', 'distance'],
+      units: 'km'
+    });
+    const koepfe = [
+      { Authorization: schluessel },
+      { Authorization: 'Bearer ' + schluessel }
+    ];
+    for (let n = 0; n < koepfe.length; n++) {
+      try {
+        const a = await fetch('https://api.openrouteservice.org/v2/matrix/driving-car', {
+          method: 'POST',
+          headers: Object.assign({
+            'Content-Type': 'application/json', Accept: 'application/json'
+          }, koepfe[n]),
+          body: koerper
+        });
+        if (!a.ok) continue;
         const d = await a.json();
         if (d.durations && d.distances) {
           return {
@@ -538,8 +623,8 @@ async function gitterHolen(punkte) {
             })
           };
         }
-      }
-    } catch (e) { /* dann wird geschätzt */ }
+      } catch (e) { /* nächster Weg */ }
+    }
   }
 
   // Schätzung: Luftlinie mit Zuschlag für den Straßenverlauf
